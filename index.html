@@ -3,14 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>Portal Conquest UI Overlay Scaffold</title>
-    <link rel="stylesheet" href="styles.css" />
+    <title>Portal Conquest</title>
+    <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
     <div id="app-shell" aria-live="polite">
-      <div id="game-container" aria-label="Phaser game canvas mount point">
-        <canvas id="phaser-canvas" aria-hidden="true"></canvas>
-      </div>
+      <div id="game-container" aria-label="Phaser game canvas mount point"></div>
 
       <div id="ui-overlay" data-mode="map" aria-label="Game UI overlay">
         <header class="hud" data-hud="map" aria-label="Map HUD">
@@ -64,6 +62,6 @@
       </div>
     </div>
 
-    <script src="ui-overlay.js"></script>
+    <script type="module" src="/src/main.js"></script>
   </body>
 </html>
