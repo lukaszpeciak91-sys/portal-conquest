@@ -1,5 +1,4 @@
 import Phaser from 'phaser';
-import { SCENES } from './SceneRouter';
 import { MenuScene } from './scenes/MenuScene';
 import { MapScene } from './scenes/MapScene';
 import { CastleScene } from './scenes/CastleScene';
@@ -16,5 +15,3 @@ const config = {
 
 // eslint-disable-next-line no-new
 new Phaser.Game(config);
-
-console.info(`Booting ${SCENES.MENU}`);
