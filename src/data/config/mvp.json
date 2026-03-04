@@ -1,0 +1,7 @@
+{
+  "portals": 3,
+  "beacons": 2,
+  "maxPartySize": 3,
+  "regions": 3,
+  "turnLimitEnabled": false
+}

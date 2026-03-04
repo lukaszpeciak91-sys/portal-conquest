@@ -1,0 +1,48 @@
+{
+  "id": "faction01",
+  "name": "Vanguard Accord",
+  "units": [
+    {
+      "unitId": "va-scout",
+      "displayName": "Accord Scout",
+      "stats": {
+        "hp": 10,
+        "atk": 4,
+        "spd": 7
+      },
+      "passive": {
+        "id": "trailblazer",
+        "name": "Trailblazer",
+        "description": "Gains momentum on unexplored routes."
+      }
+    },
+    {
+      "unitId": "va-guardian",
+      "displayName": "Accord Guardian",
+      "stats": {
+        "hp": 16,
+        "atk": 3,
+        "spd": 3
+      },
+      "passive": {
+        "id": "bulwark",
+        "name": "Bulwark",
+        "description": "Reduces incoming damage while holding formation."
+      }
+    },
+    {
+      "unitId": "va-arcanist",
+      "displayName": "Accord Arcanist",
+      "stats": {
+        "hp": 8,
+        "atk": 6,
+        "spd": 5
+      },
+      "passive": {
+        "id": "rift-spark",
+        "name": "Rift Spark",
+        "description": "Empowers attacks near active portals."
+      }
+    }
+  ]
+}

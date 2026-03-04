@@ -1,0 +1,61 @@
+{
+  "id": "map01",
+  "name": "Shattered Approach",
+  "biome": "highlands",
+  "nodes": [
+    {
+      "id": "n1",
+      "type": "castle",
+      "region": 1,
+      "x": 72,
+      "y": 160,
+      "connections": ["n2", "n3"],
+      "hidden": false
+    },
+    {
+      "id": "n2",
+      "type": "battle",
+      "region": 1,
+      "x": 152,
+      "y": 120,
+      "connections": ["n1", "n4"],
+      "hidden": false
+    },
+    {
+      "id": "n3",
+      "type": "resource",
+      "region": 1,
+      "x": 152,
+      "y": 208,
+      "connections": ["n1", "n5"],
+      "hidden": true
+    },
+    {
+      "id": "n4",
+      "type": "portal",
+      "region": 2,
+      "x": 256,
+      "y": 96,
+      "connections": ["n2", "n6"],
+      "hidden": false
+    },
+    {
+      "id": "n5",
+      "type": "event",
+      "region": 2,
+      "x": 256,
+      "y": 224,
+      "connections": ["n3", "n6"],
+      "hidden": false
+    },
+    {
+      "id": "n6",
+      "type": "beacon",
+      "region": 3,
+      "x": 372,
+      "y": 160,
+      "connections": ["n4", "n5"],
+      "hidden": true
+    }
+  ]
+}
