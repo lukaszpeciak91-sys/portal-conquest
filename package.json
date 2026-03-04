@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "gen:map01": "node scripts/gen_map_layout.js --map map01"
   },
   "dependencies": {
     "phaser": "^3.90.0"

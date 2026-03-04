@@ -2,60 +2,297 @@
   "id": "map01",
   "name": "Shattered Approach",
   "biome": "highlands",
+  "generation": {
+    "seed": "map01",
+    "nodeCount": 20,
+    "bounds": {
+      "width": 448,
+      "height": 320,
+      "marginX": 48,
+      "marginY": 42
+    },
+    "layout": {
+      "columns": 5,
+      "rows": 6,
+      "jitterX": 12,
+      "jitterY": 10,
+      "minSpacing": 36
+    },
+    "typeBudget": {
+      "castle": 1,
+      "battle": 8,
+      "portal": 3,
+      "event": 3,
+      "resource": 3,
+      "beacon": 2
+    }
+  },
   "nodes": [
     {
       "id": "n1",
       "type": "castle",
       "region": 1,
-      "x": 72,
-      "y": 160,
-      "connections": ["n2", "n3"],
+      "x": 217,
+      "y": 42,
+      "connections": [
+        "n2",
+        "n3",
+        "n4",
+        "n5",
+        "n6",
+        "n9"
+      ],
       "hidden": false
     },
     {
       "id": "n2",
       "type": "battle",
-      "region": 1,
-      "x": 152,
-      "y": 120,
-      "connections": ["n1", "n4"],
+      "region": 2,
+      "x": 48,
+      "y": 97,
+      "connections": [
+        "n1",
+        "n7"
+      ],
       "hidden": false
     },
     {
       "id": "n3",
-      "type": "resource",
-      "region": 1,
-      "x": 152,
-      "y": 208,
-      "connections": ["n1", "n5"],
-      "hidden": true
+      "type": "battle",
+      "region": 2,
+      "x": 125,
+      "y": 96,
+      "connections": [
+        "n1",
+        "n8"
+      ],
+      "hidden": false
     },
     {
       "id": "n4",
-      "type": "portal",
+      "type": "battle",
       "region": 2,
-      "x": 256,
-      "y": 96,
-      "connections": ["n2", "n6"],
+      "x": 229,
+      "y": 80,
+      "connections": [
+        "n1",
+        "n9"
+      ],
       "hidden": false
     },
     {
       "id": "n5",
-      "type": "event",
+      "type": "battle",
       "region": 2,
-      "x": 256,
-      "y": 224,
-      "connections": ["n3", "n6"],
+      "x": 311,
+      "y": 83,
+      "connections": [
+        "n1",
+        "n10",
+        "n15"
+      ],
       "hidden": false
     },
     {
       "id": "n6",
+      "type": "battle",
+      "region": 2,
+      "x": 400,
+      "y": 89,
+      "connections": [
+        "n1",
+        "n11"
+      ],
+      "hidden": false
+    },
+    {
+      "id": "n7",
+      "type": "battle",
+      "region": 3,
+      "x": 58,
+      "y": 143,
+      "connections": [
+        "n2",
+        "n12"
+      ],
+      "hidden": false
+    },
+    {
+      "id": "n8",
+      "type": "event",
+      "region": 3,
+      "x": 141,
+      "y": 146,
+      "connections": [
+        "n3",
+        "n13"
+      ],
+      "hidden": false
+    },
+    {
+      "id": "n9",
+      "type": "portal",
+      "region": 3,
+      "x": 233,
+      "y": 140,
+      "connections": [
+        "n1",
+        "n4",
+        "n14"
+      ],
+      "hidden": false
+    },
+    {
+      "id": "n10",
+      "type": "resource",
+      "region": 3,
+      "x": 316,
+      "y": 144,
+      "connections": [
+        "n5",
+        "n15"
+      ],
+      "hidden": false
+    },
+    {
+      "id": "n11",
       "type": "beacon",
       "region": 3,
-      "x": 372,
-      "y": 160,
-      "connections": ["n4", "n5"],
-      "hidden": true
+      "x": 390,
+      "y": 130,
+      "connections": [
+        "n6",
+        "n12"
+      ],
+      "hidden": false
+    },
+    {
+      "id": "n12",
+      "type": "battle",
+      "region": 4,
+      "x": 54,
+      "y": 183,
+      "connections": [
+        "n7",
+        "n11",
+        "n16"
+      ],
+      "hidden": false
+    },
+    {
+      "id": "n13",
+      "type": "event",
+      "region": 4,
+      "x": 126,
+      "y": 180,
+      "connections": [
+        "n8",
+        "n17"
+      ],
+      "hidden": false
+    },
+    {
+      "id": "n14",
+      "type": "portal",
+      "region": 4,
+      "x": 222,
+      "y": 186,
+      "connections": [
+        "n9",
+        "n18",
+        "n20"
+      ],
+      "hidden": false
+    },
+    {
+      "id": "n15",
+      "type": "resource",
+      "region": 4,
+      "x": 304,
+      "y": 193,
+      "connections": [
+        "n5",
+        "n10",
+        "n19"
+      ],
+      "hidden": false
+    },
+    {
+      "id": "n16",
+      "type": "battle",
+      "region": 5,
+      "x": 48,
+      "y": 239,
+      "connections": [
+        "n12",
+        "n20"
+      ],
+      "hidden": false
+    },
+    {
+      "id": "n17",
+      "type": "beacon",
+      "region": 5,
+      "x": 129,
+      "y": 241,
+      "connections": [
+        "n13",
+        "n20"
+      ],
+      "hidden": false
+    },
+    {
+      "id": "n18",
+      "type": "event",
+      "region": 5,
+      "x": 224,
+      "y": 234,
+      "connections": [
+        "n14",
+        "n20"
+      ],
+      "hidden": false
+    },
+    {
+      "id": "n19",
+      "type": "portal",
+      "region": 5,
+      "x": 400,
+      "y": 229,
+      "connections": [
+        "n15",
+        "n20"
+      ],
+      "hidden": false
+    },
+    {
+      "id": "n20",
+      "type": "resource",
+      "region": 6,
+      "x": 228,
+      "y": 278,
+      "connections": [
+        "n14",
+        "n16",
+        "n17",
+        "n18",
+        "n19"
+      ],
+      "hidden": false
     }
-  ]
+  ],
+  "nodeTypeCounts": {
+    "castle": 1,
+    "battle": 8,
+    "event": 3,
+    "portal": 3,
+    "resource": 3,
+    "beacon": 2
+  },
+  "generationMeta": {
+    "seed": "map01",
+    "nodeCount": 20,
+    "edgeCount": 26,
+    "highDegreeNodeCount": 7
+  }
 }
