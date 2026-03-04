@@ -4,12 +4,14 @@ import { MapScene } from './scenes/MapScene';
 import { CastleScene } from './scenes/CastleScene';
 import { BattleScene } from './scenes/BattleScene';
 
+import '../ui-overlay.js';
+
 const config = {
   type: Phaser.AUTO,
   width: 480,
   height: 320,
   backgroundColor: '#10131a',
-  parent: 'game',
+  parent: 'game-container',
   scene: [MenuScene, MapScene, CastleScene, BattleScene],
 };
 
