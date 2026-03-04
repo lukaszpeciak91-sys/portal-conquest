@@ -3,6 +3,7 @@ import { SCENES, SceneRouter } from '../SceneRouter';
 import { addButton, addDebugHeader } from './ui';
 import { GameState } from '../state/GameState';
 import { syncSceneState } from '../state/sceneState';
+import map01FallbackUrl from '../data/maps/map01.png';
 
 const NODE_TYPES = {
   CASTLE: 'castle',
@@ -25,7 +26,9 @@ export class MapScene extends Phaser.Scene {
   }
 
   preload() {
-    this.load.image('map01-bg', '/assets/maps/map01.png');
+    const baseUrl = import.meta.env.BASE_URL ?? '/';
+    this.load.image('map01-bg', `${baseUrl}assets/maps/map01.png`);
+    this.load.image('map01-bg-fallback', map01FallbackUrl);
   }
 
   create() {
@@ -91,7 +94,11 @@ export class MapScene extends Phaser.Scene {
   drawMapBackground(viewportWidth, viewportHeight) {
     const fallbackBounds = { x: 0, y: 0, width: viewportWidth, height: viewportHeight, scale: 1 };
 
-    if (!this.textures.exists('map01-bg')) {
+    const textureKey = this.textures.exists('map01-bg')
+      ? 'map01-bg'
+      : (this.textures.exists('map01-bg-fallback') ? 'map01-bg-fallback' : null);
+
+    if (!textureKey) {
       this.add.rectangle(viewportWidth / 2, viewportHeight / 2, viewportWidth, viewportHeight, 0x1b2334).setDepth(0);
       this.add.text(viewportWidth / 2, viewportHeight / 2, 'Missing map01.png', {
         color: '#ffffff',
@@ -103,7 +110,9 @@ export class MapScene extends Phaser.Scene {
       return fallbackBounds;
     }
 
-    const texture = this.textures.get('map01-bg').getSourceImage();
+    this.mapTextureKey = textureKey;
+
+    const texture = this.textures.get(textureKey).getSourceImage();
     const imageWidth = texture.width;
     const imageHeight = texture.height;
     const scale = Math.min(viewportWidth / imageWidth, viewportHeight / imageHeight);
@@ -112,7 +121,7 @@ export class MapScene extends Phaser.Scene {
     const x = (viewportWidth - width) / 2;
     const y = (viewportHeight - height) / 2;
 
-    this.add.image(viewportWidth / 2, viewportHeight / 2, 'map01-bg')
+    this.add.image(viewportWidth / 2, viewportHeight / 2, textureKey)
       .setDisplaySize(width, height)
       .setDepth(0);
 
@@ -120,8 +129,8 @@ export class MapScene extends Phaser.Scene {
   }
 
   mapToScreen(x, y) {
-    const source = this.textures.exists('map01-bg')
-      ? this.textures.get('map01-bg').getSourceImage()
+    const source = this.mapTextureKey
+      ? this.textures.get(this.mapTextureKey).getSourceImage()
       : { width: this.mapBounds.width, height: this.mapBounds.height };
 
     return {
