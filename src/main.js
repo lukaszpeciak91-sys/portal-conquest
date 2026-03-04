@@ -24,5 +24,4 @@ const config = {
   scene: [MenuScene, MapScene, CastleScene, BattleScene],
 };
 
-// eslint-disable-next-line no-new
-new Phaser.Game(config);
+window.__PORTAL_GAME = new Phaser.Game(config);

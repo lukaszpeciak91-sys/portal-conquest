@@ -1,38 +1,106 @@
 (() => {
   const overlay = document.getElementById('ui-overlay');
-  const huds = Array.from(document.querySelectorAll('.hud[data-hud]'));
-  const sheet = document.getElementById('bottom-sheet');
-  const sheetTitle = document.getElementById('sheet-title');
-  const mapHudChips = Array.from(document.querySelectorAll('.hud[data-hud="map"] .hud__group:last-child .hud__chip'));
+  const panel = document.getElementById('context-panel');
+  const statusChips = Array.from(document.querySelectorAll('.status-chip'));
+  const modeButtons = Array.from(document.querySelectorAll('.mode-btn[data-mode]'));
+  const panelContents = Array.from(document.querySelectorAll('[data-panel-content]'));
 
-  function syncViewportHeight() {
-    document.documentElement.style.setProperty('--page-height', `${window.innerHeight}px`);
-  }
+  const modeToScene = {
+    map: 'MapScene',
+    battle: 'BattleScene',
+    castle: 'CastleScene',
+  };
 
-  function setMode(mode) {
-    overlay.dataset.mode = mode;
-    huds.forEach((hud) => {
-      hud.hidden = hud.dataset.hud !== mode;
+  const state = {
+    activeMode: 'map',
+    panelOpen: false,
+    panelView: 'context',
+  };
+
+  function renderPanelContent() {
+    panelContents.forEach((section) => {
+      const key = section.dataset.panelContent;
+      if (state.panelView === 'objectives') {
+        section.hidden = key !== 'objectives';
+        return;
+      }
+
+      section.hidden = key !== state.activeMode;
     });
 
-    const modeLabel = mode.charAt(0).toUpperCase() + mode.slice(1);
-    sheetTitle.textContent = `${modeLabel} panel`;
+    panel.dataset.view = state.panelView;
   }
 
-  function setSheetOpen(isOpen) {
-    sheet.dataset.open = String(isOpen);
-    sheet.setAttribute('aria-hidden', String(!isOpen));
+  function setPanelOpen(isOpen) {
+    state.panelOpen = isOpen;
+    panel.dataset.open = String(isOpen);
+    panel.setAttribute('aria-hidden', String(!isOpen));
   }
 
-  function updateMapHud({ turn, hp, level }) {
-    if (mapHudChips[0]) {
-      mapHudChips[0].textContent = `Turn: ${turn}`;
+  function routeToMode(mode) {
+    const game = window.__PORTAL_GAME;
+    const sceneKey = modeToScene[mode];
+
+    if (!game?.scene || !sceneKey) {
+      console.log(`[UI] scene routing unavailable for ${mode}`);
+      return;
     }
 
-    if (mapHudChips[1]) {
-      mapHudChips[1].textContent = `HP: ${hp} | Lv: ${level}`;
+    const target = game.scene.getScene(sceneKey);
+    if (!target) {
+      console.log(`[UI] scene missing: ${sceneKey}`);
+      return;
+    }
+
+    game.scene.start(sceneKey);
+  }
+
+  function setMode(mode, options = {}) {
+    if (!modeToScene[mode]) {
+      return;
+    }
+
+    state.activeMode = mode;
+    overlay.dataset.mode = mode;
+
+    modeButtons.forEach((button) => {
+      button.classList.toggle('is-active', button.dataset.mode === mode);
+    });
+
+    if (!options.skipRouting) {
+      routeToMode(mode);
+    }
+
+    if (state.panelView === 'context') {
+      renderPanelContent();
     }
   }
+
+  function setPanelView(view) {
+    state.panelView = view;
+    renderPanelContent();
+  }
+
+  function updateTopBar({ turn, hp, level }) {
+    if (statusChips[0]) statusChips[0].textContent = `Turn ${turn}`;
+    if (statusChips[1]) statusChips[1].textContent = `HP ${hp}`;
+    if (statusChips[2]) statusChips[2].textContent = `Lv ${level}`;
+  }
+
+  const contextActionLabels = {
+    map: {
+      inspect: '[UI] Map Inspect',
+      move: '[UI] Map Move',
+    },
+    battle: {
+      skills: '[UI] Battle Skills',
+      'end-turn': '[UI] Battle End Turn',
+    },
+    castle: {
+      build: '[UI] Castle Build',
+      leave: '[UI] Castle Leave',
+    },
+  };
 
   function bindActions() {
     document.body.addEventListener('click', (event) => {
@@ -40,27 +108,54 @@
       if (!trigger) return;
 
       const action = trigger.dataset.action;
-      if (action === 'open-sheet') setSheetOpen(true);
-      if (action === 'close-sheet') setSheetOpen(false);
       if (action === 'set-mode' && trigger.dataset.mode) {
         setMode(trigger.dataset.mode);
+        setPanelView('context');
+        return;
+      }
+
+      if (action === 'open-panel') {
+        const panelView = trigger.dataset.panelView ?? 'context';
+        setPanelView(panelView);
+        setPanelOpen(true);
+        return;
+      }
+
+      if (action === 'close-panel') {
+        setPanelOpen(false);
+        return;
+      }
+
+      if (action === 'context') {
+        const contextAction = trigger.dataset.contextAction;
+        const message = contextActionLabels[state.activeMode]?.[contextAction] ?? `[UI] ${state.activeMode} ${contextAction}`;
+        console.log(message);
+        return;
+      }
+
+      if (action === 'settings') {
+        console.log('[UI] Settings');
       }
     });
   }
 
-  window.addEventListener('resize', syncViewportHeight);
-
-  syncViewportHeight();
   bindActions();
-  setMode('map');
-  setSheetOpen(false);
-
-  updateMapHud({ turn: 0, hp: 100, level: 1 });
+  setMode('map', { skipRouting: true });
+  setPanelView('context');
+  setPanelOpen(false);
+  updateTopBar({ turn: 0, hp: 100, level: 1 });
 
   window.gameUi = {
-    setMode,
-    openSheet: () => setSheetOpen(true),
-    closeSheet: () => setSheetOpen(false),
-    updateMapHud,
+    setMode: (mode) => setMode(mode, { skipRouting: true }),
+    openSheet: () => {
+      setPanelView('context');
+      setPanelOpen(true);
+    },
+    closeSheet: () => setPanelOpen(false),
+    openObjectives: () => {
+      setPanelView('objectives');
+      setPanelOpen(true);
+    },
+    updateMapHud: updateTopBar,
   };
 })();

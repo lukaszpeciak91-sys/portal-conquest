@@ -14,7 +14,7 @@ export class CastleScene extends Phaser.Scene {
     addDebugHeader(this, 'Castle placeholder', 'No castle systems yet');
 
     if (typeof window !== 'undefined' && window.gameUi?.setMode) {
-      window.gameUi.setMode('map');
+      window.gameUi.setMode('castle');
     }
 
     addButton(this, 220, 170, 'Back to Map', () => this.router.goTo(SCENES.MAP));
