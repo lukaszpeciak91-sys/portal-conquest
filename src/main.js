@@ -1,34 +1,20 @@
 import Phaser from 'phaser';
+import { SCENES } from './SceneRouter';
+import { MenuScene } from './scenes/MenuScene';
+import { MapScene } from './scenes/MapScene';
+import { CastleScene } from './scenes/CastleScene';
+import { BattleScene } from './scenes/BattleScene';
 
-class BootScene extends Phaser.Scene {
-  constructor() {
-    super('BootScene');
-  }
-
-  create() {
-    this.cameras.main.setBackgroundColor('#0b1020');
-    this.add
-      .text(this.scale.width / 2, this.scale.height / 2, 'Portal Conquest\nSkeleton Ready', {
-        fontFamily: 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif',
-        fontSize: '24px',
-        color: '#f8fafc',
-        align: 'center'
-      })
-      .setOrigin(0.5);
-  }
-}
-
-const gameConfig = {
+const config = {
   type: Phaser.AUTO,
-  parent: 'app',
-  backgroundColor: '#0b1020',
-  scale: {
-    mode: Phaser.Scale.FIT,
-    autoCenter: Phaser.Scale.CENTER_BOTH,
-    width: 1080,
-    height: 1920
-  },
-  scene: [BootScene]
+  width: 480,
+  height: 320,
+  backgroundColor: '#10131a',
+  parent: 'game',
+  scene: [MenuScene, MapScene, CastleScene, BattleScene],
 };
 
-new Phaser.Game(gameConfig);
+// eslint-disable-next-line no-new
+new Phaser.Game(config);
+
+console.info(`Booting ${SCENES.MENU}`);
