@@ -1,5 +1,10 @@
 # Portal Conquest
 
+🎮 **Play the game (GitHub Pages):**  
+https://lukaszpeciak91-sys.github.io/portal-conquest/
+
+Prototype strategy map exploration game built with Phaser.
+
 Task 1 bootstrap for a GitHub Pages-ready Phaser prototype.
 
 ## Scripts
