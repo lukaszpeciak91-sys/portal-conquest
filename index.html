@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Portal Conquest UI Overlay Scaffold</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div id="app-shell" aria-live="polite">
+      <div id="game-container" aria-label="Phaser game canvas mount point">
+        <canvas id="phaser-canvas" aria-hidden="true"></canvas>
+      </div>
+
+      <div id="ui-overlay" data-mode="map" aria-label="Game UI overlay">
+        <header class="hud" data-hud="map" aria-label="Map HUD">
+          <div class="hud__group">
+            <button class="tap-target" type="button" data-action="open-sheet">Objectives</button>
+            <button class="tap-target" type="button" data-action="set-mode" data-mode="battle">Battle Mode</button>
+          </div>
+          <div class="hud__group">
+            <span class="hud__chip">Gold: 250</span>
+            <span class="hud__chip">Mana: 40</span>
+          </div>
+        </header>
+
+        <header class="hud" data-hud="battle" aria-label="Battle HUD" hidden>
+          <div class="hud__group">
+            <button class="tap-target" type="button" data-action="open-sheet">Skills</button>
+            <button class="tap-target" type="button" data-action="set-mode" data-mode="castle">Castle Mode</button>
+          </div>
+          <div class="hud__group">
+            <span class="hud__chip">Round 2</span>
+            <span class="hud__chip">Initiative</span>
+          </div>
+        </header>
+
+        <header class="hud" data-hud="castle" aria-label="Castle HUD" hidden>
+          <div class="hud__group">
+            <button class="tap-target" type="button" data-action="open-sheet">Buildings</button>
+            <button class="tap-target" type="button" data-action="set-mode" data-mode="map">Map Mode</button>
+          </div>
+          <div class="hud__group">
+            <span class="hud__chip">Castle: Level 3</span>
+            <span class="hud__chip">Queue: 1</span>
+          </div>
+        </header>
+
+        <section id="bottom-sheet" aria-label="Bottom sheet panel" aria-hidden="true">
+          <div class="sheet__handle" aria-hidden="true"></div>
+          <div class="sheet__content">
+            <h2 id="sheet-title">Panel</h2>
+            <p>
+              This container is scene-aware and touch-friendly. Connect real scene content here later.
+            </p>
+            <div class="sheet__actions">
+              <button class="tap-target" type="button" data-action="set-mode" data-mode="map">Map HUD</button>
+              <button class="tap-target" type="button" data-action="set-mode" data-mode="battle">Battle HUD</button>
+              <button class="tap-target" type="button" data-action="set-mode" data-mode="castle">Castle Panel</button>
+              <button class="tap-target tap-target--primary" type="button" data-action="close-sheet">Close</button>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <script src="ui-overlay.js"></script>
+  </body>
+</html>
