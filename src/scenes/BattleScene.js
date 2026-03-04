@@ -15,7 +15,7 @@ export class BattleScene extends Phaser.Scene {
     addDebugHeader(this, 'Battle placeholder', 'No combat system yet');
 
     if (typeof window !== 'undefined' && window.gameUi?.setMode) {
-      window.gameUi.setMode('map');
+      window.gameUi.setMode('battle');
     }
 
     if (GameState.pendingBattleKind === 'portal') {
