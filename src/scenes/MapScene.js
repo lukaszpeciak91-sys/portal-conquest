@@ -4,6 +4,15 @@ import { addButton, addDebugHeader } from './ui';
 import { GameState } from '../state/GameState';
 import { syncSceneState } from '../state/sceneState';
 
+const NODE_TYPES = {
+  CASTLE: 'castle',
+  BATTLE: 'battle',
+  PORTAL: 'portal',
+  EVENT: 'event',
+  RESOURCE: 'resource',
+  BEACON: 'beacon',
+};
+
 const HERO_HP_STUB = 100;
 const HERO_LEVEL_STUB = 1;
 
@@ -73,6 +82,10 @@ export class MapScene extends Phaser.Scene {
     this.input.keyboard.on('keydown-M', () => this.router.goTo(SCENES.MAP));
     this.input.keyboard.on('keydown-C', () => this.router.goTo(SCENES.CASTLE));
     this.input.keyboard.on('keydown-B', () => this.router.goTo(SCENES.BATTLE));
+
+    if (typeof window !== 'undefined' && window.gameUi?.setMode) {
+      window.gameUi.setMode('map');
+    }
   }
 
   drawMapBackground(viewportWidth, viewportHeight) {
@@ -199,8 +212,102 @@ export class MapScene extends Phaser.Scene {
 
         this.showFeedback(`Moved to ${targetNode.id}`);
         console.log(`[MapScene] Move complete: currentNode=${GameState.currentNodeId}, turn=${GameState.turnCounter}`);
+        this.handleNodeArrival(targetNode);
       },
     });
+  }
+
+  handleNodeArrival(node) {
+    if (!node) {
+      return;
+    }
+
+    switch (node.type) {
+      case NODE_TYPES.CASTLE:
+        this.router.goTo(SCENES.CASTLE);
+        return;
+      case NODE_TYPES.BATTLE:
+        GameState.pendingBattleKind = null;
+        this.router.goTo(SCENES.BATTLE);
+        return;
+      case NODE_TYPES.PORTAL:
+        GameState.pendingBattleKind = 'portal';
+        this.router.goTo(SCENES.BATTLE);
+        return;
+      case NODE_TYPES.EVENT:
+        this.showStubOverlay('Event (stub)');
+        return;
+      case NODE_TYPES.RESOURCE:
+        this.showStubOverlay('Resource gained (stub)');
+        console.log(`[MapScene] Resource stub at ${node.id}: would grant rewards here.`);
+        return;
+      case NODE_TYPES.BEACON:
+        if (GameState.usedBeacons.has(node.id)) {
+          this.showStubOverlay('Beacon depleted');
+          return;
+        }
+
+        GameState.usedBeacons.add(node.id);
+        this.showStubOverlay('Beacon used — teleporting to castle (stub)', () => {
+          this.router.goTo(SCENES.CASTLE);
+        });
+        return;
+      default:
+        return;
+    }
+  }
+
+  showStubOverlay(message, onClose) {
+    if (this.stubOverlayContainer) {
+      this.stubOverlayContainer.destroy(true);
+      this.stubOverlayContainer = null;
+    }
+
+    const { width, height } = this.scale;
+    const backdrop = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.45)
+      .setDepth(30)
+      .setInteractive();
+
+    const panel = this.add.rectangle(width / 2, height / 2, 300, 120, 0x202a3f, 0.98)
+      .setStrokeStyle(2, 0xffffff)
+      .setDepth(31);
+
+    const label = this.add.text(width / 2, height / 2 - 20, message, {
+      color: '#ffffff',
+      fontFamily: 'Arial',
+      fontSize: '15px',
+      align: 'center',
+      wordWrap: { width: 260 },
+    }).setOrigin(0.5).setDepth(32);
+
+    const closeButton = this.add.rectangle(width / 2, height / 2 + 28, 120, 34, 0x2d8cff)
+      .setStrokeStyle(2, 0xffffff)
+      .setDepth(32)
+      .setInteractive({ useHandCursor: true });
+
+    const closeLabel = this.add.text(width / 2, height / 2 + 28, 'Close', {
+      color: '#ffffff',
+      fontFamily: 'Arial',
+      fontSize: '16px',
+    }).setOrigin(0.5).setDepth(33);
+
+    const close = () => {
+      this.stubOverlayContainer?.destroy(true);
+      this.stubOverlayContainer = null;
+      onClose?.();
+    };
+
+    closeButton.on('pointerover', () => closeButton.setFillStyle(0x4da0ff));
+    closeButton.on('pointerout', () => closeButton.setFillStyle(0x2d8cff));
+    closeButton.on('pointerdown', close);
+
+    this.stubOverlayContainer = this.add.container(0, 0, [
+      backdrop,
+      panel,
+      label,
+      closeButton,
+      closeLabel,
+    ]).setDepth(30);
   }
 
   selectNode(node) {
