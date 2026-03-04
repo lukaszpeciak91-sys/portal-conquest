@@ -3,6 +3,7 @@
   const huds = Array.from(document.querySelectorAll('.hud[data-hud]'));
   const sheet = document.getElementById('bottom-sheet');
   const sheetTitle = document.getElementById('sheet-title');
+  const mapHudChips = Array.from(document.querySelectorAll('.hud[data-hud="map"] .hud__group:last-child .hud__chip'));
 
   function syncViewportHeight() {
     document.documentElement.style.setProperty('--page-height', `${window.innerHeight}px`);
@@ -21,6 +22,16 @@
   function setSheetOpen(isOpen) {
     sheet.dataset.open = String(isOpen);
     sheet.setAttribute('aria-hidden', String(!isOpen));
+  }
+
+  function updateMapHud({ turn, hp, level }) {
+    if (mapHudChips[0]) {
+      mapHudChips[0].textContent = `Turn: ${turn}`;
+    }
+
+    if (mapHudChips[1]) {
+      mapHudChips[1].textContent = `HP: ${hp} | Lv: ${level}`;
+    }
   }
 
   function bindActions() {
@@ -44,9 +55,12 @@
   setMode('map');
   setSheetOpen(false);
 
+  updateMapHud({ turn: 0, hp: 100, level: 1 });
+
   window.gameUi = {
     setMode,
     openSheet: () => setSheetOpen(true),
     closeSheet: () => setSheetOpen(false),
+    updateMapHud,
   };
 })();

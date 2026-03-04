@@ -18,6 +18,15 @@ export function loadGameData() {
   GameState.data.config = configData;
   GameState.data.faction = factionData;
 
+  if (!GameState.currentNodeId) {
+    const castleNode = mapData.nodes.find((node) => node.type === 'castle');
+    GameState.currentNodeId = castleNode?.id ?? mapData.nodes[0]?.id ?? null;
+  }
+
+  if (GameState.currentNodeId) {
+    GameState.discoveredNodes.add(GameState.currentNodeId);
+  }
+
   hasLoaded = true;
   console.log('Loaded map01.json');
 

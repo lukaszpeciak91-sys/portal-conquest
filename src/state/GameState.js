@@ -7,6 +7,7 @@
 export const GameState = {
   currentScene: 'MenuScene',
   runSeed: null,
+  currentNodeId: null,
   turnCounter: 0,
   discoveredNodes: new Set(),
   closedPortals: 0,
