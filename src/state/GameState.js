@@ -10,6 +10,8 @@ export const GameState = {
   currentNodeId: null,
   turnCounter: 0,
   discoveredNodes: new Set(),
+  usedBeacons: new Set(),
+  pendingBattleKind: null,
   closedPortals: 0,
   data: {
     map: null,
