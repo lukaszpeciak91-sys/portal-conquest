@@ -12,6 +12,15 @@ const config = {
   height: 320,
   backgroundColor: '#10131a',
   parent: 'game-container',
+  scale: {
+    mode: Phaser.Scale.RESIZE,
+    autoCenter: Phaser.Scale.CENTER_BOTH,
+  },
+  callbacks: {
+    postBoot: (game) => {
+      console.log(`[Phaser] viewport ${game.scale.width}x${game.scale.height}`);
+    },
+  },
   scene: [MenuScene, MapScene, CastleScene, BattleScene],
 };
 
