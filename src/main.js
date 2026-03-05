@@ -21,7 +21,7 @@ const config = {
       console.log(`[Phaser] viewport ${game.scale.width}x${game.scale.height}`);
     },
   },
-  scene: [MenuScene, MapScene, CastleScene, BattleScene],
+  scene: [MapScene, MenuScene, CastleScene, BattleScene],
 };
 
 window.__PORTAL_GAME = new Phaser.Game(config);

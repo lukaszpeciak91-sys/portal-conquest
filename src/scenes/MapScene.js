@@ -1,6 +1,5 @@
 import Phaser from 'phaser';
 import { SCENES, SceneRouter } from '../SceneRouter';
-import { addButton, addDebugHeader } from './ui';
 import { GameState } from '../state/GameState';
 import { syncSceneState } from '../state/sceneState';
 import map01FallbackUrl from '../data/maps/map01.png';
@@ -35,14 +34,6 @@ export class MapScene extends Phaser.Scene {
     syncSceneState(this.scene.key);
 
     this.router = new SceneRouter(this);
-    addDebugHeader(
-      this,
-      'Map Scene',
-      'Tap Castle/Battle. Dev keys: M=Map C=Castle B=Battle',
-    );
-
-    addButton(this, 220, 140, 'Enter Castle', () => this.router.goTo(SCENES.CASTLE));
-    addButton(this, 220, 210, 'Start Battle', () => this.router.goTo(SCENES.BATTLE));
 
     const { map, config, faction } = GameState.data;
     this.mapById = new Map((map?.nodes ?? []).map((node) => [node.id, node]));
