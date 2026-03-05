@@ -73,6 +73,11 @@ export class MapScene extends Phaser.Scene {
 
     this.updateHud();
 
+    this.scale.on('resize', this.handleResize, this);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.scale.off('resize', this.handleResize, this);
+    });
+
     this.input.keyboard.on('keydown-M', () => this.router.goTo(SCENES.MAP));
     this.input.keyboard.on('keydown-C', () => this.router.goTo(SCENES.CASTLE));
     this.input.keyboard.on('keydown-B', () => this.router.goTo(SCENES.BATTLE));
@@ -112,7 +117,8 @@ export class MapScene extends Phaser.Scene {
     const x = (viewportWidth - width) / 2;
     const y = (viewportHeight - height) / 2;
 
-    this.add.image(viewportWidth / 2, viewportHeight / 2, textureKey)
+    this.mapImage?.destroy();
+    this.mapImage = this.add.image(viewportWidth / 2, viewportHeight / 2, textureKey)
       .setDisplaySize(width, height)
       .setDepth(0);
 
@@ -356,6 +362,33 @@ export class MapScene extends Phaser.Scene {
       delay: 450,
       ease: 'Linear',
     });
+  }
+
+  handleResize(gameSize) {
+    const viewportWidth = gameSize?.width ?? this.scale.width;
+    const viewportHeight = gameSize?.height ?? this.scale.height;
+
+    this.mapBounds = this.drawMapBackground(viewportWidth, viewportHeight);
+
+    const mapNodes = GameState.data?.map?.nodes ?? [];
+    mapNodes.forEach((node) => {
+      const marker = this.nodeMarkers.get(node.id);
+      if (!marker) {
+        return;
+      }
+
+      const point = this.mapToScreen(node.x, node.y);
+      marker.setPosition(point.x, point.y);
+    });
+
+    const currentNode = this.mapById?.get(GameState.currentNodeId);
+    if (this.heroMarker && currentNode) {
+      const point = this.mapToScreen(currentNode.x, currentNode.y);
+      this.heroMarker.setPosition(point.x, point.y);
+    }
+
+    this.feedbackText?.setPosition(viewportWidth / 2, viewportHeight - 84);
+    this.nodeInfoText?.setPosition(16, viewportHeight - 60);
   }
 
   updateHud() {
