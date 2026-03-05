@@ -24,11 +24,13 @@ export class SceneRouter {
     this.sceneManagerOrScene = sceneManagerOrScene;
   }
 
-  goTo(target) {
+  goTo(target, options = {}) {
     const sceneKey = resolveSceneKey(target);
     if (!sceneKey) {
       return;
     }
+
+    const { force = false, forceRestart = false } = options;
 
     const host = this.sceneManagerOrScene;
     const sceneManager = host?.start ? host : host?.scene;
@@ -42,10 +44,38 @@ export class SceneRouter {
       : null;
     const activeKey = activeScene?.scene?.key ?? host?.scene?.key ?? host?.key;
 
-    if (activeKey === sceneKey) {
+    if (sceneKey === SCENES.MAP && (force || forceRestart)) {
+      this.forceReturnToMap(sceneManager, { forceRestart });
       return;
     }
 
+    if (activeKey === sceneKey && !force) {
+      return;
+    }
+
+    if (forceRestart && typeof sceneManager.stop === 'function') {
+      sceneManager.stop(sceneKey);
+    }
+
     sceneManager.start(sceneKey);
+  }
+
+  forceReturnToMap(sceneManager, { forceRestart = false } = {}) {
+    const activeRouteKeys = [SCENES.CASTLE, SCENES.BATTLE, SCENES.MENU];
+
+    activeRouteKeys.forEach((key) => {
+      if (typeof sceneManager.isActive === 'function' && sceneManager.isActive(key)) {
+        sceneManager.stop(key);
+      }
+    });
+
+    const shouldRestart = forceRestart
+      || (typeof sceneManager.isActive === 'function' && sceneManager.isActive(SCENES.MAP));
+
+    if (shouldRestart && typeof sceneManager.stop === 'function') {
+      sceneManager.stop(SCENES.MAP);
+    }
+
+    sceneManager.start(SCENES.MAP);
   }
 }
