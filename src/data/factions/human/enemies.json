@@ -1,0 +1,8 @@
+[
+  {
+    "id": "bandit",
+    "name": "Bandit",
+    "description": "A common raider.",
+    "asset": "/assets/factions/human/enemies/bandit.png"
+  }
+]

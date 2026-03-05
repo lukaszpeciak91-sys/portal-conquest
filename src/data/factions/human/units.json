@@ -1,0 +1,8 @@
+[
+  {
+    "id": "militia",
+    "name": "Militia",
+    "description": "Basic infantry unit.",
+    "asset": "/assets/factions/human/units/militia.png"
+  }
+]

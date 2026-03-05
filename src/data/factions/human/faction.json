@@ -1,0 +1,14 @@
+{
+  "id": "human",
+  "name": "Kingdom of Ash",
+  "tagline": "Steel, faith and stubborn survival.",
+  "description": "A disciplined kingdom surviving in a fractured world.",
+  "colors": {
+    "primary": "#b8c0cc",
+    "accent": "#d1a84a"
+  },
+  "assets": {
+    "emblem": "/assets/factions/human/emblems/emblem.png",
+    "castleBase": "/assets/factions/human/castle/castle_base.png"
+  }
+}

@@ -1,0 +1,8 @@
+[
+  {
+    "id": "blessing",
+    "name": "Blessing",
+    "description": "Simple support spell.",
+    "asset": "/assets/factions/human/spells/blessing.png"
+  }
+]
