@@ -3,6 +3,8 @@ import { SCENES, SceneRouter } from '../SceneRouter';
 import { GameState } from '../state/GameState';
 import { syncSceneState } from '../state/sceneState';
 import map01FallbackUrl from '../data/maps/map01.png';
+import assetManifest, { loadAssetsFromManifest } from '../assets/loadAssetsFromManifest';
+import { addFallbackPlaceholder, textureExists } from '../assets/safeTexture';
 
 const NODE_TYPES = {
   CASTLE: 'castle',
@@ -28,6 +30,7 @@ export class MapScene extends Phaser.Scene {
     const baseUrl = import.meta.env.BASE_URL ?? '/';
     this.load.image('map01-bg', `${baseUrl}assets/maps/map01.png`);
     this.load.image('map01-bg-fallback', map01FallbackUrl);
+    loadAssetsFromManifest(this, assetManifest.nodes);
   }
 
   create() {
@@ -98,22 +101,28 @@ export class MapScene extends Phaser.Scene {
   drawMapBackground(viewportWidth, viewportHeight) {
     const fallbackBounds = { x: 0, y: 0, width: viewportWidth, height: viewportHeight, scale: 1 };
 
-    const textureKey = this.textures.exists('map01-bg')
+    const textureKey = textureExists(this, 'map01-bg')
       ? 'map01-bg'
-      : (this.textures.exists('map01-bg-fallback') ? 'map01-bg-fallback' : null);
+      : (textureExists(this, 'map01-bg-fallback') ? 'map01-bg-fallback' : null);
 
     if (!textureKey) {
       this.mapBackgroundImage?.destroy();
+      this.mapMissingPlaceholder?.destroy();
       this.mapBackgroundImage = this.add.rectangle(viewportWidth / 2, viewportHeight / 2, viewportWidth, viewportHeight, 0x1b2334).setDepth(0);
-      this.add.text(viewportWidth / 2, viewportHeight / 2, 'Missing map01.png', {
-        color: '#ffffff',
-        fontFamily: 'Arial',
-        fontSize: '24px',
-        fontStyle: 'bold',
-      }).setOrigin(0.5).setDepth(1);
+      this.mapMissingPlaceholder = addFallbackPlaceholder(this, {
+        x: viewportWidth / 2,
+        y: viewportHeight / 2,
+        width: Math.min(300, viewportWidth - 32),
+        height: 130,
+        label: 'missing asset\nmap background',
+        depth: 1,
+      });
 
       return fallbackBounds;
     }
+
+    this.mapMissingPlaceholder?.destroy();
+    this.mapMissingPlaceholder = null;
 
     this.mapTextureKey = textureKey;
 
@@ -180,15 +189,34 @@ export class MapScene extends Phaser.Scene {
       }
 
       const point = this.mapToScreen(node.x, node.y);
-      const marker = this.add.circle(point.x, point.y, 7, 0xffd166, 0.95)
-        .setStrokeStyle(2, 0x2b2b2b)
-        .setDepth(10)
-        .setInteractive({ useHandCursor: true });
+      const textureKey = `node-${node.type}`;
+      const marker = this.renderNodeMarker(point.x, point.y, node.type, textureKey);
 
       marker.on('pointerdown', () => this.onNodePressed(node));
 
       this.nodeMarkers.set(node.id, marker);
     });
+  }
+
+  renderNodeMarker(x, y, nodeType, textureKey) {
+    if (textureExists(this, textureKey)) {
+      return this.add.image(x, y, textureKey)
+        .setDisplaySize(24, 24)
+        .setDepth(10)
+        .setInteractive({ useHandCursor: true });
+    }
+
+    const marker = addFallbackPlaceholder(this, {
+      x,
+      y,
+      width: 36,
+      height: 36,
+      label: nodeType?.slice(0, 2)?.toUpperCase() ?? '?',
+      depth: 10,
+    }).setSize(36, 36);
+
+    marker.setInteractive(new Phaser.Geom.Rectangle(-18, -18, 36, 36), Phaser.Geom.Rectangle.Contains);
+    return marker;
   }
 
   renderHeroMarker() {
@@ -304,7 +332,7 @@ export class MapScene extends Phaser.Scene {
 
     this.selectedNodeId = null;
     this.nodeMarkers?.forEach((marker) => {
-      marker?.setScale(1).setStrokeStyle(2, 0x2b2b2b);
+      this.applyNodeMarkerSelection(marker, false);
     });
 
     if (this.nodeInfoText) {
@@ -378,11 +406,11 @@ export class MapScene extends Phaser.Scene {
   selectNode(node) {
     if (this.selectedNodeId) {
       const prev = this.nodeMarkers.get(this.selectedNodeId);
-      prev?.setScale(1).setStrokeStyle(2, 0x2b2b2b);
+      this.applyNodeMarkerSelection(prev, false);
     }
 
     const marker = this.nodeMarkers.get(node.id);
-    marker?.setScale(1.25).setStrokeStyle(3, 0xffffff);
+    this.applyNodeMarkerSelection(marker, true);
     this.selectedNodeId = node.id;
 
     const mapBiome = GameState.data.map?.biome ?? 'unknown';
@@ -400,6 +428,29 @@ export class MapScene extends Phaser.Scene {
 
     this.nodeInfoText.setText(message);
     console.log(`[MapScene] ${message}`);
+  }
+
+  applyNodeMarkerSelection(marker, selected) {
+    if (!marker) {
+      return;
+    }
+
+    marker.setScale(selected ? 1.25 : 1);
+
+    if (typeof marker.setStrokeStyle === 'function') {
+      marker.setStrokeStyle(selected ? 3 : 2, selected ? 0xffffff : 0x2b2b2b);
+      return;
+    }
+
+    if (typeof marker.iterate !== 'function') {
+      return;
+    }
+
+    marker.iterate((child) => {
+      if (typeof child?.setStrokeStyle === 'function') {
+        child.setStrokeStyle(selected ? 3 : 2, selected ? 0xffffff : 0x596273);
+      }
+    });
   }
 
   showFeedback(message) {
