@@ -48,14 +48,16 @@ export class MapScene extends Phaser.Scene {
 
     console.log(`Data ready: map=${map?.id}, biome=${map?.biome}, regions=${config?.regions}, faction=${faction?.id}`);
 
-    const viewportWidth = this.scale.width;
-    const viewportHeight = this.scale.height;
-
-    this.mapBounds = this.drawMapBackground(viewportWidth, viewportHeight);
+    this.layoutMapBackground(this.scale.width, this.scale.height);
     this.renderNodes(map);
     this.renderHeroMarker();
 
-    this.feedbackText = this.add.text(viewportWidth / 2, viewportHeight - 84, '', {
+    this.scale.on('resize', this.handleResize, this);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.scale.off('resize', this.handleResize, this);
+    });
+
+    this.feedbackText = this.add.text(this.scale.width / 2, this.scale.height - 84, '', {
       color: '#f1f1f1',
       fontFamily: 'Arial',
       fontSize: '13px',
@@ -63,7 +65,7 @@ export class MapScene extends Phaser.Scene {
       padding: { x: 8, y: 6 },
     }).setOrigin(0.5).setDepth(20).setAlpha(0);
 
-    this.nodeInfoText = this.add.text(16, viewportHeight - 60, 'Tap a visible node to inspect or move.', {
+    this.nodeInfoText = this.add.text(16, this.scale.height - 60, 'Tap a visible node to inspect or move.', {
       color: '#ffffff',
       fontFamily: 'Arial',
       fontSize: '12px',
@@ -87,6 +89,18 @@ export class MapScene extends Phaser.Scene {
     }
   }
 
+  layoutMapBackground(viewportWidth, viewportHeight) {
+    this.mapBounds = this.drawMapBackground(viewportWidth, viewportHeight);
+
+    if (this.feedbackText) {
+      this.feedbackText.setPosition(viewportWidth / 2, viewportHeight - 84);
+    }
+
+    if (this.nodeInfoText) {
+      this.nodeInfoText.setPosition(16, viewportHeight - 60);
+    }
+  }
+
   drawMapBackground(viewportWidth, viewportHeight) {
     const fallbackBounds = { x: 0, y: 0, width: viewportWidth, height: viewportHeight, scale: 1 };
 
@@ -95,7 +109,8 @@ export class MapScene extends Phaser.Scene {
       : (this.textures.exists('map01-bg-fallback') ? 'map01-bg-fallback' : null);
 
     if (!textureKey) {
-      this.add.rectangle(viewportWidth / 2, viewportHeight / 2, viewportWidth, viewportHeight, 0x1b2334).setDepth(0);
+      this.mapBackgroundImage?.destroy();
+      this.mapBackgroundImage = this.add.rectangle(viewportWidth / 2, viewportHeight / 2, viewportWidth, viewportHeight, 0x1b2334).setDepth(0);
       this.add.text(viewportWidth / 2, viewportHeight / 2, 'Missing map01.png', {
         color: '#ffffff',
         fontFamily: 'Arial',
@@ -111,18 +126,60 @@ export class MapScene extends Phaser.Scene {
     const texture = this.textures.get(textureKey).getSourceImage();
     const imageWidth = texture.width;
     const imageHeight = texture.height;
-    const scale = Math.min(viewportWidth / imageWidth, viewportHeight / imageHeight);
+    const scale = Math.max(viewportWidth / imageWidth, viewportHeight / imageHeight);
     const width = imageWidth * scale;
     const height = imageHeight * scale;
     const x = (viewportWidth - width) / 2;
     const y = (viewportHeight - height) / 2;
 
-    this.mapImage?.destroy();
-    this.mapImage = this.add.image(viewportWidth / 2, viewportHeight / 2, textureKey)
-      .setDisplaySize(width, height)
-      .setDepth(0);
+    if (!this.mapBackgroundImage) {
+      this.mapBackgroundImage = this.add.image(viewportWidth / 2, viewportHeight / 2, textureKey)
+        .setOrigin(0.5, 0.5)
+        .setDepth(0);
+    }
+
+    this.mapBackgroundImage
+      .setTexture(textureKey)
+      .setPosition(viewportWidth / 2, viewportHeight / 2)
+      .setScale(scale);
+
+    if (!this.mapBackgroundOverlay) {
+      this.mapBackgroundOverlay = this.add.rectangle(viewportWidth / 2, viewportHeight / 2, viewportWidth, viewportHeight, 0x000000, 0.12)
+        .setDepth(1);
+    }
+
+    this.mapBackgroundOverlay
+      .setPosition(viewportWidth / 2, viewportHeight / 2)
+      .setSize(viewportWidth, viewportHeight);
 
     return { x, y, width, height, scale };
+  }
+
+  handleResize(gameSize) {
+    const viewportWidth = gameSize?.width ?? this.scale.width;
+    const viewportHeight = gameSize?.height ?? this.scale.height;
+    this.layoutMapBackground(viewportWidth, viewportHeight);
+
+    const { map } = GameState.data;
+    map?.nodes?.forEach((node) => {
+      if (node.hidden) {
+        return;
+      }
+
+      const marker = this.nodeMarkers.get(node.id);
+      if (!marker) {
+        return;
+      }
+
+      const point = this.mapToScreen(node.x, node.y);
+      marker.setPosition(point.x, point.y);
+    });
+
+    const currentNode = this.mapById.get(GameState.currentNodeId);
+    if (this.heroMarker && currentNode) {
+      const point = this.mapToScreen(currentNode.x, currentNode.y);
+      this.heroMarker.setPosition(point.x, point.y);
+    }
   }
 
   mapToScreen(x, y) {
