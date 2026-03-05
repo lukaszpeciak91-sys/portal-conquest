@@ -3,6 +3,7 @@ import { SceneRouter } from './src/SceneRouter';
 (() => {
   const overlay = document.getElementById('ui-overlay');
   const panel = document.getElementById('context-panel');
+  const topBar = document.querySelector('.top-bar');
   const statusChips = Array.from(document.querySelectorAll('.status-chip'));
   const modeButtons = Array.from(document.querySelectorAll('.mode-btn[data-mode]'));
   const panelContents = Array.from(document.querySelectorAll('[data-panel-content]'));
@@ -50,7 +51,7 @@ import { SceneRouter } from './src/SceneRouter';
     mapScene?.clearTransientUi?.();
   }
 
-  function routeToMode(mode) {
+  function routeToMode(mode, options = {}) {
     const game = window.__PORTAL_GAME;
 
     if (!game?.scene || !routeableModes.has(mode)) {
@@ -61,7 +62,7 @@ import { SceneRouter } from './src/SceneRouter';
     }
 
     const router = new SceneRouter(game.scene);
-    router.goTo(mode);
+    router.goTo(mode, options);
   }
 
   function setMode(mode, options = {}) {
@@ -71,13 +72,14 @@ import { SceneRouter } from './src/SceneRouter';
 
     state.activeMode = mode;
     overlay.dataset.mode = mode;
+    updateTopBarDensity(mode);
 
     modeButtons.forEach((button) => {
       button.classList.toggle('is-active', button.dataset.mode === mode);
     });
 
     if (!options.skipRouting) {
-      routeToMode(mode);
+      routeToMode(mode, options.routingOptions);
     }
 
     if (state.panelView === 'context') {
@@ -88,6 +90,11 @@ import { SceneRouter } from './src/SceneRouter';
   function setPanelView(view) {
     state.panelView = view;
     renderPanelContent();
+  }
+
+  function updateTopBarDensity(mode = state.activeMode) {
+    const isMapMode = mode === 'map';
+    topBar?.classList.toggle('top-bar--map-compact', isMapMode);
   }
 
   function updateTopBar({ turn, hp, level }) {
@@ -115,13 +122,15 @@ import { SceneRouter } from './src/SceneRouter';
       const action = trigger.dataset.action;
       if (action === 'set-mode' && trigger.dataset.mode) {
         const mode = trigger.dataset.mode;
-        setMode(mode);
 
         if (mode === 'map') {
           resetMapUi();
+          setMode(mode, { routingOptions: { force: true, forceRestart: true } });
           showHint('Tap a node to inspect.');
           return;
         }
+
+        setMode(mode);
 
         if (mode === 'castle') {
           resetMapUi();
@@ -175,6 +184,7 @@ import { SceneRouter } from './src/SceneRouter';
   setPanelView('context');
   setPanelOpen(false);
   updateTopBar({ turn: 0, hp: 100, level: 1 });
+  updateTopBarDensity('map');
 
   window.gameUi = {
     setMode: (mode) => setMode(mode, { skipRouting: true }),

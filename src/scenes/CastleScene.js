@@ -57,13 +57,18 @@ export class CastleScene extends Phaser.Scene {
     this.fallbackBackground = this.add.rectangle(viewportWidth / 2, viewportHeight / 2, viewportWidth, viewportHeight, 0x101828)
       .setDepth(0);
 
-    this.fallbackText = this.add.text(viewportWidth / 2, viewportHeight / 2, 'Castle background missing', {
+    const fallbackTitle = 'Castle View';
+    const fallbackSubtitle = 'Background asset unavailable';
+
+    this.fallbackText = this.add.text(viewportWidth / 2, viewportHeight / 2, `${fallbackTitle}\n${fallbackSubtitle}`, {
       color: '#e2e8f0',
       fontFamily: 'Arial',
-      fontSize: '24px',
+      fontSize: '20px',
       fontStyle: 'bold',
+      align: 'center',
+      lineSpacing: 8,
       stroke: '#000000',
-      strokeThickness: 4,
+      strokeThickness: 3,
     }).setOrigin(0.5).setDepth(1);
   }
 
