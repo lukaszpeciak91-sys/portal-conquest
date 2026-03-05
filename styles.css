@@ -61,7 +61,7 @@ body {
   padding: calc(var(--safe-top) + 6px) 10px 6px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 8px;
   background: linear-gradient(to bottom, rgba(3, 8, 22, 0.9), rgba(3, 8, 22, 0.55));
   pointer-events: auto;

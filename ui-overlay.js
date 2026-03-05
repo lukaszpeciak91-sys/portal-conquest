@@ -7,7 +7,7 @@
 
   const modeToScene = {
     map: 'MapScene',
-    battle: 'BattleScene',
+    objectives: null,
     castle: 'CastleScene',
   };
 
@@ -56,7 +56,7 @@
   }
 
   function setMode(mode, options = {}) {
-    if (!modeToScene[mode]) {
+    if (!(mode in modeToScene)) {
       return;
     }
 
@@ -92,10 +92,6 @@
       inspect: '[UI] Map Inspect',
       move: '[UI] Map Move',
     },
-    battle: {
-      skills: '[UI] Battle Skills',
-      'end-turn': '[UI] Battle End Turn',
-    },
     castle: {
       build: '[UI] Castle Build',
       leave: '[UI] Castle Leave',
@@ -109,7 +105,15 @@
 
       const action = trigger.dataset.action;
       if (action === 'set-mode' && trigger.dataset.mode) {
-        setMode(trigger.dataset.mode);
+        const mode = trigger.dataset.mode;
+        setMode(mode);
+
+        if (mode === 'objectives') {
+          setPanelView('objectives');
+          setPanelOpen(true);
+          return;
+        }
+
         setPanelView('context');
         return;
       }
@@ -130,6 +134,12 @@
         const contextAction = trigger.dataset.contextAction;
         const message = contextActionLabels[state.activeMode]?.[contextAction] ?? `[UI] ${state.activeMode} ${contextAction}`;
         console.log(message);
+        return;
+      }
+
+      if (action === 'start-battle') {
+        console.log('[UI] Map Engage: Start Battle (stub)');
+        routeToMode('battle');
         return;
       }
 
