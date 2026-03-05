@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { SCENES, SceneRouter } from '../SceneRouter';
 import { syncSceneState } from '../state/sceneState';
 import assetManifest, { loadAssetsFromManifest } from '../assets/loadAssetsFromManifest';
+import { addFallbackPlaceholder, textureExists } from '../assets/safeTexture';
 
 const CASTLE_BG_KEY = 'castle_faction01_bg';
 
@@ -34,11 +35,11 @@ export class CastleScene extends Phaser.Scene {
   }
 
   renderBackground(viewportWidth, viewportHeight) {
-    const hasTexture = this.textures.exists(CASTLE_BG_KEY);
+    const hasTexture = textureExists(this, CASTLE_BG_KEY);
 
     this.backgroundImage?.destroy();
     this.fallbackBackground?.destroy();
-    this.fallbackText?.destroy();
+    this.fallbackPlaceholder?.destroy();
 
     if (hasTexture) {
       const source = this.textures.get(CASTLE_BG_KEY).getSourceImage();
@@ -57,14 +58,14 @@ export class CastleScene extends Phaser.Scene {
     this.fallbackBackground = this.add.rectangle(viewportWidth / 2, viewportHeight / 2, viewportWidth, viewportHeight, 0x101828)
       .setDepth(0);
 
-    this.fallbackText = this.add.text(viewportWidth / 2, viewportHeight / 2, 'Castle background missing', {
-      color: '#e2e8f0',
-      fontFamily: 'Arial',
-      fontSize: '24px',
-      fontStyle: 'bold',
-      stroke: '#000000',
-      strokeThickness: 4,
-    }).setOrigin(0.5).setDepth(1);
+    this.fallbackPlaceholder = addFallbackPlaceholder(this, {
+      x: viewportWidth / 2,
+      y: viewportHeight / 2,
+      width: Math.min(320, viewportWidth - 48),
+      height: 140,
+      label: 'missing asset\ncastle background',
+      depth: 1,
+    });
   }
 
   handleResize(gameSize) {
