@@ -296,6 +296,32 @@ export class MapScene extends Phaser.Scene {
     }
   }
 
+  clearTransientUi() {
+    if (this.stubOverlayContainer) {
+      this.stubOverlayContainer.destroy(true);
+      this.stubOverlayContainer = null;
+    }
+
+    this.selectedNodeId = null;
+    this.nodeMarkers?.forEach((marker) => {
+      marker?.setScale(1).setStrokeStyle(2, 0x2b2b2b);
+    });
+
+    if (this.nodeInfoText) {
+      this.nodeInfoText.setText('');
+    }
+
+    if (this.feedbackText) {
+      this.feedbackText.setText('');
+      this.feedbackText.setAlpha(0);
+    }
+
+    if (this.feedbackFadeTween) {
+      this.feedbackFadeTween.remove();
+      this.feedbackFadeTween = null;
+    }
+  }
+
   showStubOverlay(message, onClose) {
     if (this.stubOverlayContainer) {
       this.stubOverlayContainer.destroy(true);
