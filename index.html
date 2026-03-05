@@ -12,8 +12,6 @@
 
       <div id="ui-overlay" data-mode="map" aria-label="Game UI overlay">
         <header class="top-bar" aria-label="Global controls">
-          <button class="ui-btn" type="button" data-action="open-panel" data-panel-view="objectives">Objectives</button>
-
           <div class="top-bar__status" aria-label="Run status">
             <span class="status-chip">Turn 0</span>
             <span class="status-chip">HP 100</span>
@@ -26,7 +24,7 @@
           <div class="context-panel__handle" aria-hidden="true"></div>
           <div class="context-panel__content" data-panel-content="objectives" hidden>
             <h2>Objectives</h2>
-            <p>Reach connected nodes and prepare for battle encounters.</p>
+            <p>Objectives coming soon.</p>
             <div class="panel-actions">
               <button class="ui-btn ui-btn--primary" type="button" data-action="close-panel">Close</button>
             </div>
@@ -37,15 +35,7 @@
             <div class="panel-actions">
               <button class="ui-btn" type="button" data-action="context" data-context-action="inspect">Inspect</button>
               <button class="ui-btn" type="button" data-action="context" data-context-action="move">Move</button>
-              <button class="ui-btn ui-btn--primary" type="button" data-action="close-panel">Close</button>
-            </div>
-          </div>
-
-          <div class="context-panel__content" data-panel-content="battle" hidden>
-            <h2>Battle Actions</h2>
-            <div class="panel-actions">
-              <button class="ui-btn" type="button" data-action="context" data-context-action="skills">Skills</button>
-              <button class="ui-btn" type="button" data-action="context" data-context-action="end-turn">End Turn</button>
+              <button class="ui-btn" type="button" data-action="start-battle">Engage</button>
               <button class="ui-btn ui-btn--primary" type="button" data-action="close-panel">Close</button>
             </div>
           </div>
@@ -64,7 +54,7 @@
 
         <nav class="bottom-mode-bar" aria-label="Mode switcher">
           <button class="mode-btn is-active" type="button" data-action="set-mode" data-mode="map">Map</button>
-          <button class="mode-btn" type="button" data-action="set-mode" data-mode="battle">Battle</button>
+          <button class="mode-btn" type="button" data-action="set-mode" data-mode="objectives">Objectives</button>
           <button class="mode-btn" type="button" data-action="set-mode" data-mode="castle">Castle</button>
         </nav>
       </div>
