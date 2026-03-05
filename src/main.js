@@ -25,3 +25,34 @@ const config = {
 };
 
 window.__PORTAL_GAME = new Phaser.Game(config);
+
+
+const appShell = document.getElementById('app-shell');
+const rotateOverlay = document.getElementById('rotate-overlay');
+
+function updateOrientationState() {
+  const isLandscape = window.innerWidth > window.innerHeight;
+
+  if (appShell) {
+    appShell.classList.toggle('is-portrait', !isLandscape);
+    appShell.classList.toggle('is-landscape', isLandscape);
+  }
+
+  if (rotateOverlay) {
+    rotateOverlay.setAttribute('aria-hidden', String(isLandscape));
+  }
+
+  const gameInput = window.__PORTAL_GAME?.input;
+  if (!gameInput) return;
+
+  if (!isLandscape) {
+    gameInput.enabled = false;
+    return;
+  }
+
+  gameInput.enabled = true;
+}
+
+window.addEventListener('resize', updateOrientationState);
+window.addEventListener('orientationchange', updateOrientationState);
+updateOrientationState();

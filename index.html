@@ -9,6 +9,7 @@
   <body>
     <div id="app-shell" aria-live="polite">
       <div id="game-container" aria-label="Phaser game canvas mount point"></div>
+      <div id="map-vignette" aria-hidden="true"></div>
 
       <div id="ui-overlay" data-mode="map" aria-label="Game UI overlay">
         <header class="top-bar" aria-label="Global controls">
@@ -57,6 +58,10 @@
           <button class="mode-btn" type="button" data-action="set-mode" data-mode="objectives">Objectives</button>
           <button class="mode-btn" type="button" data-action="set-mode" data-mode="castle">Castle</button>
         </nav>
+      </div>
+
+      <div id="rotate-overlay" role="alert" aria-live="assertive" aria-hidden="true">
+        <p>Rotate your device<br />to play Portal Conquest</p>
       </div>
     </div>
 
