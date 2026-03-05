@@ -1,0 +1,13 @@
+{
+  "maps": [
+    { "key": "map01", "path": "assets/maps/map01.png" }
+  ],
+  "castles": [
+    { "key": "castle_faction01_bg", "path": "assets/castles/faction01/castle_bg.png" }
+  ],
+  "ui": [],
+  "nodes": [],
+  "units": [],
+  "enemies": [],
+  "spells": []
+}

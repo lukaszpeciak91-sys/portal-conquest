@@ -1,3 +1,5 @@
+import { SceneRouter } from './src/SceneRouter';
+
 (() => {
   const overlay = document.getElementById('ui-overlay');
   const panel = document.getElementById('context-panel');
@@ -5,11 +7,7 @@
   const modeButtons = Array.from(document.querySelectorAll('.mode-btn[data-mode]'));
   const panelContents = Array.from(document.querySelectorAll('[data-panel-content]'));
 
-  const modeToScene = {
-    map: 'MapScene',
-    objectives: null,
-    castle: 'CastleScene',
-  };
+  const routeableModes = new Set(['map', 'castle']);
 
   const state = {
     activeMode: 'map',
@@ -54,24 +52,20 @@
 
   function routeToMode(mode) {
     const game = window.__PORTAL_GAME;
-    const sceneKey = modeToScene[mode];
 
-    if (!game?.scene || !sceneKey) {
-      console.log(`[UI] scene routing unavailable for ${mode}`);
+    if (!game?.scene || !routeableModes.has(mode)) {
+      if (mode !== 'objectives') {
+        console.log(`[UI] scene routing unavailable for ${mode}`);
+      }
       return;
     }
 
-    const target = game.scene.getScene(sceneKey);
-    if (!target) {
-      console.log(`[UI] scene missing: ${sceneKey}`);
-      return;
-    }
-
-    game.scene.start(sceneKey);
+    const router = new SceneRouter(game.scene);
+    router.goTo(mode);
   }
 
   function setMode(mode, options = {}) {
-    if (!(mode in modeToScene)) {
+    if (!routeableModes.has(mode) && mode !== 'objectives') {
       return;
     }
 
@@ -126,6 +120,12 @@
         if (mode === 'map') {
           resetMapUi();
           showHint('Tap a node to inspect.');
+          return;
+        }
+
+        if (mode === 'castle') {
+          resetMapUi();
+          showHint('Castle mode');
           return;
         }
 
