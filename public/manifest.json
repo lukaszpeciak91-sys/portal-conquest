@@ -1,0 +1,10 @@
+{
+  "name": "Portal Conquest",
+  "short_name": "Portal",
+  "start_url": "/portal-conquest/",
+  "scope": "/portal-conquest/",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#000000",
+  "theme_color": "#000000"
+}
