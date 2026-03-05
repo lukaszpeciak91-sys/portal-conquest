@@ -37,6 +37,21 @@
     panel.setAttribute('aria-hidden', String(!isOpen));
   }
 
+  function showHint(message) {
+    const hint = document.querySelector('.hint-line');
+    if (!hint) return;
+    hint.textContent = message;
+  }
+
+  function resetMapUi() {
+    setPanelView('context');
+    setPanelOpen(false);
+
+    const game = window.__PORTAL_GAME;
+    const mapScene = game?.scene?.getScene?.('MapScene');
+    mapScene?.clearTransientUi?.();
+  }
+
   function routeToMode(mode) {
     const game = window.__PORTAL_GAME;
     const sceneKey = modeToScene[mode];
@@ -108,6 +123,12 @@
         const mode = trigger.dataset.mode;
         setMode(mode);
 
+        if (mode === 'map') {
+          resetMapUi();
+          showHint('Tap a node to inspect.');
+          return;
+        }
+
         if (mode === 'objectives') {
           setPanelView('objectives');
           setPanelOpen(true);
@@ -144,7 +165,7 @@
       }
 
       if (action === 'settings') {
-        console.log('[UI] Settings');
+        window.portalFullscreen?.toggle?.();
       }
     });
   }
@@ -167,5 +188,7 @@
       setPanelOpen(true);
     },
     updateMapHud: updateTopBar,
+    showHint,
+    resetMapUi,
   };
 })();

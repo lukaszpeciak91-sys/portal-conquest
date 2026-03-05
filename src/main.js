@@ -33,7 +33,7 @@ const appShell = document.getElementById('app-shell');
 const rotateOverlay = document.getElementById('rotate-overlay');
 
 let resizeTimer = null;
-let fullscreenRequested = false;
+let viewportRefreshTimer = null;
 
 function getViewportSize() {
   return {
@@ -74,25 +74,38 @@ function syncViewport() {
   updateOrientationState(width, height);
 }
 
-function requestFullscreenFromInteraction() {
-  if (fullscreenRequested) {
-    return;
+function notifyFullscreenFallback() {
+  window.gameUi?.showHint?.('Fullscreen unavailable on this device/browser.');
+}
+
+function refreshViewportAfterFullscreenChange() {
+  if (viewportRefreshTimer) {
+    window.clearTimeout(viewportRefreshTimer);
   }
 
-  fullscreenRequested = true;
+  viewportRefreshTimer = window.setTimeout(() => {
+    syncViewport();
+  }, 80);
+}
 
-  if (!document.fullscreenEnabled || document.fullscreenElement) {
-    return;
+async function toggleFullscreen() {
+  const target = appShell ?? document.documentElement;
+
+  try {
+    if (document.fullscreenElement) {
+      await document.exitFullscreen();
+      return;
+    }
+
+    if (!document.fullscreenEnabled || typeof target?.requestFullscreen !== 'function') {
+      notifyFullscreenFallback();
+      return;
+    }
+
+    await target.requestFullscreen();
+  } catch (_error) {
+    notifyFullscreenFallback();
   }
-
-  const request = document.documentElement.requestFullscreen;
-  if (typeof request !== 'function') {
-    return;
-  }
-
-  request.call(document.documentElement).catch(() => {
-    // Ignore failures; fullscreen may be blocked or unsupported by the browser.
-  });
 }
 
 function queueViewportSync() {
@@ -107,8 +120,10 @@ function queueViewportSync() {
 
 window.addEventListener('resize', queueViewportSync, { passive: true });
 window.addEventListener('orientationchange', queueViewportSync, { passive: true });
-window.addEventListener('pointerdown', requestFullscreenFromInteraction, { passive: true });
-window.addEventListener('touchend', requestFullscreenFromInteraction, { passive: true });
-window.addEventListener('keydown', requestFullscreenFromInteraction, { passive: true });
+window.addEventListener('fullscreenchange', refreshViewportAfterFullscreenChange, { passive: true });
+
+window.portalFullscreen = {
+  toggle: () => toggleFullscreen(),
+};
 
 syncViewport();
