@@ -32,6 +32,7 @@ export class MapScene extends Phaser.Scene {
 
   create() {
     syncSceneState(this.scene.key);
+    console.log('[MapScene] create');
 
     this.router = new SceneRouter(this);
 
@@ -53,9 +54,7 @@ export class MapScene extends Phaser.Scene {
     this.renderHeroMarker();
 
     this.scale.on('resize', this.handleResize, this);
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
-      this.scale.off('resize', this.handleResize, this);
-    });
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.handleShutdown, this);
 
     this.feedbackText = this.add.text(this.scale.width / 2, this.scale.height - 84, '', {
       color: '#f1f1f1',
@@ -74,11 +73,6 @@ export class MapScene extends Phaser.Scene {
     }).setDepth(20);
 
     this.updateHud();
-
-    this.scale.on('resize', this.handleResize, this);
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
-      this.scale.off('resize', this.handleResize, this);
-    });
 
     this.input.keyboard.on('keydown-M', () => this.router.goTo(SCENES.MAP));
     this.input.keyboard.on('keydown-C', () => this.router.goTo(SCENES.CASTLE));
@@ -132,6 +126,11 @@ export class MapScene extends Phaser.Scene {
     const x = (viewportWidth - width) / 2;
     const y = (viewportHeight - height) / 2;
 
+    if (this.mapBackgroundImage && (!this.mapBackgroundImage.scene || !this.mapBackgroundImage.active)) {
+      console.log('[MapScene] recreate background (destroyed ref)');
+      this.mapBackgroundImage = null;
+    }
+
     if (!this.mapBackgroundImage) {
       this.mapBackgroundImage = this.add.image(viewportWidth / 2, viewportHeight / 2, textureKey)
         .setOrigin(0.5, 0.5)
@@ -143,6 +142,10 @@ export class MapScene extends Phaser.Scene {
       .setPosition(viewportWidth / 2, viewportHeight / 2)
       .setScale(scale);
 
+    if (this.mapBackgroundOverlay && (!this.mapBackgroundOverlay.scene || !this.mapBackgroundOverlay.active)) {
+      this.mapBackgroundOverlay = null;
+    }
+
     if (!this.mapBackgroundOverlay) {
       this.mapBackgroundOverlay = this.add.rectangle(viewportWidth / 2, viewportHeight / 2, viewportWidth, viewportHeight, 0x000000, 0.12)
         .setDepth(1);
@@ -153,33 +156,6 @@ export class MapScene extends Phaser.Scene {
       .setSize(viewportWidth, viewportHeight);
 
     return { x, y, width, height, scale };
-  }
-
-  handleResize(gameSize) {
-    const viewportWidth = gameSize?.width ?? this.scale.width;
-    const viewportHeight = gameSize?.height ?? this.scale.height;
-    this.layoutMapBackground(viewportWidth, viewportHeight);
-
-    const { map } = GameState.data;
-    map?.nodes?.forEach((node) => {
-      if (node.hidden) {
-        return;
-      }
-
-      const marker = this.nodeMarkers.get(node.id);
-      if (!marker) {
-        return;
-      }
-
-      const point = this.mapToScreen(node.x, node.y);
-      marker.setPosition(point.x, point.y);
-    });
-
-    const currentNode = this.mapById.get(GameState.currentNodeId);
-    if (this.heroMarker && currentNode) {
-      const point = this.mapToScreen(currentNode.x, currentNode.y);
-      this.heroMarker.setPosition(point.x, point.y);
-    }
   }
 
   mapToScreen(x, y) {
@@ -419,6 +395,23 @@ export class MapScene extends Phaser.Scene {
       delay: 450,
       ease: 'Linear',
     });
+  }
+
+  handleShutdown() {
+    this.scale.off('resize', this.handleResize, this);
+
+    const destroyIfAlive = (obj) => {
+      if (obj?.scene) {
+        obj.destroy();
+      }
+    };
+
+    destroyIfAlive(this.mapBackgroundImage);
+    destroyIfAlive(this.mapBackgroundOverlay);
+
+    this.mapBackgroundImage = null;
+    this.mapBackgroundOverlay = null;
+    this.mapBounds = null;
   }
 
   handleResize(gameSize) {
