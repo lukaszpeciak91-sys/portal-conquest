@@ -5,7 +5,7 @@
  * Serialize with Array.from(GameState.discoveredNodes) when persisting.
  */
 export const GameState = {
-  currentScene: 'MenuScene',
+  currentScene: 'MapScene',
   runSeed: null,
   currentNodeId: null,
   turnCounter: 0,
