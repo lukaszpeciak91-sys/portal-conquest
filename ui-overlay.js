@@ -10,9 +10,12 @@ import { SceneRouter } from './src/SceneRouter';
   const debugToggleButton = document.querySelector('[data-action="toggle-debug"]');
   const mapDebugPanel = document.getElementById('map-debug-panel');
   const debugFields = {
-    hint: document.querySelector('[data-debug-field="hint"]'),
-    status: document.querySelector('[data-debug-field="status"]'),
-    node: document.querySelector('[data-debug-field="node"]'),
+    scene: document.querySelector('[data-debug-field="scene"]'),
+    mode: document.querySelector('[data-debug-field="mode"]'),
+    currentNode: document.querySelector('[data-debug-field="currentNode"]'),
+    selectedNode: document.querySelector('[data-debug-field="selectedNode"]'),
+    pendingTransition: document.querySelector('[data-debug-field="pendingTransition"]'),
+    lastAction: document.querySelector('[data-debug-field="lastAction"]'),
   };
 
   const routeableModes = new Set(['map', 'castle', 'battle']);
@@ -23,9 +26,12 @@ import { SceneRouter } from './src/SceneRouter';
     panelView: 'context',
     debugEnabled: false,
     debug: {
-      hint: '',
-      status: '',
-      node: '',
+      scene: 'scene: MapScene',
+      mode: 'ui mode: map',
+      currentNode: 'current node: —',
+      selectedNode: 'selected node: —',
+      pendingTransition: 'pending transition: —',
+      lastAction: 'last action: —',
     },
   };
 
@@ -44,9 +50,12 @@ import { SceneRouter } from './src/SceneRouter';
     mapDebugPanel.hidden = !isVisible;
     mapDebugPanel.setAttribute('aria-hidden', String(!isVisible));
 
-    debugFields.hint && (debugFields.hint.textContent = state.debug.hint || 'hint: —');
-    debugFields.status && (debugFields.status.textContent = state.debug.status || 'status: —');
-    debugFields.node && (debugFields.node.textContent = state.debug.node || 'node: —');
+    debugFields.scene && (debugFields.scene.textContent = state.debug.scene || 'scene: —');
+    debugFields.mode && (debugFields.mode.textContent = state.debug.mode || 'ui mode: —');
+    debugFields.currentNode && (debugFields.currentNode.textContent = state.debug.currentNode || 'current node: —');
+    debugFields.selectedNode && (debugFields.selectedNode.textContent = state.debug.selectedNode || 'selected node: —');
+    debugFields.pendingTransition && (debugFields.pendingTransition.textContent = state.debug.pendingTransition || 'pending transition: —');
+    debugFields.lastAction && (debugFields.lastAction.textContent = state.debug.lastAction || 'last action: —');
   }
 
   function setDebugEnabled(enabled) {
@@ -93,7 +102,7 @@ import { SceneRouter } from './src/SceneRouter';
   }
 
   function showHint(message) {
-    updateDebugPanel({ hint: message ? `hint: ${message}` : 'hint: —' });
+    updateDebugPanel({ lastAction: message ? `last action: ${message}` : 'last action: —' });
   }
 
   function resetMapUi() {
