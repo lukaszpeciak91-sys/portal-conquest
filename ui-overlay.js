@@ -16,6 +16,17 @@ import { SceneRouter } from './src/SceneRouter';
     panelView: 'context',
   };
 
+  function getRouter() {
+    const game = window.__PORTAL_GAME;
+    const sceneController = game?.scene;
+
+    if (!sceneController?.start) {
+      return null;
+    }
+
+    return new SceneRouter(sceneController);
+  }
+
   function renderPanelContent() {
     panelContents.forEach((section) => {
       const key = section.dataset.panelContent;
@@ -70,16 +81,19 @@ import { SceneRouter } from './src/SceneRouter';
   }
 
   function routeToMode(mode, options = {}) {
-    const game = window.__PORTAL_GAME;
-
-    if (!game?.scene || !routeableModes.has(mode)) {
+    if (!routeableModes.has(mode)) {
       if (mode !== 'hero') {
         console.log(`[UI] scene routing unavailable for ${mode}`);
       }
       return;
     }
 
-    const router = new SceneRouter(game.scene);
+    const router = getRouter();
+    if (!router) {
+      console.log(`[UI] scene routing unavailable for ${mode}`);
+      return;
+    }
+
     router.goTo(mode, options);
   }
 

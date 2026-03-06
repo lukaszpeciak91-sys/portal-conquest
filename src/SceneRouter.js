@@ -20,8 +20,30 @@ function resolveSceneKey(target) {
 }
 
 export class SceneRouter {
-  constructor(sceneManagerOrScene) {
-    this.sceneManagerOrScene = sceneManagerOrScene;
+  constructor(sceneController) {
+    this.sceneController = sceneController;
+  }
+
+  getSceneController() {
+    const controller = this.sceneController;
+    if (controller?.start) {
+      return controller;
+    }
+
+    if (controller?.scene?.start) {
+      return controller.scene;
+    }
+
+    return null;
+  }
+
+  isSceneActive(sceneKey) {
+    const sceneController = this.getSceneController();
+    if (!sceneController || typeof sceneController.isActive !== 'function') {
+      return false;
+    }
+
+    return sceneController.isActive(sceneKey);
   }
 
   goTo(target, options = {}) {
@@ -37,44 +59,42 @@ export class SceneRouter {
       afterMapReturn = null,
     } = options;
 
-    const host = this.sceneManagerOrScene;
-    const sceneManager = host?.start ? host : host?.scene;
-
-    if (!sceneManager?.start) {
+    const sceneController = this.getSceneController();
+    if (!sceneController) {
       return;
     }
-
-    const activeScene = typeof sceneManager.getScenes === 'function'
-      ? sceneManager.getScenes(true)?.[0]
-      : null;
-    const activeKey = activeScene?.scene?.key ?? host?.scene?.key ?? host?.key;
 
     if (sceneKey === SCENES.MAP && (force || forceRestart)) {
-      this.forceReturnToMap(sceneManager, { forceRestart, beforeMapReturn, afterMapReturn });
+      this.forceReturnToMap({ forceRestart, beforeMapReturn, afterMapReturn });
       return;
     }
 
-    if (activeKey === sceneKey && !force) {
+    if (this.isSceneActive(sceneKey) && !force) {
       return;
     }
 
-    if (forceRestart && typeof sceneManager.stop === 'function') {
-      sceneManager.stop(sceneKey);
+    if (forceRestart && this.isSceneActive(sceneKey) && typeof sceneController.stop === 'function') {
+      sceneController.stop(sceneKey);
     }
 
-    sceneManager.start(sceneKey);
+    sceneController.start(sceneKey);
   }
 
-  forceReturnToMap(sceneManager, {
+  forceReturnToMap({
     forceRestart = false,
     beforeMapReturn = null,
     afterMapReturn = null,
   } = {}) {
+    const sceneController = this.getSceneController();
+    if (!sceneController) {
+      return;
+    }
+
     const activeRouteKeys = [SCENES.CASTLE, SCENES.BATTLE, SCENES.MENU];
 
     activeRouteKeys.forEach((key) => {
-      if (typeof sceneManager.isActive === 'function' && sceneManager.isActive(key)) {
-        sceneManager.stop(key);
+      if (this.isSceneActive(key) && typeof sceneController.stop === 'function') {
+        sceneController.stop(key);
       }
     });
 
@@ -82,14 +102,13 @@ export class SceneRouter {
       beforeMapReturn();
     }
 
-    const shouldRestart = forceRestart
-      || (typeof sceneManager.isActive === 'function' && sceneManager.isActive(SCENES.MAP));
+    const shouldRestart = forceRestart || this.isSceneActive(SCENES.MAP);
 
-    if (shouldRestart && typeof sceneManager.stop === 'function') {
-      sceneManager.stop(SCENES.MAP);
+    if (shouldRestart && typeof sceneController.stop === 'function') {
+      sceneController.stop(SCENES.MAP);
     }
 
-    sceneManager.start(SCENES.MAP);
+    sceneController.start(SCENES.MAP);
 
     if (typeof afterMapReturn === 'function') {
       afterMapReturn();
