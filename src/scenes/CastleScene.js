@@ -5,6 +5,7 @@ import assetManifest, { loadAssetsFromManifest } from '../assets/loadAssetsFromM
 import { addFallbackPlaceholder, textureExists } from '../assets/safeTexture';
 
 const CASTLE_BG_KEY = 'castle_faction01_bg';
+const MIN_VALID_VIEWPORT_SIDE = 64;
 
 export class CastleScene extends Phaser.Scene {
   constructor() {
@@ -19,7 +20,10 @@ export class CastleScene extends Phaser.Scene {
     syncSceneState(this.scene.key);
     this.router = new SceneRouter(this.scene);
 
-    this.renderBackground(this.scale.width, this.scale.height);
+    const viewport = this.getSafeViewportSize({ width: this.scale.width, height: this.scale.height })
+      ?? { width: 1280, height: 720 };
+
+    this.renderBackground(viewport.width, viewport.height);
 
     this.scale.on('resize', this.handleResize, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
@@ -32,6 +36,24 @@ export class CastleScene extends Phaser.Scene {
     }
 
     this.input.keyboard.on('keydown-M', () => this.router.goTo(SCENES.MAP));
+  }
+
+  getSafeViewportSize(gameSize) {
+    const widthCandidate = gameSize?.width ?? this.scale.width;
+    const heightCandidate = gameSize?.height ?? this.scale.height;
+    const width = Number.isFinite(widthCandidate) ? widthCandidate : this.scale.width;
+    const height = Number.isFinite(heightCandidate) ? heightCandidate : this.scale.height;
+
+    if (width < MIN_VALID_VIEWPORT_SIDE || height < MIN_VALID_VIEWPORT_SIDE) {
+      if (this.lastGoodViewport?.width >= MIN_VALID_VIEWPORT_SIDE && this.lastGoodViewport?.height >= MIN_VALID_VIEWPORT_SIDE) {
+        return this.lastGoodViewport;
+      }
+
+      return null;
+    }
+
+    this.lastGoodViewport = { width, height };
+    return this.lastGoodViewport;
   }
 
   renderBackground(viewportWidth, viewportHeight) {
@@ -61,7 +83,7 @@ export class CastleScene extends Phaser.Scene {
     this.fallbackPlaceholder = addFallbackPlaceholder(this, {
       x: viewportWidth / 2,
       y: viewportHeight / 2,
-      width: Math.min(320, viewportWidth - 48),
+      width: Math.max(120, Math.min(320, viewportWidth - 48)),
       height: 140,
       label: 'missing asset\ncastle background',
       depth: 1,
@@ -69,8 +91,11 @@ export class CastleScene extends Phaser.Scene {
   }
 
   handleResize(gameSize) {
-    const viewportWidth = gameSize?.width ?? this.scale.width;
-    const viewportHeight = gameSize?.height ?? this.scale.height;
-    this.renderBackground(viewportWidth, viewportHeight);
+    const viewport = this.getSafeViewportSize(gameSize);
+    if (!viewport) {
+      return;
+    }
+
+    this.renderBackground(viewport.width, viewport.height);
   }
 }
