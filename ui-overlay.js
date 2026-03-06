@@ -19,8 +19,8 @@ import { SceneRouter } from './src/SceneRouter';
   function renderPanelContent() {
     panelContents.forEach((section) => {
       const key = section.dataset.panelContent;
-      if (state.panelView === 'objectives') {
-        section.hidden = key !== 'objectives';
+      if (state.panelView === 'hero') {
+        section.hidden = key !== 'hero';
         return;
       }
 
@@ -55,7 +55,7 @@ import { SceneRouter } from './src/SceneRouter';
     const game = window.__PORTAL_GAME;
 
     if (!game?.scene || !routeableModes.has(mode)) {
-      if (mode !== 'objectives') {
+      if (mode !== 'hero') {
         console.log(`[UI] scene routing unavailable for ${mode}`);
       }
       return;
@@ -66,7 +66,7 @@ import { SceneRouter } from './src/SceneRouter';
   }
 
   function setMode(mode, options = {}) {
-    if (!routeableModes.has(mode) && mode !== 'objectives') {
+    if (!routeableModes.has(mode) && mode !== 'hero') {
       return;
     }
 
@@ -138,8 +138,8 @@ import { SceneRouter } from './src/SceneRouter';
           return;
         }
 
-        if (mode === 'objectives') {
-          setPanelView('objectives');
+        if (mode === 'hero') {
+          setPanelView('hero');
           setPanelOpen(true);
           return;
         }
@@ -193,8 +193,8 @@ import { SceneRouter } from './src/SceneRouter';
       setPanelOpen(true);
     },
     closeSheet: () => setPanelOpen(false),
-    openObjectives: () => {
-      setPanelView('objectives');
+    openHero: () => {
+      setPanelView('hero');
       setPanelOpen(true);
     },
     updateMapHud: updateTopBar,
