@@ -91,16 +91,31 @@ export class MapScene extends Phaser.Scene {
     };
 
     const topInset = toNumber(rootStyle?.getPropertyValue('--safe-top'));
-    const topBarHeightVar = toNumber(rootStyle?.getPropertyValue('--top-bar-height'));
-    const topBarElementHeight = typeof document !== 'undefined'
-      ? document.querySelector('.top-bar')?.getBoundingClientRect?.().height ?? 0
-      : 0;
-    const topBarHeight = Math.max(topBarHeightVar + topInset, topBarElementHeight) - topInset;
     const bottomInset = toNumber(rootStyle?.getPropertyValue('--safe-bottom'));
-    const bottomBarHeight = toNumber(rootStyle?.getPropertyValue('--bottom-bar-height'));
+    const topBarHeightVar = toNumber(rootStyle?.getPropertyValue('--top-bar-height'));
+    const bottomBarHeightVar = toNumber(rootStyle?.getPropertyValue('--bottom-bar-height'));
 
-    const top = topInset + topBarHeight;
-    const bottom = viewportHeight - (bottomInset + bottomBarHeight);
+    const topBarRect = typeof document !== 'undefined'
+      ? document.querySelector('.top-bar')?.getBoundingClientRect?.() ?? null
+      : null;
+    const bottomBarRect = typeof document !== 'undefined'
+      ? document.querySelector('.bottom-mode-bar')?.getBoundingClientRect?.() ?? null
+      : null;
+    const gameContainerRect = typeof document !== 'undefined'
+      ? document.querySelector('#game-container')?.getBoundingClientRect?.() ?? null
+      : null;
+
+    const relativeTopBarBottom = topBarRect && gameContainerRect
+      ? Math.max(0, topBarRect.bottom - gameContainerRect.top)
+      : null;
+    const relativeBottomBarTop = bottomBarRect && gameContainerRect
+      ? Math.max(0, bottomBarRect.top - gameContainerRect.top)
+      : null;
+
+    const fallbackTop = topInset + topBarHeightVar;
+    const fallbackBottom = viewportHeight - (bottomInset + bottomBarHeightVar);
+    const top = relativeTopBarBottom ?? fallbackTop;
+    const bottom = relativeBottomBarTop ?? fallbackBottom;
     const height = Math.max(1, bottom - top);
 
     return {
@@ -113,9 +128,26 @@ export class MapScene extends Phaser.Scene {
     };
   }
 
+  getMapRenderContract(viewportWidth, viewportHeight) {
+    const playableBounds = this.getPlayableBounds(viewportWidth, viewportHeight);
+    const innerMargin = Phaser.Math.Clamp(Math.min(playableBounds.width, playableBounds.height) * 0.02, 8, 20);
+
+    return {
+      playableBounds,
+      projectionBounds: {
+        x: playableBounds.x + innerMargin,
+        y: playableBounds.y + innerMargin,
+        width: Math.max(1, playableBounds.width - (innerMargin * 2)),
+        height: Math.max(1, playableBounds.height - (innerMargin * 2)),
+      },
+    };
+  }
+
   layoutMapBackground(viewportWidth, viewportHeight) {
-    this.playableBounds = this.getPlayableBounds(viewportWidth, viewportHeight);
-    this.mapBounds = this.drawMapBackground(viewportWidth, viewportHeight, this.playableBounds);
+    this.mapRenderContract = this.getMapRenderContract(viewportWidth, viewportHeight);
+    this.playableBounds = this.mapRenderContract.playableBounds;
+    this.mapBounds = this.mapRenderContract.projectionBounds;
+    this.drawMapBackground(this.mapRenderContract);
 
     if (this.feedbackText) {
       this.feedbackText.setPosition(this.playableBounds.centerX, this.playableBounds.y + this.playableBounds.height - 52);
@@ -126,7 +158,8 @@ export class MapScene extends Phaser.Scene {
     }
   }
 
-  drawMapBackground(viewportWidth, viewportHeight, playableBounds = this.getPlayableBounds(viewportWidth, viewportHeight)) {
+  drawMapBackground(renderContract = this.getMapRenderContract(this.scale.width, this.scale.height)) {
+    const { playableBounds } = renderContract;
     const fallbackBounds = {
       x: playableBounds.x,
       y: playableBounds.y,
@@ -142,7 +175,7 @@ export class MapScene extends Phaser.Scene {
     if (!textureKey) {
       this.mapBackgroundImage?.destroy();
       this.mapMissingPlaceholder?.destroy();
-      this.mapBackgroundImage = this.add.rectangle(playableBounds.centerX, playableBounds.centerY, playableBounds.width, playableBounds.height, 0x1b2334).setDepth(0);
+      this.mapBackgroundImage = this.add.rectangle(playableBounds.centerX, playableBounds.centerY, playableBounds.width + 2, playableBounds.height + 2, 0x1b2334).setDepth(0);
       this.mapMissingPlaceholder = addFallbackPlaceholder(this, {
         x: playableBounds.centerX,
         y: playableBounds.centerY,
@@ -537,8 +570,7 @@ export class MapScene extends Phaser.Scene {
     const viewportWidth = gameSize?.width ?? this.scale.width;
     const viewportHeight = gameSize?.height ?? this.scale.height;
 
-    this.playableBounds = this.getPlayableBounds(viewportWidth, viewportHeight);
-    this.mapBounds = this.drawMapBackground(viewportWidth, viewportHeight, this.playableBounds);
+    this.layoutMapBackground(viewportWidth, viewportHeight);
 
     const mapNodes = GameState.data?.map?.nodes ?? [];
     mapNodes.forEach((node) => {
