@@ -18,7 +18,7 @@ export class CastleScene extends Phaser.Scene {
 
   create() {
     syncSceneState(this.scene.key);
-    this.router = new SceneRouter(this.scene);
+    this.router = new SceneRouter(this);
 
     const viewport = this.getSafeViewportSize({ width: this.scale.width, height: this.scale.height })
       ?? { width: 1280, height: 720 };
