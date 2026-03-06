@@ -7,6 +7,13 @@ import { SceneRouter } from './src/SceneRouter';
   const statusChips = Array.from(document.querySelectorAll('.status-chip'));
   const modeButtons = Array.from(document.querySelectorAll('.mode-btn[data-mode]'));
   const panelContents = Array.from(document.querySelectorAll('[data-panel-content]'));
+  const debugToggleButton = document.querySelector('[data-action="toggle-debug"]');
+  const mapDebugPanel = document.getElementById('map-debug-panel');
+  const debugFields = {
+    hint: document.querySelector('[data-debug-field="hint"]'),
+    status: document.querySelector('[data-debug-field="status"]'),
+    node: document.querySelector('[data-debug-field="node"]'),
+  };
 
   const routeableModes = new Set(['map', 'castle']);
 
@@ -14,7 +21,47 @@ import { SceneRouter } from './src/SceneRouter';
     activeMode: 'map',
     panelOpen: false,
     panelView: 'context',
+    debugEnabled: false,
+    debug: {
+      hint: '',
+      status: '',
+      node: '',
+    },
   };
+
+
+  function renderDebugToggle() {
+    if (!debugToggleButton) return;
+    debugToggleButton.dataset.debugEnabled = String(state.debugEnabled);
+    debugToggleButton.textContent = state.debugEnabled ? 'Debug ON' : 'Debug OFF';
+    debugToggleButton.classList.toggle('ui-btn--primary', state.debugEnabled);
+  }
+
+  function renderDebugPanel() {
+    if (!mapDebugPanel) return;
+
+    const isVisible = state.debugEnabled && state.activeMode === 'map';
+    mapDebugPanel.hidden = !isVisible;
+    mapDebugPanel.setAttribute('aria-hidden', String(!isVisible));
+
+    debugFields.hint && (debugFields.hint.textContent = state.debug.hint || 'hint: —');
+    debugFields.status && (debugFields.status.textContent = state.debug.status || 'status: —');
+    debugFields.node && (debugFields.node.textContent = state.debug.node || 'node: —');
+  }
+
+  function setDebugEnabled(enabled) {
+    state.debugEnabled = Boolean(enabled);
+    renderDebugToggle();
+    renderDebugPanel();
+  }
+
+  function updateDebugPanel(payload = {}) {
+    state.debug = {
+      ...state.debug,
+      ...payload,
+    };
+    renderDebugPanel();
+  }
 
   function getRouter() {
     const game = window.__PORTAL_GAME;
@@ -48,9 +95,7 @@ import { SceneRouter } from './src/SceneRouter';
   }
 
   function showHint(message) {
-    const hint = document.querySelector('.hint-line');
-    if (!hint) return;
-    hint.textContent = message;
+    updateDebugPanel({ hint: message ? `hint: ${message}` : 'hint: —' });
   }
 
   function resetMapUi() {
@@ -117,6 +162,8 @@ import { SceneRouter } from './src/SceneRouter';
     if (state.panelView === 'context') {
       renderPanelContent();
     }
+
+    renderDebugPanel();
   }
 
   function setPanelView(view) {
@@ -203,6 +250,15 @@ import { SceneRouter } from './src/SceneRouter';
         return;
       }
 
+      if (action === 'toggle-debug') {
+        const next = !state.debugEnabled;
+        setDebugEnabled(next);
+        const game = window.__PORTAL_GAME;
+        const mapScene = game?.scene?.getScene?.('MapScene');
+        mapScene?.setDebugEnabled?.(next);
+        return;
+      }
+
       if (action === 'settings') {
         window.portalFullscreen?.toggle?.();
       }
@@ -215,6 +271,8 @@ import { SceneRouter } from './src/SceneRouter';
   setPanelOpen(false);
   updateTopBar({ turn: 0, hp: 100, level: 1 });
   updateTopBarDensity('map');
+  renderDebugToggle();
+  renderDebugPanel();
 
   window.gameUi = {
     setMode: (mode) => setMode(mode, { skipRouting: true }),
@@ -231,5 +289,13 @@ import { SceneRouter } from './src/SceneRouter';
     showHint,
     resetMapUi,
     returnToMap,
+    setDebugPanel: updateDebugPanel,
+    setDebugEnabled: (enabled) => {
+      setDebugEnabled(enabled);
+      const game = window.__PORTAL_GAME;
+      const mapScene = game?.scene?.getScene?.('MapScene');
+      mapScene?.setDebugEnabled?.(Boolean(enabled));
+    },
+    isDebugEnabled: () => state.debugEnabled,
   };
 })();

@@ -21,9 +21,16 @@
             <span class="status-chip">Turn 0</span>
             <span class="status-chip">HP 100</span>
             <span class="status-chip">Lv 1</span>
+            <button class="ui-btn" type="button" data-action="toggle-debug" data-debug-enabled="false">Debug OFF</button>
             <button class="ui-btn ui-btn--icon" type="button" aria-label="Settings" data-action="settings">⚙</button>
           </div>
         </header>
+
+        <section id="map-debug-panel" aria-label="Map debug panel" aria-hidden="true" hidden>
+          <p class="map-debug-panel__line" data-debug-field="hint"></p>
+          <p class="map-debug-panel__line" data-debug-field="status"></p>
+          <p class="map-debug-panel__line" data-debug-field="node"></p>
+        </section>
 
         <section id="context-panel" aria-label="Context panel" aria-hidden="true" data-open="false" data-view="context">
           <div class="context-panel__handle" aria-hidden="true"></div>
@@ -46,8 +53,6 @@
             </div>
           </div>
         </section>
-
-        <p class="hint-line">Tap a node to inspect.</p>
 
         <nav class="bottom-mode-bar" aria-label="Mode switcher">
           <button class="mode-btn is-active" type="button" data-action="set-mode" data-mode="map">Map</button>
