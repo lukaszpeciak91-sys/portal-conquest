@@ -18,6 +18,8 @@ const NODE_TYPES = {
 
 const HERO_HP_STUB = 100;
 const HERO_LEVEL_STUB = 1;
+const NODE_MARKER_SIZE = 24;
+const NODE_HIT_AREA_SIZE = 40;
 
 export class MapScene extends Phaser.Scene {
   constructor() {
@@ -51,6 +53,7 @@ export class MapScene extends Phaser.Scene {
     this.renderHeroMarker();
 
     this.scale.on('resize', this.handleResize, this);
+    this.events.on(Phaser.Scenes.Events.WAKE, this.onWake, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.handleShutdown, this);
 
     this.feedbackText = this.add.text(this.scale.width / 2, this.scale.height - 84, '', {
@@ -75,9 +78,24 @@ export class MapScene extends Phaser.Scene {
     this.input.keyboard.on('keydown-C', () => this.router.goTo(SCENES.CASTLE));
     this.input.keyboard.on('keydown-B', () => this.router.goTo(SCENES.BATTLE));
 
+    this.ensureInputReady();
+
     if (typeof window !== 'undefined' && window.gameUi?.setMode) {
       window.gameUi.setMode('map');
     }
+  }
+
+  ensureInputReady() {
+    if (!this.input) {
+      return;
+    }
+
+    this.input.enabled = true;
+    this.input.topOnly = true;
+  }
+
+  onWake() {
+    this.ensureInputReady();
   }
 
   getPlayableBounds(viewportWidth, viewportHeight) {
@@ -265,23 +283,28 @@ export class MapScene extends Phaser.Scene {
   }
 
   renderNodeMarker(x, y, nodeType, textureKey) {
+    const hitOffset = NODE_HIT_AREA_SIZE / 2;
+    const hitRect = new Phaser.Geom.Rectangle(-hitOffset, -hitOffset, NODE_HIT_AREA_SIZE, NODE_HIT_AREA_SIZE);
+
     if (textureExists(this, textureKey)) {
       return this.add.image(x, y, textureKey)
-        .setDisplaySize(24, 24)
+        .setDisplaySize(NODE_MARKER_SIZE, NODE_MARKER_SIZE)
         .setDepth(10)
-        .setInteractive({ useHandCursor: true });
+        .setInteractive(hitRect, Phaser.Geom.Rectangle.Contains)
+        .setData('baseScale', 1);
     }
 
     const marker = addFallbackPlaceholder(this, {
       x,
       y,
-      width: 36,
-      height: 36,
+      width: NODE_MARKER_SIZE,
+      height: NODE_MARKER_SIZE,
       label: nodeType?.slice(0, 2)?.toUpperCase() ?? '?',
       depth: 10,
-    }).setSize(36, 36);
+    }).setSize(NODE_MARKER_SIZE, NODE_MARKER_SIZE)
+      .setData('baseScale', 1);
 
-    marker.setInteractive(new Phaser.Geom.Rectangle(-18, -18, 36, 36), Phaser.Geom.Rectangle.Contains);
+    marker.setInteractive(hitRect, Phaser.Geom.Rectangle.Contains);
     return marker;
   }
 
@@ -510,7 +533,8 @@ export class MapScene extends Phaser.Scene {
       return;
     }
 
-    marker.setScale(selected ? 1.25 : 1);
+    const baseScale = marker.getData?.('baseScale') ?? 1;
+    marker.setScale(selected ? baseScale * 1.25 : baseScale);
 
     if (typeof marker.setStrokeStyle === 'function') {
       marker.setStrokeStyle(selected ? 3 : 2, selected ? 0xffffff : 0x2b2b2b);
@@ -550,6 +574,8 @@ export class MapScene extends Phaser.Scene {
   }
 
   handleShutdown() {
+    this.clearTransientUi();
+    this.events.off(Phaser.Scenes.Events.WAKE, this.onWake, this);
     this.scale.off('resize', this.handleResize, this);
 
     const destroyIfAlive = (obj) => {
