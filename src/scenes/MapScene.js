@@ -21,6 +21,8 @@ const HERO_LEVEL_STUB = 1;
 const NODE_MARKER_SIZE = 24;
 const NODE_HIT_AREA_SIZE = 40;
 const MIN_VALID_VIEWPORT_SIDE = 64;
+const MIN_VALID_PLAYABLE_HEIGHT = 96;
+const PLAYABLE_BOUNDS_RETRY_MS = 120;
 
 export class MapScene extends Phaser.Scene {
   constructor() {
@@ -57,6 +59,8 @@ export class MapScene extends Phaser.Scene {
 
     this.lastGoodViewport = this.getSafeViewportSize({ width: this.scale.width, height: this.scale.height })
       ?? { width: 1280, height: 720 };
+
+    this.layoutRetryTimer = null;
 
     this.layoutMapBackground(this.lastGoodViewport.width, this.lastGoodViewport.height);
     this.renderNodes(map);
@@ -165,8 +169,14 @@ export class MapScene extends Phaser.Scene {
     };
   }
 
-  getMapRenderContract(viewportWidth, viewportHeight) {
-    const playableBounds = this.getPlayableBounds(viewportWidth, viewportHeight);
+  isPlayableBoundsValid(bounds) {
+    return Number.isFinite(bounds?.width)
+      && Number.isFinite(bounds?.height)
+      && bounds.width >= MIN_VALID_VIEWPORT_SIDE
+      && bounds.height >= MIN_VALID_PLAYABLE_HEIGHT;
+  }
+
+  buildRenderContract(playableBounds) {
     const innerMargin = Phaser.Math.Clamp(Math.min(playableBounds.width, playableBounds.height) * 0.02, 8, 20);
 
     return {
@@ -180,11 +190,56 @@ export class MapScene extends Phaser.Scene {
     };
   }
 
+  getMapRenderContract(viewportWidth, viewportHeight) {
+    const measuredPlayableBounds = this.getPlayableBounds(viewportWidth, viewportHeight);
+    const fallbackPlayableBounds = this.lastGoodPlayableBounds
+      ?? {
+        x: 0,
+        y: 0,
+        width: Math.max(MIN_VALID_VIEWPORT_SIDE, viewportWidth),
+        height: Math.max(MIN_VALID_PLAYABLE_HEIGHT, viewportHeight),
+        centerX: Math.max(MIN_VALID_VIEWPORT_SIDE, viewportWidth) / 2,
+        centerY: Math.max(MIN_VALID_PLAYABLE_HEIGHT, viewportHeight) / 2,
+      };
+    const hasValidMeasuredBounds = this.isPlayableBoundsValid(measuredPlayableBounds);
+    const playableBounds = hasValidMeasuredBounds ? measuredPlayableBounds : fallbackPlayableBounds;
+
+    if (hasValidMeasuredBounds) {
+      this.lastGoodPlayableBounds = measuredPlayableBounds;
+    }
+
+    return {
+      ...this.buildRenderContract(playableBounds),
+      hasValidMeasuredBounds,
+    };
+  }
+
+  scheduleLayoutRetry() {
+    if (this.layoutRetryTimer) {
+      return;
+    }
+
+    this.layoutRetryTimer = window.setTimeout(() => {
+      this.layoutRetryTimer = null;
+      const viewport = this.getSafeViewportSize({ width: this.scale.width, height: this.scale.height });
+      if (!viewport) {
+        this.scheduleLayoutRetry();
+        return;
+      }
+
+      this.handleResize(viewport);
+    }, PLAYABLE_BOUNDS_RETRY_MS);
+  }
+
   layoutMapBackground(viewportWidth, viewportHeight) {
     this.mapRenderContract = this.getMapRenderContract(viewportWidth, viewportHeight);
     this.playableBounds = this.mapRenderContract.playableBounds;
     this.mapBounds = this.mapRenderContract.projectionBounds;
     this.drawMapBackground(this.mapRenderContract);
+
+    if (!this.mapRenderContract.hasValidMeasuredBounds) {
+      this.scheduleLayoutRetry();
+    }
 
   }
 
@@ -591,6 +646,11 @@ export class MapScene extends Phaser.Scene {
     this.clearTransientUi();
     this.events.off(Phaser.Scenes.Events.WAKE, this.onWake, this);
     this.scale.off('resize', this.handleResize, this);
+
+    if (this.layoutRetryTimer) {
+      window.clearTimeout(this.layoutRetryTimer);
+      this.layoutRetryTimer = null;
+    }
 
     const destroyIfAlive = (obj) => {
       if (obj?.scene) {

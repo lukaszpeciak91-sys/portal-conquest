@@ -41,9 +41,25 @@ let settleAttempt = 0;
 let lastAppliedViewport = { width: 0, height: 0 };
 
 function getViewportSize() {
+  const visualViewport = window.visualViewport;
+  const candidates = [
+    { width: window.innerWidth, height: window.innerHeight },
+    { width: visualViewport?.width, height: visualViewport?.height },
+  ].filter((candidate) => Number.isFinite(candidate.width) && Number.isFinite(candidate.height));
+
+  const bestCandidate = candidates.reduce((best, candidate) => {
+    if (!best) {
+      return candidate;
+    }
+
+    const bestArea = best.width * best.height;
+    const candidateArea = candidate.width * candidate.height;
+    return candidateArea > bestArea ? candidate : best;
+  }, null);
+
   return {
-    width: Math.max(window.innerWidth, 1),
-    height: Math.max(window.innerHeight, 1),
+    width: Math.max(bestCandidate?.width ?? window.innerWidth, 1),
+    height: Math.max(bestCandidate?.height ?? window.innerHeight, 1),
   };
 }
 
@@ -133,7 +149,12 @@ function syncViewportWhenSettled(options = {}) {
 
     if (stableCount >= stableFrames || settleAttempt >= maxAttempts) {
       settleRafId = null;
-      syncViewport(current);
+      const applied = syncViewport(current);
+      if (!applied) {
+        window.setTimeout(() => {
+          syncViewportWhenSettled({ stableFrames: 1, maxAttempts: 10 });
+        }, 120);
+      }
       return;
     }
 
