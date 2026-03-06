@@ -3,7 +3,7 @@
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --top-bar-height: 44px;
-  --bottom-bar-height: 60px;
+  --bottom-bar-height: 48px;
   --hint-height: 24px;
   --panel-max-height: min(34dvh, 260px);
 }
@@ -190,7 +190,7 @@ body {
   right: 0;
   bottom: 0;
   height: calc(var(--bottom-bar-height) + var(--safe-bottom));
-  padding: 8px 10px calc(var(--safe-bottom) + 8px);
+  padding: 6px 10px calc(var(--safe-bottom) + 6px);
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
@@ -199,7 +199,7 @@ body {
 }
 
 .mode-btn {
-  min-height: 44px;
+  min-height: 38px;
 }
 
 #context-panel {
