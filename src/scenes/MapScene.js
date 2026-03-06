@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { SCENES, SceneRouter } from '../SceneRouter';
 import { GameState } from '../state/GameState';
+import { clearPendingTransition, isNodeConsumed, markNodeState, setPendingTransition } from '../state/runtimeState';
 import { syncSceneState } from '../state/sceneState';
 import map01FallbackUrl from '../data/maps/map01.png';
 import assetManifest, { loadAssetsFromManifest } from '../assets/loadAssetsFromManifest';
@@ -38,18 +39,10 @@ export class MapScene extends Phaser.Scene {
     console.log('[MapScene] create');
 
     this.router = new SceneRouter(this);
+    clearPendingTransition();
 
     const { map, config, faction } = GameState.data;
     this.mapById = new Map((map?.nodes ?? []).map((node) => [node.id, node]));
-
-    if (!GameState.currentNodeId) {
-      const castleNode = map?.nodes?.find((node) => node.type === 'castle');
-      GameState.currentNodeId = castleNode?.id ?? map?.nodes?.[0]?.id ?? null;
-      if (GameState.currentNodeId) {
-        GameState.discoveredNodes.add(GameState.currentNodeId);
-      }
-    }
-
     console.log(`Data ready: map=${map?.id}, biome=${map?.biome}, regions=${config?.regions}, faction=${faction?.id}`);
 
     this.layoutMapBackground(this.scale.width, this.scale.height);
@@ -273,7 +266,10 @@ export class MapScene extends Phaser.Scene {
       onComplete: () => {
         this.isMoving = false;
         GameState.currentNodeId = targetNode.id;
-        GameState.discoveredNodes.add(targetNode.id);
+        markNodeState(targetNode.id, {
+          discovered: true,
+          visited: true,
+        });
         GameState.turnCounter += 1;
         this.updateHud();
 
@@ -294,11 +290,17 @@ export class MapScene extends Phaser.Scene {
         this.router.goTo(SCENES.CASTLE);
         return;
       case NODE_TYPES.BATTLE:
-        GameState.pendingBattleKind = null;
+        setPendingTransition({
+          type: NODE_TYPES.BATTLE,
+          sourceNodeId: node.id,
+        });
         this.router.goTo(SCENES.BATTLE);
         return;
       case NODE_TYPES.PORTAL:
-        GameState.pendingBattleKind = 'portal';
+        setPendingTransition({
+          type: NODE_TYPES.PORTAL,
+          sourceNodeId: node.id,
+        });
         this.router.goTo(SCENES.BATTLE);
         return;
       case NODE_TYPES.EVENT:
@@ -309,12 +311,12 @@ export class MapScene extends Phaser.Scene {
         console.log(`[MapScene] Resource stub at ${node.id}: would grant rewards here.`);
         return;
       case NODE_TYPES.BEACON:
-        if (GameState.usedBeacons.has(node.id)) {
+        if (isNodeConsumed(node.id)) {
           this.showStubOverlay('Beacon depleted');
           return;
         }
 
-        GameState.usedBeacons.add(node.id);
+        markNodeState(node.id, { consumed: true });
         this.showStubOverlay('Beacon used — teleporting to castle (stub)', () => {
           this.router.goTo(SCENES.CASTLE);
         });

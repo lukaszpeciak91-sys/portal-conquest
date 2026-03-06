@@ -2,6 +2,7 @@ import mapData from '../data/maps/map01.json';
 import configData from '../data/config/mvp.json';
 import factionData from '../data/factions/faction01.json';
 import { GameState } from './GameState';
+import { initializeRunState } from './runtimeState';
 
 let hasLoaded = false;
 
@@ -10,25 +11,15 @@ let hasLoaded = false;
  * @returns {typeof GameState}
  */
 export function loadGameData() {
-  if (hasLoaded) {
-    return GameState;
+  if (!hasLoaded) {
+    GameState.data.map = mapData;
+    GameState.data.config = configData;
+    GameState.data.faction = factionData;
+
+    hasLoaded = true;
+    console.log('Loaded map01.json');
   }
 
-  GameState.data.map = mapData;
-  GameState.data.config = configData;
-  GameState.data.faction = factionData;
-
-  if (!GameState.currentNodeId) {
-    const castleNode = mapData.nodes.find((node) => node.type === 'castle');
-    GameState.currentNodeId = castleNode?.id ?? mapData.nodes[0]?.id ?? null;
-  }
-
-  if (GameState.currentNodeId) {
-    GameState.discoveredNodes.add(GameState.currentNodeId);
-  }
-
-  hasLoaded = true;
-  console.log('Loaded map01.json');
-
+  initializeRunState();
   return GameState;
 }

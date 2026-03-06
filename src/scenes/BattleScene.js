@@ -1,13 +1,15 @@
 import Phaser from 'phaser';
 import { SCENES, SceneRouter } from '../SceneRouter';
-import { GameState } from '../state/GameState';
 import { syncSceneState } from '../state/sceneState';
+import { clearPendingTransition, consumePendingTransition } from '../state/runtimeState';
 import assetManifest, { loadAssetsFromManifest } from '../assets/loadAssetsFromManifest';
+import { GameState } from '../state/GameState';
 import { addFallbackPlaceholder, textureExists } from '../assets/safeTexture';
 
 export class BattleScene extends Phaser.Scene {
   constructor() {
     super(SCENES.BATTLE);
+    this.transition = null;
   }
 
   preload() {
@@ -30,12 +32,18 @@ export class BattleScene extends Phaser.Scene {
   create() {
     syncSceneState(this.scene.key);
     this.router = new SceneRouter(this);
+    this.transition = consumePendingTransition();
+
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      clearPendingTransition();
+      this.transition = null;
+    });
 
     if (typeof window !== 'undefined' && window.gameUi?.setMode) {
       window.gameUi.setMode('battle');
     }
 
-    if (GameState.pendingBattleKind === 'portal') {
+    if (this.transition?.type === 'portal') {
       this.add.text(16, 88, 'Portal Guardian battle', {
         color: '#ffd166',
         fontFamily: 'Arial',
@@ -46,9 +54,8 @@ export class BattleScene extends Phaser.Scene {
 
     this.renderUnitPreview();
 
-
     this.input.keyboard.on('keydown-M', () => {
-      GameState.pendingBattleKind = null;
+      clearPendingTransition();
       this.router.goTo(SCENES.MAP);
     });
   }

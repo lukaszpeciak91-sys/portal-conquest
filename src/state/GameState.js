@@ -1,17 +1,14 @@
 /**
  * Central runtime state for the current app session.
- *
- * Note: discoveredNodes is a Set for fast membership checks.
- * Serialize with Array.from(GameState.discoveredNodes) when persisting.
  */
 export const GameState = {
   currentScene: 'MapScene',
   runSeed: null,
+  isRunInitialized: false,
   currentNodeId: null,
   turnCounter: 0,
-  discoveredNodes: new Set(),
-  usedBeacons: new Set(),
-  pendingBattleKind: null,
+  nodeRuntime: {},
+  pendingTransition: null,
   closedPortals: 0,
   data: {
     map: null,
