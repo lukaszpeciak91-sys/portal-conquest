@@ -32,9 +32,12 @@ export class MapScene extends Phaser.Scene {
     this.isMoving = false;
     this.debugEnabled = false;
     this.debugState = {
-      hint: 'hint: Tap a node to inspect.',
-      status: 'status: —',
-      node: 'node: —',
+      scene: 'scene: MapScene',
+      mode: 'ui mode: map',
+      currentNode: 'current node: —',
+      selectedNode: 'selected node: —',
+      pendingTransition: 'pending transition: —',
+      lastAction: 'last action: Tap a node to inspect.',
     };
   }
 
@@ -500,9 +503,8 @@ export class MapScene extends Phaser.Scene {
       this.applyNodeMarkerSelection(marker, false);
     });
 
-    this.setDebugHint('');
-    this.setDebugStatus('');
-    this.setDebugNode('');
+    this.setDebugSelectedNode('');
+    this.setDebugLastAction('');
   }
 
   showStubOverlay(message, onClose) {
@@ -581,8 +583,8 @@ export class MapScene extends Phaser.Scene {
       `connections: ${connections}`,
     ].join(' | ');
 
-    this.setDebugNode(message);
-    this.setDebugHint(`Selected ${node.id}`);
+    this.setDebugSelectedNode(`${node.id} (${node.type})`);
+    this.setDebugLastAction(`Selected ${node.id}`);
     console.log(`[MapScene] ${message}`);
   }
 
@@ -611,7 +613,7 @@ export class MapScene extends Phaser.Scene {
   }
 
   showFeedback(message) {
-    this.setDebugStatus(message || '');
+    this.setDebugLastAction(message || '');
   }
 
   setDebugEnabled(enabled) {
@@ -619,22 +621,26 @@ export class MapScene extends Phaser.Scene {
     this.syncDebugPanel();
   }
 
-  setDebugHint(message) {
-    this.debugState.hint = message ? `hint: ${message}` : 'hint: —';
+  setDebugSelectedNode(message) {
+    this.debugState.selectedNode = message ? `selected node: ${message}` : 'selected node: —';
     this.syncDebugPanel();
   }
 
-  setDebugStatus(message) {
-    this.debugState.status = message ? `status: ${message}` : 'status: —';
-    this.syncDebugPanel();
-  }
-
-  setDebugNode(message) {
-    this.debugState.node = message ? `node: ${message}` : 'node: —';
+  setDebugLastAction(message) {
+    this.debugState.lastAction = message ? `last action: ${message}` : 'last action: —';
     this.syncDebugPanel();
   }
 
   syncDebugPanel() {
+    this.debugState.scene = `scene: ${this.scene.key}`;
+    this.debugState.mode = 'ui mode: map';
+    this.debugState.currentNode = `current node: ${GameState.currentNodeId ?? '—'}`;
+
+    const pendingTransition = GameState.pendingTransition
+      ? `${GameState.pendingTransition.type} (${GameState.pendingTransition.sourceNodeId})`
+      : '—';
+    this.debugState.pendingTransition = `pending transition: ${pendingTransition}`;
+
     if (typeof window === 'undefined' || !window.gameUi?.setDebugPanel) {
       return;
     }

@@ -177,24 +177,26 @@ body {
 
 #map-debug-panel {
   position: absolute;
-  left: 10px;
-  right: 10px;
-  bottom: calc(var(--bottom-bar-height) + var(--safe-bottom) + 8px);
-  border: 1px solid #334155;
-  border-radius: 10px;
-  background: rgba(2, 6, 23, 0.9);
-  padding: 8px 10px;
+  top: calc(var(--safe-top) + var(--top-bar-height) + 8px);
+  left: 8px;
+  width: min(360px, calc(100% - 16px));
+  border: 1px solid rgba(100, 116, 139, 0.95);
+  border-radius: 8px;
+  background: rgba(2, 6, 23, 0.78);
+  padding: 6px 8px;
   display: grid;
-  gap: 4px;
+  gap: 2px;
   pointer-events: none;
+  z-index: 6;
 }
 
 .map-debug-panel__line {
   margin: 0;
-  font-size: 0.72rem;
-  line-height: 1.25;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+  font-size: 0.68rem;
+  line-height: 1.2;
   color: #bfdbfe;
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.4);
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.5);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
