@@ -65,7 +65,7 @@ import { SceneRouter } from './src/SceneRouter';
 
   function getRouter() {
     const game = window.__PORTAL_GAME;
-    if (!game?.scene?.start) {
+    if (!game) {
       return null;
     }
 

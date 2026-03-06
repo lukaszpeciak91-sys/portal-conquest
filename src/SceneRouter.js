@@ -25,24 +25,35 @@ function resolveSceneKey(target) {
 export class SceneRouter {
   constructor(sceneController) {
     this.sceneController = sceneController;
+    this._reportedControllerError = false;
   }
 
   getSceneController() {
     const controller = this.sceneController;
-    if (controller?.sys?.game?.scene?.start) {
-      return controller.sys.game.scene;
+
+    // Phaser.Game -> Phaser.SceneManager
+    if (controller?.scene?.start && controller?.scene?.isActive && controller?.scene?.stop) {
+      return controller.scene;
     }
 
+    // Phaser.Scene -> Phaser.ScenePlugin
+    if (controller?.scene?.manager?.start && controller?.scene?.isActive && controller?.scene?.stop) {
+      return controller.scene;
+    }
+
+    // Phaser.ScenePlugin -> Phaser.SceneManager
     if (controller?.manager?.start) {
       return controller.manager;
     }
 
-    if (controller?.game?.scene?.start) {
-      return controller.game.scene;
-    }
-
+    // Phaser.SceneManager
     if (controller?.start) {
       return controller;
+    }
+
+    if (!this._reportedControllerError) {
+      this._reportedControllerError = true;
+      console.error('[SceneRouter] Unable to resolve scene controller from input.', controller);
     }
 
     return null;
