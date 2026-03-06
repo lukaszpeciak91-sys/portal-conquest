@@ -7,6 +7,8 @@ import { BattleScene } from './scenes/BattleScene';
 import '../ui-overlay.js';
 
 const RESIZE_DEBOUNCE_MS = 120;
+const VIEWPORT_SETTLE_FRAMES = 2;
+const MIN_VIEWPORT_SIDE = 64;
 
 const config = {
   type: Phaser.AUTO,
@@ -34,12 +36,22 @@ const rotateOverlay = document.getElementById('rotate-overlay');
 
 let resizeTimer = null;
 let viewportRefreshTimer = null;
+let settleRafId = null;
+let settleAttempt = 0;
+let lastAppliedViewport = { width: 0, height: 0 };
 
 function getViewportSize() {
   return {
     width: Math.max(window.innerWidth, 1),
     height: Math.max(window.innerHeight, 1),
   };
+}
+
+function isValidViewportSize(width, height) {
+  return Number.isFinite(width)
+    && Number.isFinite(height)
+    && width >= MIN_VIEWPORT_SIDE
+    && height >= MIN_VIEWPORT_SIDE;
 }
 
 function updateOrientationState(width, height) {
@@ -60,8 +72,18 @@ function updateOrientationState(width, height) {
   gameInput.enabled = isLandscape;
 }
 
-function syncViewport() {
-  const { width, height } = getViewportSize();
+function syncViewport(viewport = getViewportSize()) {
+  const width = Math.floor(viewport.width);
+  const height = Math.floor(viewport.height);
+
+  if (!isValidViewportSize(width, height)) {
+    return false;
+  }
+
+  if (width === lastAppliedViewport.width && height === lastAppliedViewport.height) {
+    updateOrientationState(width, height);
+    return true;
+  }
 
   root.style.setProperty('--app-width', `${width}px`);
   root.style.setProperty('--app-height', `${height}px`);
@@ -72,6 +94,53 @@ function syncViewport() {
   }
 
   updateOrientationState(width, height);
+  lastAppliedViewport = { width, height };
+  return true;
+}
+
+function cancelViewportSettle() {
+  if (settleRafId) {
+    window.cancelAnimationFrame(settleRafId);
+    settleRafId = null;
+  }
+}
+
+function syncViewportWhenSettled(options = {}) {
+  const {
+    stableFrames = VIEWPORT_SETTLE_FRAMES,
+    maxAttempts = 8,
+  } = options;
+
+  cancelViewportSettle();
+  settleAttempt = 0;
+  let stableCount = 0;
+  let previous = null;
+
+  const tick = () => {
+    settleAttempt += 1;
+    const current = getViewportSize();
+    const isSameAsPrevious = previous
+      && current.width === previous.width
+      && current.height === previous.height;
+
+    if (isValidViewportSize(current.width, current.height) && isSameAsPrevious) {
+      stableCount += 1;
+    } else {
+      stableCount = 0;
+    }
+
+    previous = current;
+
+    if (stableCount >= stableFrames || settleAttempt >= maxAttempts) {
+      settleRafId = null;
+      syncViewport(current);
+      return;
+    }
+
+    settleRafId = window.requestAnimationFrame(tick);
+  };
+
+  settleRafId = window.requestAnimationFrame(tick);
 }
 
 function notifyFullscreenFallback() {
@@ -84,7 +153,7 @@ function refreshViewportAfterFullscreenChange() {
   }
 
   viewportRefreshTimer = window.setTimeout(() => {
-    syncViewport();
+    syncViewportWhenSettled({ maxAttempts: 12 });
   }, 80);
 }
 
@@ -114,7 +183,7 @@ function queueViewportSync() {
   }
 
   resizeTimer = window.setTimeout(() => {
-    syncViewport();
+    syncViewportWhenSettled();
   }, RESIZE_DEBOUNCE_MS);
 }
 
@@ -126,4 +195,4 @@ window.portalFullscreen = {
   toggle: () => toggleFullscreen(),
 };
 
-syncViewport();
+syncViewportWhenSettled({ maxAttempts: 2, stableFrames: 1 });

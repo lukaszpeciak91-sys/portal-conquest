@@ -20,6 +20,7 @@ const HERO_HP_STUB = 100;
 const HERO_LEVEL_STUB = 1;
 const NODE_MARKER_SIZE = 24;
 const NODE_HIT_AREA_SIZE = 40;
+const MIN_VALID_VIEWPORT_SIDE = 64;
 
 export class MapScene extends Phaser.Scene {
   constructor() {
@@ -48,7 +49,10 @@ export class MapScene extends Phaser.Scene {
     this.mapById = new Map((map?.nodes ?? []).map((node) => [node.id, node]));
     console.log(`Data ready: map=${map?.id}, biome=${map?.biome}, regions=${config?.regions}, faction=${faction?.id}`);
 
-    this.layoutMapBackground(this.scale.width, this.scale.height);
+    this.lastGoodViewport = this.getSafeViewportSize({ width: this.scale.width, height: this.scale.height })
+      ?? { width: 1280, height: 720 };
+
+    this.layoutMapBackground(this.lastGoodViewport.width, this.lastGoodViewport.height);
     this.renderNodes(map);
     this.renderHeroMarker();
 
@@ -98,6 +102,24 @@ export class MapScene extends Phaser.Scene {
     this.ensureInputReady();
   }
 
+  getSafeViewportSize(gameSize) {
+    const widthCandidate = gameSize?.width ?? this.scale.width;
+    const heightCandidate = gameSize?.height ?? this.scale.height;
+    const width = Number.isFinite(widthCandidate) ? widthCandidate : this.scale.width;
+    const height = Number.isFinite(heightCandidate) ? heightCandidate : this.scale.height;
+
+    if (width < MIN_VALID_VIEWPORT_SIDE || height < MIN_VALID_VIEWPORT_SIDE) {
+      if (this.lastGoodViewport?.width >= MIN_VALID_VIEWPORT_SIDE && this.lastGoodViewport?.height >= MIN_VALID_VIEWPORT_SIDE) {
+        return this.lastGoodViewport;
+      }
+
+      return null;
+    }
+
+    this.lastGoodViewport = { width, height };
+    return this.lastGoodViewport;
+  }
+
   getPlayableBounds(viewportWidth, viewportHeight) {
     const rootStyle = typeof window !== 'undefined'
       ? getComputedStyle(document.documentElement)
@@ -130,18 +152,23 @@ export class MapScene extends Phaser.Scene {
       ? Math.max(0, bottomBarRect.top - gameContainerRect.top)
       : null;
 
-    const fallbackTop = topInset + topBarHeightVar;
-    const fallbackBottom = viewportHeight - (bottomInset + bottomBarHeightVar);
-    const top = relativeTopBarBottom ?? fallbackTop;
-    const bottom = relativeBottomBarTop ?? fallbackBottom;
+    const fallbackTop = Phaser.Math.Clamp(topInset + topBarHeightVar, 0, Math.max(0, viewportHeight - 1));
+    const fallbackBottom = Phaser.Math.Clamp(viewportHeight - (bottomInset + bottomBarHeightVar), fallbackTop + 1, viewportHeight);
+
+    const topCandidate = Number.isFinite(relativeTopBarBottom) ? relativeTopBarBottom : fallbackTop;
+    const bottomCandidate = Number.isFinite(relativeBottomBarTop) ? relativeBottomBarTop : fallbackBottom;
+
+    const top = Phaser.Math.Clamp(topCandidate, 0, Math.max(0, viewportHeight - 1));
+    const bottom = Phaser.Math.Clamp(bottomCandidate, top + 1, viewportHeight);
+    const width = Math.max(1, viewportWidth);
     const height = Math.max(1, bottom - top);
 
     return {
       x: 0,
       y: top,
-      width: viewportWidth,
+      width,
       height,
-      centerX: viewportWidth / 2,
+      centerX: width / 2,
       centerY: top + (height / 2),
     };
   }
@@ -593,8 +620,13 @@ export class MapScene extends Phaser.Scene {
   }
 
   handleResize(gameSize) {
-    const viewportWidth = gameSize?.width ?? this.scale.width;
-    const viewportHeight = gameSize?.height ?? this.scale.height;
+    const viewport = this.getSafeViewportSize(gameSize);
+    if (!viewport) {
+      return;
+    }
+
+    const viewportWidth = viewport.width;
+    const viewportHeight = viewport.height;
 
     this.layoutMapBackground(viewportWidth, viewportHeight);
 
