@@ -214,11 +214,12 @@ body {
   background: rgba(2, 6, 23, 0.96);
   transform: translateY(calc(100% + 8px));
   transition: transform 180ms ease;
-  pointer-events: auto;
+  pointer-events: none;
 }
 
 #context-panel[data-open='true'] {
   transform: translateY(0);
+  pointer-events: auto;
 }
 
 .context-panel__handle {

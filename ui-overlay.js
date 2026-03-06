@@ -51,6 +51,24 @@ import { SceneRouter } from './src/SceneRouter';
     mapScene?.clearTransientUi?.();
   }
 
+  function returnToMap() {
+    setMode('map', {
+      routingOptions: {
+        force: true,
+        forceRestart: true,
+        beforeMapReturn: () => {
+          resetMapUi();
+        },
+        afterMapReturn: () => {
+          const game = window.__PORTAL_GAME;
+          const mapScene = game?.scene?.getScene?.('MapScene');
+          mapScene?.ensureInputReady?.();
+        },
+      },
+    });
+    showHint('Tap a node to inspect.');
+  }
+
   function routeToMode(mode, options = {}) {
     const game = window.__PORTAL_GAME;
 
@@ -124,9 +142,7 @@ import { SceneRouter } from './src/SceneRouter';
         const mode = trigger.dataset.mode;
 
         if (mode === 'map') {
-          resetMapUi();
-          setMode(mode, { routingOptions: { force: true, forceRestart: true } });
-          showHint('Tap a node to inspect.');
+          returnToMap();
           return;
         }
 
@@ -200,5 +216,6 @@ import { SceneRouter } from './src/SceneRouter';
     updateMapHud: updateTopBar,
     showHint,
     resetMapUi,
+    returnToMap,
   };
 })();
