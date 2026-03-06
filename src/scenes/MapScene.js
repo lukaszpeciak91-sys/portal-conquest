@@ -42,6 +42,7 @@ export class MapScene extends Phaser.Scene {
     clearPendingTransition();
 
     const { map, config, faction } = GameState.data;
+    this.mapLogicalBounds = map?.generation?.bounds ?? null;
     this.mapById = new Map((map?.nodes ?? []).map((node) => [node.id, node]));
     console.log(`Data ready: map=${map?.id}, biome=${map?.biome}, regions=${config?.regions}, faction=${faction?.id}`);
 
@@ -161,13 +162,12 @@ export class MapScene extends Phaser.Scene {
   }
 
   mapToScreen(x, y) {
-    const source = this.mapTextureKey
-      ? this.textures.get(this.mapTextureKey).getSourceImage()
-      : { width: this.mapBounds.width, height: this.mapBounds.height };
+    const logicalWidth = this.mapLogicalBounds?.width ?? this.mapBounds?.width ?? 1;
+    const logicalHeight = this.mapLogicalBounds?.height ?? this.mapBounds?.height ?? 1;
 
     return {
-      x: this.mapBounds.x + ((x / source.width) * this.mapBounds.width),
-      y: this.mapBounds.y + ((y / source.height) * this.mapBounds.height),
+      x: this.mapBounds.x + ((x / logicalWidth) * this.mapBounds.width),
+      y: this.mapBounds.y + ((y / logicalHeight) * this.mapBounds.height),
     };
   }
 
