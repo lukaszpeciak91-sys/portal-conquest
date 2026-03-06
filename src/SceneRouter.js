@@ -11,6 +11,9 @@ const MODE_TO_SCENE = {
   battle: SCENES.BATTLE,
 };
 
+const ROUTABLE_SCENE_KEYS = [SCENES.MENU, SCENES.MAP, SCENES.CASTLE, SCENES.BATTLE];
+const GAMEPLAY_SCENE_KEYS = [SCENES.MAP, SCENES.CASTLE, SCENES.BATTLE];
+
 function resolveSceneKey(target) {
   if (!target) {
     return null;
@@ -26,15 +29,38 @@ export class SceneRouter {
 
   getSceneController() {
     const controller = this.sceneController;
+    if (controller?.sys?.game?.scene?.start) {
+      return controller.sys.game.scene;
+    }
+
+    if (controller?.manager?.start) {
+      return controller.manager;
+    }
+
+    if (controller?.game?.scene?.start) {
+      return controller.game.scene;
+    }
+
     if (controller?.start) {
       return controller;
     }
 
-    if (controller?.scene?.start) {
-      return controller.scene;
+    return null;
+  }
+
+  getActiveSceneKeys(sceneKeys = ROUTABLE_SCENE_KEYS) {
+    return sceneKeys.filter((sceneKey) => this.isSceneActive(sceneKey));
+  }
+
+  stopScene(sceneKey) {
+    const sceneController = this.getSceneController();
+    if (!sceneController || typeof sceneController.stop !== 'function') {
+      return;
     }
 
-    return null;
+    if (this.isSceneActive(sceneKey)) {
+      sceneController.stop(sceneKey);
+    }
   }
 
   isSceneActive(sceneKey) {
@@ -57,6 +83,7 @@ export class SceneRouter {
       forceRestart = false,
       beforeMapReturn = null,
       afterMapReturn = null,
+      diagnostics = true,
     } = options;
 
     const sceneController = this.getSceneController();
@@ -64,54 +91,37 @@ export class SceneRouter {
       return;
     }
 
-    if (sceneKey === SCENES.MAP && (force || forceRestart)) {
-      this.forceReturnToMap({ forceRestart, beforeMapReturn, afterMapReturn });
-      return;
+    const activeGameplayBefore = this.getActiveSceneKeys(GAMEPLAY_SCENE_KEYS);
+
+    if (diagnostics) {
+      console.log(`[SceneRouter] goTo(${sceneKey}) gameplay before: ${activeGameplayBefore.join(', ') || 'none'}`);
     }
 
-    if (this.isSceneActive(sceneKey) && !force) {
-      return;
-    }
-
-    if (forceRestart && this.isSceneActive(sceneKey) && typeof sceneController.stop === 'function') {
-      sceneController.stop(sceneKey);
-    }
-
-    sceneController.start(sceneKey);
-  }
-
-  forceReturnToMap({
-    forceRestart = false,
-    beforeMapReturn = null,
-    afterMapReturn = null,
-  } = {}) {
-    const sceneController = this.getSceneController();
-    if (!sceneController) {
-      return;
-    }
-
-    const activeRouteKeys = [SCENES.CASTLE, SCENES.BATTLE, SCENES.MENU];
-
-    activeRouteKeys.forEach((key) => {
-      if (this.isSceneActive(key) && typeof sceneController.stop === 'function') {
-        sceneController.stop(key);
-      }
-    });
-
-    if (typeof beforeMapReturn === 'function') {
+    if (sceneKey === SCENES.MAP && typeof beforeMapReturn === 'function') {
       beforeMapReturn();
     }
 
-    const shouldRestart = forceRestart || this.isSceneActive(SCENES.MAP);
-
-    if (shouldRestart && typeof sceneController.stop === 'function') {
-      sceneController.stop(SCENES.MAP);
+    if (GAMEPLAY_SCENE_KEYS.includes(sceneKey)) {
+      GAMEPLAY_SCENE_KEYS
+        .filter((key) => key !== sceneKey)
+        .forEach((key) => this.stopScene(key));
     }
 
-    sceneController.start(SCENES.MAP);
+    if (forceRestart) {
+      this.stopScene(sceneKey);
+    }
 
-    if (typeof afterMapReturn === 'function') {
+    if (!this.isSceneActive(sceneKey) || force || forceRestart) {
+      sceneController.start(sceneKey);
+    }
+
+    if (sceneKey === SCENES.MAP && typeof afterMapReturn === 'function') {
       afterMapReturn();
+    }
+
+    if (diagnostics) {
+      const activeGameplayAfter = this.getActiveSceneKeys(GAMEPLAY_SCENE_KEYS);
+      console.log(`[SceneRouter] goTo(${sceneKey}) gameplay after: ${activeGameplayAfter.join(', ') || 'none'}`);
     }
   }
 }

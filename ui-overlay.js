@@ -15,7 +15,7 @@ import { SceneRouter } from './src/SceneRouter';
     node: document.querySelector('[data-debug-field="node"]'),
   };
 
-  const routeableModes = new Set(['map', 'castle']);
+  const routeableModes = new Set(['map', 'castle', 'battle']);
 
   const state = {
     activeMode: 'map',
@@ -65,13 +65,11 @@ import { SceneRouter } from './src/SceneRouter';
 
   function getRouter() {
     const game = window.__PORTAL_GAME;
-    const sceneController = game?.scene;
-
-    if (!sceneController?.start) {
+    if (!game?.scene?.start) {
       return null;
     }
 
-    return new SceneRouter(sceneController);
+    return new SceneRouter(game);
   }
 
   function renderPanelContent() {
