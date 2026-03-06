@@ -4,7 +4,6 @@
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --top-bar-height: 44px;
   --bottom-bar-height: 48px;
-  --hint-height: 24px;
   --panel-max-height: min(34dvh, 260px);
 }
 
@@ -130,6 +129,13 @@ body {
   pointer-events: auto;
 }
 
+.top-bar--map-compact .ui-btn {
+  min-height: 26px;
+  font-size: 0.66rem;
+  padding: 0 8px;
+  pointer-events: auto;
+}
+
 .top-bar__status {
   display: flex;
   align-items: center;
@@ -168,20 +174,30 @@ body {
   background: #1d4ed8;
 }
 
-.hint-line {
+
+#map-debug-panel {
   position: absolute;
-  left: 0;
-  right: 0;
-  bottom: calc(var(--bottom-bar-height) + var(--safe-bottom));
-  margin: 0;
-  height: var(--hint-height);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.74rem;
-  color: #cbd5e1;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  left: 10px;
+  right: 10px;
+  bottom: calc(var(--bottom-bar-height) + var(--safe-bottom) + 8px);
+  border: 1px solid #334155;
+  border-radius: 10px;
+  background: rgba(2, 6, 23, 0.9);
+  padding: 8px 10px;
+  display: grid;
+  gap: 4px;
   pointer-events: none;
+}
+
+.map-debug-panel__line {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.25;
+  color: #bfdbfe;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.4);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .bottom-mode-bar {
@@ -206,7 +222,7 @@ body {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: calc(var(--bottom-bar-height) + var(--hint-height) + var(--safe-bottom));
+  bottom: calc(var(--bottom-bar-height) + var(--safe-bottom));
   width: min(900px, 100%);
   margin: 0 auto;
   border-top: 1px solid #334155;

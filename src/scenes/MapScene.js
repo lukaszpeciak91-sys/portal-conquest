@@ -28,6 +28,12 @@ export class MapScene extends Phaser.Scene {
     this.nodeMarkers = new Map();
     this.selectedNodeId = null;
     this.isMoving = false;
+    this.debugEnabled = false;
+    this.debugState = {
+      hint: 'hint: Tap a node to inspect.',
+      status: 'status: —',
+      node: 'node: —',
+    };
   }
 
   preload() {
@@ -60,23 +66,8 @@ export class MapScene extends Phaser.Scene {
     this.events.on(Phaser.Scenes.Events.WAKE, this.onWake, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.handleShutdown, this);
 
-    this.feedbackText = this.add.text(this.scale.width / 2, this.scale.height - 84, '', {
-      color: '#f1f1f1',
-      fontFamily: 'Arial',
-      fontSize: '13px',
-      backgroundColor: '#00000099',
-      padding: { x: 8, y: 6 },
-    }).setOrigin(0.5).setDepth(20).setAlpha(0);
-
-    this.nodeInfoText = this.add.text(16, this.scale.height - 60, 'Tap a visible node to inspect or move.', {
-      color: '#ffffff',
-      fontFamily: 'Arial',
-      fontSize: '12px',
-      backgroundColor: '#00000088',
-      padding: { x: 8, y: 6 },
-    }).setDepth(20);
-
     this.updateHud();
+    this.syncDebugPanel();
 
     this.input.keyboard.on('keydown-M', () => this.router.goTo(SCENES.MAP));
     this.input.keyboard.on('keydown-C', () => this.router.goTo(SCENES.CASTLE));
@@ -86,6 +77,7 @@ export class MapScene extends Phaser.Scene {
 
     if (typeof window !== 'undefined' && window.gameUi?.setMode) {
       window.gameUi.setMode('map');
+      this.setDebugEnabled(window.gameUi.isDebugEnabled?.() ?? false);
     }
   }
 
@@ -194,13 +186,6 @@ export class MapScene extends Phaser.Scene {
     this.mapBounds = this.mapRenderContract.projectionBounds;
     this.drawMapBackground(this.mapRenderContract);
 
-    if (this.feedbackText) {
-      this.feedbackText.setPosition(this.playableBounds.centerX, this.playableBounds.y + this.playableBounds.height - 52);
-    }
-
-    if (this.nodeInfoText) {
-      this.nodeInfoText.setPosition(16, this.playableBounds.y + this.playableBounds.height - 28);
-    }
   }
 
   drawMapBackground(renderContract = this.getMapRenderContract(this.scale.width, this.scale.height)) {
@@ -460,19 +445,9 @@ export class MapScene extends Phaser.Scene {
       this.applyNodeMarkerSelection(marker, false);
     });
 
-    if (this.nodeInfoText) {
-      this.nodeInfoText.setText('');
-    }
-
-    if (this.feedbackText) {
-      this.feedbackText.setText('');
-      this.feedbackText.setAlpha(0);
-    }
-
-    if (this.feedbackFadeTween) {
-      this.feedbackFadeTween.remove();
-      this.feedbackFadeTween = null;
-    }
+    this.setDebugHint('');
+    this.setDebugStatus('');
+    this.setDebugNode('');
   }
 
   showStubOverlay(message, onClose) {
@@ -551,7 +526,8 @@ export class MapScene extends Phaser.Scene {
       `connections: ${connections}`,
     ].join(' | ');
 
-    this.nodeInfoText.setText(message);
+    this.setDebugNode(message);
+    this.setDebugHint(`Selected ${node.id}`);
     console.log(`[MapScene] ${message}`);
   }
 
@@ -580,24 +556,35 @@ export class MapScene extends Phaser.Scene {
   }
 
   showFeedback(message) {
-    if (!this.feedbackText) {
+    this.setDebugStatus(message || '');
+  }
+
+  setDebugEnabled(enabled) {
+    this.debugEnabled = Boolean(enabled);
+    this.syncDebugPanel();
+  }
+
+  setDebugHint(message) {
+    this.debugState.hint = message ? `hint: ${message}` : 'hint: —';
+    this.syncDebugPanel();
+  }
+
+  setDebugStatus(message) {
+    this.debugState.status = message ? `status: ${message}` : 'status: —';
+    this.syncDebugPanel();
+  }
+
+  setDebugNode(message) {
+    this.debugState.node = message ? `node: ${message}` : 'node: —';
+    this.syncDebugPanel();
+  }
+
+  syncDebugPanel() {
+    if (typeof window === 'undefined' || !window.gameUi?.setDebugPanel) {
       return;
     }
 
-    this.feedbackText.setText(message);
-    this.feedbackText.setAlpha(1);
-
-    if (this.feedbackFadeTween) {
-      this.feedbackFadeTween.remove();
-    }
-
-    this.feedbackFadeTween = this.tweens.add({
-      targets: this.feedbackText,
-      alpha: 0,
-      duration: 500,
-      delay: 450,
-      ease: 'Linear',
-    });
+    window.gameUi.setDebugPanel(this.debugState);
   }
 
   handleShutdown() {
@@ -647,8 +634,6 @@ export class MapScene extends Phaser.Scene {
       this.heroMarker.setPosition(point.x, point.y);
     }
 
-    this.feedbackText?.setPosition(this.playableBounds.centerX, this.playableBounds.y + this.playableBounds.height - 52);
-    this.nodeInfoText?.setPosition(16, this.playableBounds.y + this.playableBounds.height - 28);
   }
 
   updateHud() {
