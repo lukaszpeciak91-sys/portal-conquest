@@ -63,6 +63,11 @@ export function isNodeConsumed(nodeId) {
   return Boolean(runtime?.consumed);
 }
 
+export function isNodeCleared(nodeId) {
+  const runtime = ensureNodeRuntime(nodeId);
+  return Boolean(runtime?.cleared);
+}
+
 export function initializeRunState() {
   const map = GameState.data.map;
 

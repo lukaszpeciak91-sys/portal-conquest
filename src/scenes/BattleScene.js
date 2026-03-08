@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { SCENES, SceneRouter } from '../SceneRouter';
 import { syncSceneState } from '../state/sceneState';
-import { clearPendingTransition, consumePendingTransition } from '../state/runtimeState';
+import { clearPendingTransition, consumePendingTransition, markNodeState } from '../state/runtimeState';
 import assetManifest, { loadAssetsFromManifest } from '../assets/loadAssetsFromManifest';
 import { GameState } from '../state/GameState';
 import { addFallbackPlaceholder, textureExists } from '../assets/safeTexture';
@@ -55,9 +55,19 @@ export class BattleScene extends Phaser.Scene {
     this.renderUnitPreview();
 
     this.input.keyboard.on('keydown-M', () => {
-      clearPendingTransition();
-      this.router.goTo(SCENES.MAP);
+      this.returnToMap();
     });
+  }
+
+
+  returnToMap() {
+    const sourceNodeId = this.transition?.sourceNodeId;
+    if (sourceNodeId && (this.transition?.type === 'battle' || this.transition?.type === 'portal')) {
+      markNodeState(sourceNodeId, { cleared: true });
+    }
+
+    clearPendingTransition();
+    this.router.goTo(SCENES.MAP);
   }
 
   renderUnitPreview() {
