@@ -16,6 +16,39 @@ const NODE_TYPES = {
   BEACON: 'beacon',
 };
 
+const NODE_INSPECT_COPY = {
+  [NODE_TYPES.CASTLE]: {
+    abbr: 'CA',
+    label: 'Castle',
+    action: 'Enter castle',
+  },
+  [NODE_TYPES.BATTLE]: {
+    abbr: 'BA',
+    label: 'Battle',
+    action: 'Start battle',
+  },
+  [NODE_TYPES.PORTAL]: {
+    abbr: 'PO',
+    label: 'Portal',
+    action: 'Enter portal battle',
+  },
+  [NODE_TYPES.EVENT]: {
+    abbr: 'EV',
+    label: 'Event',
+    action: 'Trigger event',
+  },
+  [NODE_TYPES.RESOURCE]: {
+    abbr: 'RE',
+    label: 'Resource',
+    action: 'Collect resource',
+  },
+  [NODE_TYPES.BEACON]: {
+    abbr: 'BE',
+    label: 'Beacon',
+    action: 'Activate beacon',
+  },
+};
+
 const HERO_HP_STUB = 100;
 const HERO_LEVEL_STUB = 1;
 const NODE_MARKER_SIZE = 24;
@@ -31,6 +64,8 @@ export class MapScene extends Phaser.Scene {
     this.selectedNodeId = null;
     this.isMoving = false;
     this.debugEnabled = false;
+    this.inspectTargetNodeId = null;
+    this.inspectSubmitLocked = false;
     this.debugState = {
       scene: 'scene: MapScene',
       mode: 'ui mode: map',
@@ -394,11 +429,13 @@ export class MapScene extends Phaser.Scene {
     this.selectNode(node);
 
     if (this.isMoving) {
+      this.closeInspectPanel();
       this.showFeedback('Moving...');
       return;
     }
 
     if (node.id === GameState.currentNodeId) {
+      this.closeInspectPanel();
       this.showFeedback('Already here');
       return;
     }
@@ -407,12 +444,13 @@ export class MapScene extends Phaser.Scene {
     const isNeighbor = Boolean(currentNode?.connections?.includes(node.id));
 
     if (!isNeighbor) {
+      this.closeInspectPanel();
       this.showFeedback('Not connected');
       console.log(`[MapScene] Invalid move ${GameState.currentNodeId} -> ${node.id}: not connected`);
       return;
     }
 
-    this.moveHeroTo(node);
+    this.openInspectPanel(node);
   }
 
   moveHeroTo(targetNode) {
@@ -422,6 +460,7 @@ export class MapScene extends Phaser.Scene {
 
     const target = this.mapToScreen(targetNode.x, targetNode.y);
     this.isMoving = true;
+    this.closeInspectPanel();
 
     this.tweens.add({
       targets: this.heroMarker,
@@ -493,6 +532,8 @@ export class MapScene extends Phaser.Scene {
   }
 
   clearTransientUi() {
+    this.closeInspectPanel();
+
     if (this.stubOverlayContainer) {
       this.stubOverlayContainer.destroy(true);
       this.stubOverlayContainer = null;
@@ -558,6 +599,144 @@ export class MapScene extends Phaser.Scene {
       closeButton,
       closeLabel,
     ]).setDepth(30);
+  }
+
+  getNodeInspectCopy(nodeType) {
+    const copy = NODE_INSPECT_COPY[nodeType];
+    if (copy) {
+      return copy;
+    }
+
+    const fallbackLabel = nodeType ? `${nodeType.slice(0, 1).toUpperCase()}${nodeType.slice(1)}` : 'Node';
+    return {
+      abbr: nodeType?.slice(0, 2)?.toUpperCase() ?? '??',
+      label: fallbackLabel,
+      action: 'Enter node',
+    };
+  }
+
+  openInspectPanel(node) {
+    if (!node || this.isMoving) {
+      return;
+    }
+
+    this.closeInspectPanel();
+
+    const inspectCopy = this.getNodeInspectCopy(node.type);
+    const { width, height } = this.scale;
+    const panelWidth = 360;
+    const panelHeight = 190;
+    const panelX = width / 2;
+    const panelY = height - 140;
+    const buttonY = panelY + 50;
+
+    const backdrop = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.35)
+      .setDepth(26)
+      .setInteractive();
+
+    const panel = this.add.rectangle(panelX, panelY, panelWidth, panelHeight, 0x182336, 0.98)
+      .setStrokeStyle(2, 0xffffff)
+      .setDepth(27);
+
+    const title = this.add.text(panelX, panelY - 58, `${inspectCopy.label} (${inspectCopy.abbr})`, {
+      color: '#ffffff',
+      fontFamily: 'Arial',
+      fontSize: '18px',
+      fontStyle: 'bold',
+    }).setOrigin(0.5).setDepth(28);
+
+    const details = this.add.text(panelX, panelY - 20, [
+      `Node: ${node.id}`,
+      `Type: ${node.type}`,
+      `Action: ${inspectCopy.action}`,
+    ].join('\n'), {
+      color: '#d7e5ff',
+      fontFamily: 'Arial',
+      fontSize: '14px',
+      align: 'center',
+    }).setOrigin(0.5).setDepth(28);
+
+    const enterButton = this.add.rectangle(panelX - 72, buttonY, 120, 36, 0x2d8cff)
+      .setStrokeStyle(2, 0xffffff)
+      .setDepth(28)
+      .setInteractive({ useHandCursor: true });
+
+    const enterLabel = this.add.text(panelX - 72, buttonY, 'Enter', {
+      color: '#ffffff',
+      fontFamily: 'Arial',
+      fontSize: '16px',
+    }).setOrigin(0.5).setDepth(29);
+
+    const cancelButton = this.add.rectangle(panelX + 72, buttonY, 120, 36, 0x47536c)
+      .setStrokeStyle(2, 0xffffff)
+      .setDepth(28)
+      .setInteractive({ useHandCursor: true });
+
+    const cancelLabel = this.add.text(panelX + 72, buttonY, 'Cancel', {
+      color: '#ffffff',
+      fontFamily: 'Arial',
+      fontSize: '16px',
+    }).setOrigin(0.5).setDepth(29);
+
+    this.inspectTargetNodeId = node.id;
+    this.inspectSubmitLocked = false;
+
+    const cancelInspect = () => {
+      this.showFeedback(`Inspect cancelled for ${node.id}`);
+      this.closeInspectPanel();
+    };
+
+    const enterNode = () => {
+      if (this.inspectSubmitLocked || this.isMoving) {
+        return;
+      }
+
+      const latestNode = this.mapById.get(this.inspectTargetNodeId);
+      const currentNode = this.mapById.get(GameState.currentNodeId);
+      const isNeighbor = Boolean(latestNode && currentNode?.connections?.includes(latestNode.id));
+
+      if (!latestNode || latestNode.id === GameState.currentNodeId || !isNeighbor) {
+        this.showFeedback('Node is no longer valid');
+        this.closeInspectPanel();
+        return;
+      }
+
+      this.inspectSubmitLocked = true;
+      this.showFeedback(`Entering ${latestNode.id}`);
+      this.moveHeroTo(latestNode);
+    };
+
+    enterButton.on('pointerover', () => enterButton.setFillStyle(0x4da0ff));
+    enterButton.on('pointerout', () => enterButton.setFillStyle(0x2d8cff));
+    cancelButton.on('pointerover', () => cancelButton.setFillStyle(0x59657d));
+    cancelButton.on('pointerout', () => cancelButton.setFillStyle(0x47536c));
+
+    enterButton.on('pointerdown', enterNode);
+    cancelButton.on('pointerdown', cancelInspect);
+    backdrop.on('pointerdown', cancelInspect);
+
+    this.inspectOverlayContainer = this.add.container(0, 0, [
+      backdrop,
+      panel,
+      title,
+      details,
+      enterButton,
+      enterLabel,
+      cancelButton,
+      cancelLabel,
+    ]).setDepth(26);
+
+    this.showFeedback(`Inspecting ${node.id}`);
+  }
+
+  closeInspectPanel() {
+    if (this.inspectOverlayContainer) {
+      this.inspectOverlayContainer.destroy(true);
+      this.inspectOverlayContainer = null;
+    }
+
+    this.inspectTargetNodeId = null;
+    this.inspectSubmitLocked = false;
   }
 
   selectNode(node) {
