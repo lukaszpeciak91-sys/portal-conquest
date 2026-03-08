@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { SCENES, SceneRouter } from '../SceneRouter';
 import { GameState } from '../state/GameState';
-import { clearPendingTransition, isNodeConsumed, markNodeState, setPendingTransition } from '../state/runtimeState';
+import { clearPendingTransition, ensureNodeRuntime, isNodeCleared, isNodeConsumed, markNodeState, setPendingTransition } from '../state/runtimeState';
 import { syncSceneState } from '../state/sceneState';
 import map01FallbackUrl from '../data/maps/map01.png';
 import assetManifest, { loadAssetsFromManifest } from '../assets/loadAssetsFromManifest';
@@ -61,6 +61,7 @@ export class MapScene extends Phaser.Scene {
   constructor() {
     super(SCENES.MAP);
     this.nodeMarkers = new Map();
+    this.nodeDataById = new Map();
     this.selectedNodeId = null;
     this.isMoving = false;
     this.debugEnabled = false;
@@ -93,6 +94,7 @@ export class MapScene extends Phaser.Scene {
     const { map, config, faction } = GameState.data;
     this.mapLogicalBounds = map?.generation?.bounds ?? null;
     this.mapById = new Map((map?.nodes ?? []).map((node) => [node.id, node]));
+    this.nodeDataById = this.mapById;
     console.log(`Data ready: map=${map?.id}, biome=${map?.biome}, regions=${config?.regions}, faction=${faction?.id}`);
 
     this.lastGoodViewport = this.getSafeViewportSize({ width: this.scale.width, height: this.scale.height })
@@ -134,6 +136,7 @@ export class MapScene extends Phaser.Scene {
 
   onWake() {
     this.ensureInputReady();
+    this.refreshNodeMarkerStates();
   }
 
   getSafeViewportSize(gameSize) {
@@ -379,15 +382,17 @@ export class MapScene extends Phaser.Scene {
 
       const point = this.mapToScreen(node.x, node.y);
       const textureKey = `node-${node.type}`;
-      const marker = this.renderNodeMarker(point.x, point.y, node.type, textureKey);
+      const marker = this.renderNodeMarker(point.x, point.y, node, textureKey);
 
       marker.on('pointerdown', () => this.onNodePressed(node));
 
       this.nodeMarkers.set(node.id, marker);
+      this.applyNodeMarkerState(node.id);
     });
   }
 
-  renderNodeMarker(x, y, nodeType, textureKey) {
+  renderNodeMarker(x, y, node, textureKey) {
+    const nodeType = node?.type;
     const hitOffset = NODE_HIT_AREA_SIZE / 2;
     const hitRect = new Phaser.Geom.Rectangle(-hitOffset, -hitOffset, NODE_HIT_AREA_SIZE, NODE_HIT_AREA_SIZE);
 
@@ -396,7 +401,9 @@ export class MapScene extends Phaser.Scene {
         .setDisplaySize(NODE_MARKER_SIZE, NODE_MARKER_SIZE)
         .setDepth(10)
         .setInteractive(hitRect, Phaser.Geom.Rectangle.Contains)
-        .setData('baseScale', 1);
+        .setData('baseScale', 1)
+        .setData('nodeType', nodeType)
+        .setData('nodeId', node?.id);
     }
 
     const marker = addFallbackPlaceholder(this, {
@@ -407,7 +414,9 @@ export class MapScene extends Phaser.Scene {
       label: nodeType?.slice(0, 2)?.toUpperCase() ?? '?',
       depth: 10,
     }).setSize(NODE_MARKER_SIZE, NODE_MARKER_SIZE)
-      .setData('baseScale', 1);
+      .setData('baseScale', 1)
+      .setData('nodeType', nodeType)
+      .setData('nodeId', node?.id);
 
     marker.setInteractive(hitRect, Phaser.Geom.Rectangle.Contains);
     return marker;
@@ -453,6 +462,35 @@ export class MapScene extends Phaser.Scene {
     this.openInspectPanel(node);
   }
 
+  applyNodeMarkerState(nodeId) {
+    const marker = this.nodeMarkers.get(nodeId);
+    if (!marker) {
+      return;
+    }
+
+    const node = this.nodeDataById.get(nodeId);
+    const runtime = ensureNodeRuntime(nodeId);
+    const isClearedNode = node && (node.type === NODE_TYPES.BATTLE || node.type === NODE_TYPES.PORTAL) && runtime?.cleared;
+    const isConsumedNode = node && (node.type === NODE_TYPES.RESOURCE || node.type === NODE_TYPES.BEACON) && runtime?.consumed;
+
+    const alpha = (isClearedNode || isConsumedNode) ? 0.45 : 1;
+    const tint = isConsumedNode ? 0x808080 : (isClearedNode ? 0x98b0cc : 0xffffff);
+
+    if (typeof marker.setTint === 'function') {
+      marker.setTint(tint);
+    }
+
+    if (typeof marker.iterate === 'function') {
+      marker.iterate((child) => {
+        if (typeof child?.setFillStyle === 'function') {
+          child.setFillStyle(isConsumedNode ? 0x4f4f4f : (isClearedNode ? 0x6e8298 : 0x667892));
+        }
+      });
+    }
+
+    marker.setAlpha(alpha);
+  }
+
   moveHeroTo(targetNode) {
     if (!this.heroMarker) {
       return;
@@ -495,6 +533,11 @@ export class MapScene extends Phaser.Scene {
         this.router.goTo(SCENES.CASTLE);
         return;
       case NODE_TYPES.BATTLE:
+        if (isNodeCleared(node.id)) {
+          this.showStubOverlay('Battle already cleared.');
+          return;
+        }
+
         setPendingTransition({
           type: NODE_TYPES.BATTLE,
           sourceNodeId: node.id,
@@ -502,6 +545,11 @@ export class MapScene extends Phaser.Scene {
         this.router.goTo(SCENES.BATTLE);
         return;
       case NODE_TYPES.PORTAL:
+        if (isNodeCleared(node.id)) {
+          this.showStubOverlay('Portal guardian already defeated.');
+          return;
+        }
+
         setPendingTransition({
           type: NODE_TYPES.PORTAL,
           sourceNodeId: node.id,
@@ -509,26 +557,40 @@ export class MapScene extends Phaser.Scene {
         this.router.goTo(SCENES.BATTLE);
         return;
       case NODE_TYPES.EVENT:
-        this.showStubOverlay('Event (stub)');
+        this.showStubOverlay('Something strange happens.');
         return;
       case NODE_TYPES.RESOURCE:
-        this.showStubOverlay('Resource gained (stub)');
-        console.log(`[MapScene] Resource stub at ${node.id}: would grant rewards here.`);
-        return;
-      case NODE_TYPES.BEACON:
         if (isNodeConsumed(node.id)) {
-          this.showStubOverlay('Beacon depleted');
+          this.showStubOverlay('Resources already collected.');
           return;
         }
 
-        markNodeState(node.id, { consumed: true });
-        this.showStubOverlay('Beacon used — teleporting to castle (stub)', () => {
+        this.showStubOverlay('You found resources.', () => {
+          markNodeState(node.id, { consumed: true });
+          this.applyNodeMarkerState(node.id);
+        });
+        return;
+      case NODE_TYPES.BEACON:
+        if (isNodeConsumed(node.id)) {
+          this.showStubOverlay('Beacon already activated.');
+          return;
+        }
+
+        this.showStubOverlay('Beacon activated.', () => {
+          markNodeState(node.id, { consumed: true });
+          this.applyNodeMarkerState(node.id);
           this.router.goTo(SCENES.CASTLE);
         });
         return;
       default:
         return;
     }
+  }
+
+  refreshNodeMarkerStates() {
+    this.nodeMarkers?.forEach((_marker, nodeId) => {
+      this.applyNodeMarkerState(nodeId);
+    });
   }
 
   clearTransientUi() {

@@ -115,6 +115,18 @@ import { SceneRouter } from './src/SceneRouter';
   }
 
   function returnToMap() {
+    const game = window.__PORTAL_GAME;
+    const battleScene = game?.scene?.isActive?.('BattleScene')
+      ? game?.scene?.getScene?.('BattleScene')
+      : null;
+
+    if (battleScene?.returnToMap) {
+      resetMapUi();
+      battleScene.returnToMap();
+      showHint('Tap a node to inspect.');
+      return;
+    }
+
     setMode('map', {
       routingOptions: {
         force: true,
@@ -123,8 +135,8 @@ import { SceneRouter } from './src/SceneRouter';
           resetMapUi();
         },
         afterMapReturn: () => {
-          const game = window.__PORTAL_GAME;
-          const mapScene = game?.scene?.getScene?.('MapScene');
+          const currentGame = window.__PORTAL_GAME;
+          const mapScene = currentGame?.scene?.getScene?.('MapScene');
           mapScene?.ensureInputReady?.();
         },
       },
