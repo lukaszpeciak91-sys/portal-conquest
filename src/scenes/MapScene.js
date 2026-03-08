@@ -624,58 +624,58 @@ export class MapScene extends Phaser.Scene {
 
     const inspectCopy = this.getNodeInspectCopy(node.type);
     const { width, height } = this.scale;
-    const panelWidth = 360;
-    const panelHeight = 190;
+    const panelWidth = 280;
+    const panelHeight = 148;
     const panelX = width / 2;
-    const panelY = height - 140;
-    const buttonY = panelY + 50;
+    const panelY = height / 2;
+    const buttonY = panelY + 45;
 
-    const backdrop = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.35)
-      .setDepth(26)
-      .setInteractive();
+    const backdrop = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.24)
+      .setDepth(26);
 
     const panel = this.add.rectangle(panelX, panelY, panelWidth, panelHeight, 0x182336, 0.98)
       .setStrokeStyle(2, 0xffffff)
       .setDepth(27);
 
-    const title = this.add.text(panelX, panelY - 58, `${inspectCopy.label} (${inspectCopy.abbr})`, {
+    const title = this.add.text(panelX, panelY - 42, inspectCopy.label, {
       color: '#ffffff',
       fontFamily: 'Arial',
-      fontSize: '18px',
+      fontSize: '17px',
       fontStyle: 'bold',
     }).setOrigin(0.5).setDepth(28);
 
-    const details = this.add.text(panelX, panelY - 20, [
-      `Node: ${node.id}`,
-      `Type: ${node.type}`,
-      `Action: ${inspectCopy.action}`,
+    const details = this.add.text(panelX, panelY - 4, [
+      `Node ${node.id}`,
+      '',
+      `${inspectCopy.action}?`,
     ].join('\n'), {
       color: '#d7e5ff',
       fontFamily: 'Arial',
-      fontSize: '14px',
+      fontSize: '13px',
       align: 'center',
+      lineSpacing: 5,
     }).setOrigin(0.5).setDepth(28);
 
-    const enterButton = this.add.rectangle(panelX - 72, buttonY, 120, 36, 0x2d8cff)
-      .setStrokeStyle(2, 0xffffff)
+    const enterButton = this.add.rectangle(panelX - 50, buttonY, 84, 30, 0x3f7fe3)
+      .setStrokeStyle(1, 0xe7f0ff)
       .setDepth(28)
       .setInteractive({ useHandCursor: true });
 
-    const enterLabel = this.add.text(panelX - 72, buttonY, 'Enter', {
+    const enterLabel = this.add.text(panelX - 50, buttonY, 'Enter', {
       color: '#ffffff',
       fontFamily: 'Arial',
-      fontSize: '16px',
+      fontSize: '14px',
     }).setOrigin(0.5).setDepth(29);
 
-    const cancelButton = this.add.rectangle(panelX + 72, buttonY, 120, 36, 0x47536c)
-      .setStrokeStyle(2, 0xffffff)
+    const cancelButton = this.add.rectangle(panelX + 50, buttonY, 84, 30, 0x3f4d64)
+      .setStrokeStyle(1, 0xd5deeb)
       .setDepth(28)
       .setInteractive({ useHandCursor: true });
 
-    const cancelLabel = this.add.text(panelX + 72, buttonY, 'Cancel', {
+    const cancelLabel = this.add.text(panelX + 50, buttonY, 'Cancel', {
       color: '#ffffff',
       fontFamily: 'Arial',
-      fontSize: '16px',
+      fontSize: '14px',
     }).setOrigin(0.5).setDepth(29);
 
     this.inspectTargetNodeId = node.id;
@@ -706,14 +706,13 @@ export class MapScene extends Phaser.Scene {
       this.moveHeroTo(latestNode);
     };
 
-    enterButton.on('pointerover', () => enterButton.setFillStyle(0x4da0ff));
-    enterButton.on('pointerout', () => enterButton.setFillStyle(0x2d8cff));
-    cancelButton.on('pointerover', () => cancelButton.setFillStyle(0x59657d));
-    cancelButton.on('pointerout', () => cancelButton.setFillStyle(0x47536c));
+    enterButton.on('pointerover', () => enterButton.setFillStyle(0x4a8df6));
+    enterButton.on('pointerout', () => enterButton.setFillStyle(0x3f7fe3));
+    cancelButton.on('pointerover', () => cancelButton.setFillStyle(0x4b5b74));
+    cancelButton.on('pointerout', () => cancelButton.setFillStyle(0x3f4d64));
 
     enterButton.on('pointerdown', enterNode);
     cancelButton.on('pointerdown', cancelInspect);
-    backdrop.on('pointerdown', cancelInspect);
 
     this.inspectOverlayContainer = this.add.container(0, 0, [
       backdrop,
