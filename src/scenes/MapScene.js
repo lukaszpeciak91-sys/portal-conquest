@@ -459,7 +459,29 @@ export class MapScene extends Phaser.Scene {
       return;
     }
 
+    if (this.isResolvedNode(node)) {
+      this.closeInspectPanel();
+      this.showFeedback(`${node.id} already resolved`);
+      return;
+    }
+
     this.openInspectPanel(node);
+  }
+
+  isResolvedNode(node) {
+    if (!node) {
+      return false;
+    }
+
+    if ((node.type === NODE_TYPES.BATTLE || node.type === NODE_TYPES.PORTAL) && isNodeCleared(node.id)) {
+      return true;
+    }
+
+    if ((node.type === NODE_TYPES.RESOURCE || node.type === NODE_TYPES.BEACON) && isNodeConsumed(node.id)) {
+      return true;
+    }
+
+    return false;
   }
 
   applyNodeMarkerState(nodeId) {
