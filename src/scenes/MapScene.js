@@ -461,7 +461,7 @@ export class MapScene extends Phaser.Scene {
 
     if (this.isResolvedNode(node)) {
       this.closeInspectPanel();
-      this.showFeedback(`${node.id} already resolved`);
+      this.moveHeroTo(node);
       return;
     }
 
