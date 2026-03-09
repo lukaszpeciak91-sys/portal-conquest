@@ -41,6 +41,46 @@
 
 ## 3) MVP game loop check
 
+## Map Node Interaction
+
+### Interaction contract
+```text
+click node
+→ inspect panel
+→ Enter / Cancel
+
+Enter
+→ hero movement
+→ node arrival logic
+
+Cancel
+→ no movement
+```
+
+### Node States
+```text
+unresolved
+- inspect panel opens
+- player may enter or cancel
+
+cleared
+- battle or portal completed
+- node remains traversable
+- inspect panel skipped
+
+consumed
+- resource or beacon already used
+- node remains traversable
+- inspect panel skipped
+```
+
+### Traversal Rules
+- Resolved nodes (`cleared` / `consumed`):
+  - remain traversable,
+  - do not trigger inspect,
+  - do not trigger arrival logic again,
+  - only act as map connectors.
+
 Target loop:
 `Start run → view map → move between nodes → trigger node events → reach portal → portal battle placeholder → close portals → finish run`
 
