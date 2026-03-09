@@ -528,16 +528,16 @@ export class MapScene extends Phaser.Scene {
       return;
     }
 
+    const nodeAlreadyResolved = isNodeCleared(node.id) || isNodeConsumed(node.id);
+    if (nodeAlreadyResolved) {
+      return;
+    }
+
     switch (node.type) {
       case NODE_TYPES.CASTLE:
         this.router.goTo(SCENES.CASTLE);
         return;
       case NODE_TYPES.BATTLE:
-        if (isNodeCleared(node.id)) {
-          this.showStubOverlay('Battle already cleared.');
-          return;
-        }
-
         setPendingTransition({
           type: NODE_TYPES.BATTLE,
           sourceNodeId: node.id,
@@ -545,11 +545,6 @@ export class MapScene extends Phaser.Scene {
         this.router.goTo(SCENES.BATTLE);
         return;
       case NODE_TYPES.PORTAL:
-        if (isNodeCleared(node.id)) {
-          this.showStubOverlay('Portal guardian already defeated.');
-          return;
-        }
-
         setPendingTransition({
           type: NODE_TYPES.PORTAL,
           sourceNodeId: node.id,
@@ -560,22 +555,12 @@ export class MapScene extends Phaser.Scene {
         this.showStubOverlay('Something strange happens.');
         return;
       case NODE_TYPES.RESOURCE:
-        if (isNodeConsumed(node.id)) {
-          this.showStubOverlay('Resources already collected.');
-          return;
-        }
-
         this.showStubOverlay('You found resources.', () => {
           markNodeState(node.id, { consumed: true });
           this.applyNodeMarkerState(node.id);
         });
         return;
       case NODE_TYPES.BEACON:
-        if (isNodeConsumed(node.id)) {
-          this.showStubOverlay('Beacon already activated.');
-          return;
-        }
-
         this.showStubOverlay('Beacon activated.', () => {
           markNodeState(node.id, { consumed: true });
           this.applyNodeMarkerState(node.id);
@@ -677,6 +662,22 @@ export class MapScene extends Phaser.Scene {
     };
   }
 
+  getNodeInspectStatus(node) {
+    if (!node) {
+      return null;
+    }
+
+    if ((node.type === NODE_TYPES.BATTLE || node.type === NODE_TYPES.PORTAL) && isNodeCleared(node.id)) {
+      return 'Status: Cleared';
+    }
+
+    if ((node.type === NODE_TYPES.RESOURCE || node.type === NODE_TYPES.BEACON) && isNodeConsumed(node.id)) {
+      return 'Status: Depleted';
+    }
+
+    return null;
+  }
+
   openInspectPanel(node) {
     if (!node || this.isMoving) {
       return;
@@ -706,11 +707,18 @@ export class MapScene extends Phaser.Scene {
       fontStyle: 'bold',
     }).setOrigin(0.5).setDepth(28);
 
-    const details = this.add.text(panelX, panelY - 4, [
+    const statusLine = this.getNodeInspectStatus(node);
+    const detailsLines = [
       `Node ${node.id}`,
-      '',
-      `${inspectCopy.action}?`,
-    ].join('\n'), {
+    ];
+
+    if (statusLine) {
+      detailsLines.push('', statusLine);
+    }
+
+    detailsLines.push('', `${inspectCopy.action}?`);
+
+    const details = this.add.text(panelX, panelY - 4, detailsLines.join('\n'), {
       color: '#d7e5ff',
       fontFamily: 'Arial',
       fontSize: '13px',
