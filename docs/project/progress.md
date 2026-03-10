@@ -9,7 +9,7 @@
 - **Scene architecture:** `SceneRouter` is established and used for scene transitions.
 - **Runtime state layer:** `GameState` + runtime node state helpers are implemented as central run/session state.
 - **Data-driven baseline:** map/config/faction JSON loading is in place.
-- **Castle layered rendering foundation:** `CastleScene` now renders faction01 `castle_base.png` via manifest loading and a Phaser container layer stack (base/buildings/decor hooks) for future overlays.
+- **Castle layered rendering + visual polish:** `CastleScene` now renders faction01 `castle_base.png` via manifest loading and a Phaser container layer stack (base/buildings/decor hooks), with follow-up presentation polish applied (improved framing/scale, no normal-view debug placeholders for missing overlays, compact top-right top bar behavior matching map/castle hub presentation).
 - **Documentation governance hardening:** strict per-file documentation update policy is now defined in `docs/project/workflow.md` to keep project knowledge centralized and reduce cross-file drift.
 
 ## Partial / Stub Systems
