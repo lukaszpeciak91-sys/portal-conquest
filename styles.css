@@ -112,6 +112,10 @@ body {
   pointer-events: none;
 }
 
+.top-bar--floating {
+  background: transparent;
+}
+
 .top-bar--compact .top-bar__status {
   gap: 4px;
   pointer-events: auto;

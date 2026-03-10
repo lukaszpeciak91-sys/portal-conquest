@@ -196,6 +196,7 @@ import { SceneRouter } from './src/SceneRouter';
   function updateTopBarDensity(mode = state.activeMode) {
     const isCompactMode = mode === 'map' || mode === 'castle';
     topBar?.classList.toggle('top-bar--compact', isCompactMode);
+    topBar?.classList.toggle('top-bar--floating', mode === 'castle');
   }
 
   function updateTopBar({ turn, hp, level }) {
