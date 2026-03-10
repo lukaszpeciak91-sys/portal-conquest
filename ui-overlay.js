@@ -193,8 +193,8 @@ import { SceneRouter } from './src/SceneRouter';
   }
 
   function updateTopBarDensity(mode = state.activeMode) {
-    const isMapMode = mode === 'map';
-    topBar?.classList.toggle('top-bar--map-compact', isMapMode);
+    const isCompactMode = mode === 'map' || mode === 'castle';
+    topBar?.classList.toggle('top-bar--compact', isCompactMode);
   }
 
   function updateTopBar({ turn, hp, level }) {

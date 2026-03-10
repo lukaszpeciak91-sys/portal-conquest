@@ -33,6 +33,7 @@
 - Click castle keep/base to open **Build Panel**.
 - Click a built building overlay to open **Building Panel**.
 - Building slots are anchor-only and remain invisible until a building exists.
+- Castle/map top bar presentation uses a compact top-right control cluster (no full-width heavy strip in normal gameplay view).
 
 ## Battle Design
 - Battle is a **separate scene**.

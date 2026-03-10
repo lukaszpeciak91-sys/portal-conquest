@@ -104,7 +104,7 @@ body {
   pointer-events: auto;
 }
 
-.top-bar--map-compact {
+.top-bar--compact {
   height: calc(var(--safe-top) + 28px);
   padding: calc(var(--safe-top) + 3px) 8px 3px;
   justify-content: flex-end;
@@ -112,24 +112,24 @@ body {
   pointer-events: none;
 }
 
-.top-bar--map-compact .top-bar__status {
+.top-bar--compact .top-bar__status {
   gap: 4px;
   pointer-events: auto;
 }
 
-.top-bar--map-compact .status-chip {
+.top-bar--compact .status-chip {
   font-size: 0.66rem;
   padding: 2px 6px;
   background: rgba(15, 23, 42, 0.65);
 }
 
-.top-bar--map-compact .ui-btn--icon {
+.top-bar--compact .ui-btn--icon {
   min-height: 30px;
   min-width: 30px;
   pointer-events: auto;
 }
 
-.top-bar--map-compact .ui-btn {
+.top-bar--compact .ui-btn {
   min-height: 26px;
   font-size: 0.66rem;
   padding: 0 8px;
@@ -281,7 +281,7 @@ body {
     padding-right: 8px;
   }
 
-  .top-bar--map-compact {
+  .top-bar--compact {
     height: calc(var(--safe-top) + 24px);
     padding: calc(var(--safe-top) + 2px) 6px 2px;
   }

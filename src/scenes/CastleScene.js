@@ -8,6 +8,7 @@ import humanBuildingSet from '../data/buildings/human_buildings.json';
 import { GameState } from '../state/GameState';
 
 const MIN_VALID_VIEWPORT_SIDE = 64;
+const MIN_VALID_PLAYABLE_HEIGHT = 120;
 const BUILDING_LAYOUTS = {
   human_castle_layout: humanCastleLayout,
 };
@@ -122,12 +123,15 @@ Actions:
     const hasBaseTexture = textureExists(this, baseKey);
 
     if (hasBaseTexture) {
+      const renderBounds = this.getCastleRenderBounds(viewportWidth, viewportHeight);
       const source = this.textures.get(baseKey).getSourceImage();
       const imageWidth = source.width || viewportWidth;
       const imageHeight = source.height || viewportHeight;
-      const scale = Math.max(viewportWidth / imageWidth, viewportHeight / imageHeight);
+      const scale = Math.min(renderBounds.width / imageWidth, renderBounds.height / imageHeight) * 0.98;
+      const centerX = renderBounds.centerX;
+      const centerY = renderBounds.centerY + (renderBounds.height * 0.04);
 
-      const baseImage = this.add.image(viewportWidth / 2, viewportHeight / 2, baseKey)
+      const baseImage = this.add.image(centerX, centerY, baseKey)
         .setOrigin(0.5)
         .setScale(scale)
         .setInteractive({ useHandCursor: true });
@@ -135,6 +139,14 @@ Actions:
       if (onClickCastle) {
         baseImage.on('pointerdown', onClickCastle);
       }
+
+      this.currentCastleTransform = {
+        imageWidth,
+        imageHeight,
+        scale,
+        topLeftX: centerX - ((imageWidth * scale) / 2),
+        topLeftY: centerY - ((imageHeight * scale) / 2),
+      };
 
       this.baseLayer.add(baseImage);
       return;
@@ -151,6 +163,7 @@ Actions:
     });
 
     this.baseLayer.add([fallbackBackground, fallbackPlaceholder]);
+    this.currentCastleTransform = null;
   }
 
   renderBuildingLayer({ layout, buildingSet, runtimeBuildings, onClickBuilding }) {
@@ -182,10 +195,18 @@ Actions:
       .sort((a, b) => a.z - b.z);
 
     placedBuildings.forEach((building) => {
+      const baseScale = this.currentCastleTransform?.scale ?? 1;
+      const x = this.currentCastleTransform
+        ? this.currentCastleTransform.topLeftX + (building.x * baseScale)
+        : building.x;
+      const y = this.currentCastleTransform
+        ? this.currentCastleTransform.topLeftY + (building.y * baseScale)
+        : building.y;
+
       if (textureExists(this, building.assetKey)) {
-        const sprite = this.add.image(building.x, building.y, building.assetKey)
+        const sprite = this.add.image(x, y, building.assetKey)
           .setOrigin(0.5, 1)
-          .setScale(building.scale)
+          .setScale(building.scale * baseScale)
           .setDepth(building.z)
           .setInteractive({ useHandCursor: true });
 
@@ -197,17 +218,68 @@ Actions:
         return;
       }
 
-      const placeholder = addFallbackPlaceholder(this, {
-        x: building.x,
-        y: building.y - 40,
-        width: 100,
-        height: 70,
-        label: `${building.buildingId}\nlvl ${building.level}`,
-        depth: building.z,
-      });
-
-      this.buildingLayer.add(placeholder);
+      const isDebugEnabled = typeof window !== 'undefined' && window.gameUi?.isDebugEnabled?.();
+      if (isDebugEnabled) {
+        const marker = this.add.circle(x, y - (12 * baseScale), Math.max(3, 4 * baseScale), 0x94a3b8, 0.18)
+          .setStrokeStyle(1, 0xe2e8f0, 0.35)
+          .setDepth(building.z);
+        this.buildingLayer.add(marker);
+      }
     });
+  }
+
+  getCastleRenderBounds(viewportWidth, viewportHeight) {
+    const rootStyle = typeof window !== 'undefined'
+      ? getComputedStyle(document.documentElement)
+      : null;
+
+    const toNumber = (value) => {
+      const parsed = Number.parseFloat(value ?? '0');
+      return Number.isFinite(parsed) ? parsed : 0;
+    };
+
+    const topInset = toNumber(rootStyle?.getPropertyValue('--safe-top'));
+    const bottomInset = toNumber(rootStyle?.getPropertyValue('--safe-bottom'));
+    const topBarHeightVar = toNumber(rootStyle?.getPropertyValue('--top-bar-height'));
+    const bottomBarHeightVar = toNumber(rootStyle?.getPropertyValue('--bottom-bar-height'));
+
+    const topBarRect = typeof document !== 'undefined'
+      ? document.querySelector('.top-bar')?.getBoundingClientRect?.() ?? null
+      : null;
+    const bottomBarRect = typeof document !== 'undefined'
+      ? document.querySelector('.bottom-mode-bar')?.getBoundingClientRect?.() ?? null
+      : null;
+    const gameContainerRect = typeof document !== 'undefined'
+      ? document.querySelector('#game-container')?.getBoundingClientRect?.() ?? null
+      : null;
+
+    const relativeTopBarBottom = topBarRect && gameContainerRect
+      ? Math.max(0, topBarRect.bottom - gameContainerRect.top)
+      : null;
+    const relativeBottomBarTop = bottomBarRect && gameContainerRect
+      ? Math.max(0, bottomBarRect.top - gameContainerRect.top)
+      : null;
+
+    const fallbackTop = Phaser.Math.Clamp(topInset + topBarHeightVar, 0, Math.max(0, viewportHeight - 1));
+    const fallbackBottom = Phaser.Math.Clamp(viewportHeight - (bottomInset + bottomBarHeightVar), fallbackTop + 1, viewportHeight);
+
+    const topCandidate = Number.isFinite(relativeTopBarBottom) ? relativeTopBarBottom : fallbackTop;
+    const bottomCandidate = Number.isFinite(relativeBottomBarTop) ? relativeBottomBarTop : fallbackBottom;
+
+    const top = Phaser.Math.Clamp(topCandidate, 0, Math.max(0, viewportHeight - 1));
+    const bottom = Phaser.Math.Clamp(bottomCandidate, top + 1, viewportHeight);
+    const height = Math.max(MIN_VALID_PLAYABLE_HEIGHT, bottom - top);
+    const width = Math.max(MIN_VALID_VIEWPORT_SIDE, viewportWidth);
+    const margin = Phaser.Math.Clamp(Math.min(width, height) * 0.03, 10, 30);
+
+    return {
+      x: margin,
+      y: top + margin,
+      width: Math.max(1, width - (margin * 2)),
+      height: Math.max(1, height - (margin * 2)),
+      centerX: width / 2,
+      centerY: top + (height / 2),
+    };
   }
 
   renderCastleLayers(viewportWidth, viewportHeight) {
