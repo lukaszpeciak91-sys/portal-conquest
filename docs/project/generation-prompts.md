@@ -40,7 +40,7 @@ Output requirements:
 
 ---
 
-## Castle Base Prompt Template
+## CASTLE BASE PROMPT — LOCKED ASSET CONTRACT (v1.1)
 
 Use this template to generate the foundational castle scene that later receives building overlays.
 
@@ -61,6 +61,9 @@ Technical constraints:
 Composition rules:
 - Show terrain, walls, cliffs, courtyards, foundations, and environmental storytelling elements
 - Leave intentional empty build areas where structures can appear later
+- Terrain should look natural but remain relatively flat in building anchor zones
+- Avoid rocks, stairs, props, trees, or uneven geometry in construction zones
+- Construction zones must remain readable and support future building overlays
 - Do not overfill the scene with permanent architecture
 - Keep focal balance so UI can sit on top without obscuring critical scene readability
 
@@ -68,6 +71,9 @@ Art direction:
 - Dark fantasy tone inspired by classic strategy aesthetics (Heroes III / Disciples II spirit)
 - Semi-painterly rendering, medium detail
 - Strong silhouette readability, atmospheric but gameplay-friendly
+- Prioritize gameplay readability over realism
+- The image must function as a strategy game interface background, not a cinematic illustration
+- Avoid excessive micro-detail
 - No photorealism, no excessive visual noise
 
 Output requirements:
