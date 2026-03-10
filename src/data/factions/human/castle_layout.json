@@ -1,4 +1,19 @@
 {
-  "tavern": { "x": 400, "y": 260 },
-  "barracks": { "x": 220, "y": 310 }
+  "layoutId": "human_castle_layout",
+  "anchors": [
+    {
+      "slotId": "LEFT_MID",
+      "x": 220,
+      "y": 310,
+      "scale": 1,
+      "z": 10
+    },
+    {
+      "slotId": "CENTER_MID",
+      "x": 400,
+      "y": 260,
+      "scale": 1,
+      "z": 20
+    }
+  ]
 }

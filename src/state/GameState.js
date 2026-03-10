@@ -8,6 +8,7 @@ export const GameState = {
   currentNodeId: null,
   turnCounter: 0,
   nodeRuntime: {},
+  buildings: {},
   pendingTransition: null,
   closedPortals: 0,
   data: {

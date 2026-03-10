@@ -1,0 +1,25 @@
+{
+  "buildingSetId": "human_buildings",
+  "buildings": [
+    {
+      "buildingId": "barracks",
+      "slotId": "LEFT_MID",
+      "levels": [
+        {
+          "level": 1,
+          "assetKey": "castle_human_barracks_lvl1"
+        }
+      ]
+    },
+    {
+      "buildingId": "tavern",
+      "slotId": "CENTER_MID",
+      "levels": [
+        {
+          "level": 1,
+          "assetKey": "castle_human_tavern_lvl1"
+        }
+      ]
+    }
+  ]
+}
