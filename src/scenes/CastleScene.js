@@ -91,11 +91,34 @@ export class CastleScene extends Phaser.Scene {
     return this.lastGoodViewport;
   }
 
+
+  openBuildPanel() {
+    window.gameUi?.openCastlePanel?.('build', {
+      title: 'Build Panel',
+      body: `Available buildings:
+- Tavern
+- Barracks
+- Mage Guild`,
+    });
+  }
+
+  openBuildingPanel(buildingId, level) {
+    const label = String(buildingId ?? 'building').replace(/[_-]/g, ' ').toUpperCase();
+
+    window.gameUi?.openCastlePanel?.('building', {
+      title: 'Building Panel',
+      body: `${label} Level ${level}
+Actions:
+- Recruit units
+- Upgrade building`,
+    });
+  }
+
   clearLayer(layerContainer) {
     layerContainer?.removeAll(true);
   }
 
-  renderBaseLayer(viewportWidth, viewportHeight, baseKey) {
+  renderBaseLayer(viewportWidth, viewportHeight, baseKey, onClickCastle) {
     const hasBaseTexture = textureExists(this, baseKey);
 
     if (hasBaseTexture) {
@@ -106,7 +129,12 @@ export class CastleScene extends Phaser.Scene {
 
       const baseImage = this.add.image(viewportWidth / 2, viewportHeight / 2, baseKey)
         .setOrigin(0.5)
-        .setScale(scale);
+        .setScale(scale)
+        .setInteractive({ useHandCursor: true });
+
+      if (onClickCastle) {
+        baseImage.on('pointerdown', onClickCastle);
+      }
 
       this.baseLayer.add(baseImage);
       return;
@@ -125,7 +153,7 @@ export class CastleScene extends Phaser.Scene {
     this.baseLayer.add([fallbackBackground, fallbackPlaceholder]);
   }
 
-  renderBuildingLayer({ layout, buildingSet, runtimeBuildings }) {
+  renderBuildingLayer({ layout, buildingSet, runtimeBuildings, onClickBuilding }) {
     const anchorBySlotId = new Map((layout?.anchors ?? []).map((anchor) => [anchor.slotId, anchor]));
     const placedBuildings = [...(buildingSet?.buildings ?? [])]
       .map((buildingDefinition) => ({
@@ -158,7 +186,12 @@ export class CastleScene extends Phaser.Scene {
         const sprite = this.add.image(building.x, building.y, building.assetKey)
           .setOrigin(0.5, 1)
           .setScale(building.scale)
-          .setDepth(building.z);
+          .setDepth(building.z)
+          .setInteractive({ useHandCursor: true });
+
+        if (onClickBuilding) {
+          sprite.on('pointerdown', () => onClickBuilding(building));
+        }
 
         this.buildingLayer.add(sprite);
         return;
@@ -185,8 +218,13 @@ export class CastleScene extends Phaser.Scene {
     const { castle, layout, buildingSet, runtimeBuildings } = this.getCastleRenderContext();
     const baseKey = castle?.baseKey ?? 'castle_faction01_base';
 
-    this.renderBaseLayer(viewportWidth, viewportHeight, baseKey);
-    this.renderBuildingLayer({ layout, buildingSet, runtimeBuildings });
+    this.renderBaseLayer(viewportWidth, viewportHeight, baseKey, () => this.openBuildPanel());
+    this.renderBuildingLayer({
+      layout,
+      buildingSet,
+      runtimeBuildings,
+      onClickBuilding: (building) => this.openBuildingPanel(building.buildingId, building.level),
+    });
   }
 
   handleResize(gameSize) {

@@ -29,6 +29,11 @@
 - MVP target: **3 recruitable unit lines**.
 - Long-term direction can include branching development inspired by Disciples.
 
+## Castle Interaction Flow
+- Click castle keep/base to open **Build Panel**.
+- Click a built building overlay to open **Building Panel**.
+- Building slots are anchor-only and remain invisible until a building exists.
+
 ## Battle Design
 - Battle is a **separate scene**.
 - Combat direction is closer to **Disciples-style** pacing than Heroes-style mass combat.

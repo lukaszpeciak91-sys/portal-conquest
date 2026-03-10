@@ -7,6 +7,8 @@ import { SceneRouter } from './src/SceneRouter';
   const statusChips = Array.from(document.querySelectorAll('.status-chip'));
   const modeButtons = Array.from(document.querySelectorAll('.mode-btn[data-mode]'));
   const panelContents = Array.from(document.querySelectorAll('[data-panel-content]'));
+  const castlePanelTitle = document.getElementById('castle-panel-title');
+  const castlePanelBody = document.getElementById('castle-panel-body');
   const debugToggleButton = document.querySelector('[data-action="toggle-debug"]');
   const mapDebugPanel = document.getElementById('map-debug-panel');
   const debugFields = {
@@ -201,6 +203,24 @@ import { SceneRouter } from './src/SceneRouter';
     if (statusChips[2]) statusChips[2].textContent = `Lv ${level}`;
   }
 
+
+  const castlePanelContentByType = {
+    build: {
+      title: 'Build Panel',
+      body: `Available buildings:
+- Tavern
+- Barracks
+- Mage Guild`,
+    },
+    building: {
+      title: 'Building Panel',
+      body: `BARRACKS Level 1
+Actions:
+- Recruit units
+- Upgrade building`,
+    },
+  };
+
   const contextActionLabels = {
     map: {
       inspect: '[UI] Map Inspect',
@@ -211,6 +231,28 @@ import { SceneRouter } from './src/SceneRouter';
       leave: '[UI] Castle Leave',
     },
   };
+
+
+  function openCastlePanel(panelType = 'build', payload = {}) {
+    const panelContent = castlePanelContentByType[panelType] ?? castlePanelContentByType.build;
+    const nextTitle = payload.title ?? panelContent.title;
+    const nextBody = payload.body ?? panelContent.body;
+
+    if (castlePanelTitle) {
+      castlePanelTitle.textContent = nextTitle;
+    }
+
+    if (castlePanelBody) {
+      castlePanelBody.textContent = nextBody;
+    }
+
+    if (state.activeMode !== 'castle') {
+      setMode('castle', { skipRouting: true });
+    }
+
+    setPanelView('context');
+    setPanelOpen(true);
+  }
 
   function bindActions() {
     document.body.addEventListener('click', (event) => {
@@ -304,6 +346,7 @@ import { SceneRouter } from './src/SceneRouter';
       setPanelView('hero');
       setPanelOpen(true);
     },
+    openCastlePanel,
     updateMapHud: updateTopBar,
     showHint,
     resetMapUi,
