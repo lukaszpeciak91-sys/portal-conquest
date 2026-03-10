@@ -53,6 +53,7 @@ Rules for implementation tasks:
 - Update `docs/project/workflow.md` **only** when workflow or delivery pipeline rules change.
 - Update `docs/project/progress.md` whenever implementation status changes.
 - Update `docs/project/decisions.md` whenever active design or architecture decisions change.
+- Record diagnostic task outputs in `docs/project/diagnostics.md` as compact summary entries (append/merge); avoid one-file-per-diagnostic docs unless explicitly requested.
 
 ## Compression Rule
 When `progress.md` or `decisions.md` grows too long or repetitive, compress it into a shorter authoritative summary that preserves:
