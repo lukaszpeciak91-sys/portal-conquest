@@ -76,11 +76,7 @@ export function initializeRunState() {
   }
 
   GameState.nodeRuntime = {};
-  GameState.buildings = {
-    human: {
-      barracks: 1,
-    },
-  };
+  GameState.buildings = {};
   clearPendingTransition();
 
   const startNodeId = getStartNodeId(map);
@@ -94,4 +90,30 @@ export function initializeRunState() {
   }
 
   GameState.isRunInitialized = true;
+}
+
+export function ensureFactionBuildingRuntime(factionId) {
+  if (!factionId) {
+    return null;
+  }
+
+  if (!GameState.buildings[factionId]) {
+    GameState.buildings[factionId] = {};
+  }
+
+  return GameState.buildings[factionId];
+}
+
+export function setBuildingLevel({ factionId, buildingId, level = 1 }) {
+  if (!buildingId || !Number.isFinite(level) || level <= 0) {
+    return false;
+  }
+
+  const factionBuildings = ensureFactionBuildingRuntime(factionId);
+  if (!factionBuildings) {
+    return false;
+  }
+
+  factionBuildings[buildingId] = level;
+  return true;
 }

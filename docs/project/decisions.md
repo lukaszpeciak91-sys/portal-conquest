@@ -33,6 +33,9 @@
 - Click castle keep/base to open **Build Panel**.
 - Click a built building overlay to open **Building Panel**.
 - Building slots are anchor-only and remain invisible until a building exists.
+- Build Panel is the construction entry point and immediately marks a selected building as built in runtime state (placeholder-only logic for now).
+- Current human-faction MVP base building set exposed in Build Panel: **Barracks, Tavern, Chapel**.
+- Built buildings may render with temporary in-scene placeholders until final transparent overlay PNGs are available.
 - Castle/map top bar presentation uses a compact top-right control cluster (no full-width heavy strip in normal gameplay view).
 
 ## Battle Design
