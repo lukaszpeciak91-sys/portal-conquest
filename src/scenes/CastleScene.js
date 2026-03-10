@@ -4,7 +4,7 @@ import { syncSceneState } from '../state/sceneState';
 import assetManifest, { loadAssetsFromManifest } from '../assets/loadAssetsFromManifest';
 import { addFallbackPlaceholder, textureExists } from '../assets/safeTexture';
 
-const CASTLE_BG_KEY = 'castle_faction01_bg';
+const CASTLE_BASE_KEY = 'castle_faction01_base';
 const MIN_VALID_VIEWPORT_SIDE = 64;
 
 export class CastleScene extends Phaser.Scene {
@@ -23,7 +23,8 @@ export class CastleScene extends Phaser.Scene {
     const viewport = this.getSafeViewportSize({ width: this.scale.width, height: this.scale.height })
       ?? { width: 1280, height: 720 };
 
-    this.renderBackground(viewport.width, viewport.height);
+    this.initializeLayerStack();
+    this.renderCastleLayers(viewport.width, viewport.height);
 
     this.scale.on('resize', this.handleResize, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
@@ -36,6 +37,16 @@ export class CastleScene extends Phaser.Scene {
     }
 
     this.input.keyboard.on('keydown-M', () => this.router.goTo(SCENES.MAP));
+  }
+
+  initializeLayerStack() {
+    this.castleLayerRoot = this.add.container(0, 0).setDepth(0);
+
+    this.baseLayer = this.add.container(0, 0);
+    this.buildingLayer = this.add.container(0, 0);
+    this.decorLayer = this.add.container(0, 0);
+
+    this.castleLayerRoot.add([this.baseLayer, this.buildingLayer, this.decorLayer]);
   }
 
   getSafeViewportSize(gameSize) {
@@ -56,38 +67,42 @@ export class CastleScene extends Phaser.Scene {
     return this.lastGoodViewport;
   }
 
-  renderBackground(viewportWidth, viewportHeight) {
-    const hasTexture = textureExists(this, CASTLE_BG_KEY);
+  clearLayer(layerContainer) {
+    layerContainer?.removeAll(true);
+  }
 
-    this.backgroundImage?.destroy();
-    this.fallbackBackground?.destroy();
-    this.fallbackPlaceholder?.destroy();
+  renderCastleLayers(viewportWidth, viewportHeight) {
+    this.clearLayer(this.baseLayer);
+    this.clearLayer(this.buildingLayer);
+    this.clearLayer(this.decorLayer);
 
-    if (hasTexture) {
-      const source = this.textures.get(CASTLE_BG_KEY).getSourceImage();
+    const hasBaseTexture = textureExists(this, CASTLE_BASE_KEY);
+
+    if (hasBaseTexture) {
+      const source = this.textures.get(CASTLE_BASE_KEY).getSourceImage();
       const imageWidth = source.width || viewportWidth;
       const imageHeight = source.height || viewportHeight;
       const scale = Math.max(viewportWidth / imageWidth, viewportHeight / imageHeight);
 
-      this.backgroundImage = this.add.image(viewportWidth / 2, viewportHeight / 2, CASTLE_BG_KEY)
+      const baseImage = this.add.image(viewportWidth / 2, viewportHeight / 2, CASTLE_BASE_KEY)
         .setOrigin(0.5)
-        .setScale(scale)
-        .setDepth(0);
+        .setScale(scale);
 
+      this.baseLayer.add(baseImage);
       return;
     }
 
-    this.fallbackBackground = this.add.rectangle(viewportWidth / 2, viewportHeight / 2, viewportWidth, viewportHeight, 0x101828)
-      .setDepth(0);
-
-    this.fallbackPlaceholder = addFallbackPlaceholder(this, {
+    const fallbackBackground = this.add.rectangle(viewportWidth / 2, viewportHeight / 2, viewportWidth, viewportHeight, 0x101828);
+    const fallbackPlaceholder = addFallbackPlaceholder(this, {
       x: viewportWidth / 2,
       y: viewportHeight / 2,
       width: Math.max(120, Math.min(320, viewportWidth - 48)),
       height: 140,
-      label: 'missing asset\ncastle background',
+      label: 'missing asset\ncastle base',
       depth: 1,
     });
+
+    this.baseLayer.add([fallbackBackground, fallbackPlaceholder]);
   }
 
   handleResize(gameSize) {
@@ -96,6 +111,6 @@ export class CastleScene extends Phaser.Scene {
       return;
     }
 
-    this.renderBackground(viewport.width, viewport.height);
+    this.renderCastleLayers(viewport.width, viewport.height);
   }
 }

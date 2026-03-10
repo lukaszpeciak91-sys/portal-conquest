@@ -9,9 +9,10 @@
 - **Scene architecture:** `SceneRouter` is established and used for scene transitions.
 - **Runtime state layer:** `GameState` + runtime node state helpers are implemented as central run/session state.
 - **Data-driven baseline:** map/config/faction JSON loading is in place.
+- **Castle layered rendering foundation:** `CastleScene` now renders faction01 `castle_base.png` via manifest loading and a Phaser container layer stack (base/buildings/decor hooks) for future overlays.
 
 ## Partial / Stub Systems
-- **CastleScene:** placeholder/stub-level scene; not full castle gameplay yet.
+- **CastleScene:** layered visual foundation is implemented, but building gameplay/recruitment systems are not implemented yet.
 - **BattleScene:** placeholder/stub-level scene; battle loop is not yet implemented.
 - **MenuScene:** minimal placeholder entry scene.
 - **Node outcomes:** several node types still rely on minimal placeholder effects.
@@ -25,6 +26,7 @@
 ## Asset Architecture Status
 - Asset manifest and shared loader architecture exist (`asset-manifest.json` + manifest loader utilities).
 - Manifest categories are present but currently sparse, with many content lists still mostly empty.
+- Castle asset contract now includes the expected base path `public/assets/castles/faction01/castle_base.png` and a prepared `public/assets/castles/faction01/buildings/` folder for future overlay assets (PNG is intentionally added manually, not committed by Codex).
 
 ## Immediate Next Architectural Priority
 - Preserve and extend the existing architecture foundation:
