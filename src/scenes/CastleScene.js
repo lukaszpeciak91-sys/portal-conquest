@@ -6,6 +6,7 @@ import { addFallbackPlaceholder, textureExists } from '../assets/safeTexture';
 import humanCastleLayout from '../data/factions/human/castle_layout.json';
 import humanBuildingSet from '../data/buildings/human_buildings.json';
 import { GameState } from '../state/GameState';
+import { setBuildingLevel } from '../state/runtimeState';
 
 const MIN_VALID_VIEWPORT_SIDE = 64;
 const MIN_VALID_PLAYABLE_HEIGHT = 120;
@@ -38,12 +39,32 @@ export class CastleScene extends Phaser.Scene {
     this.scale.on('resize', this.handleResize, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.scale.off('resize', this.handleResize, this);
+      window.removeEventListener('portal:castle-build', this.handleBuildSelection);
     });
 
     if (typeof window !== 'undefined') {
       window.gameUi?.resetMapUi?.();
       window.gameUi?.setMode?.('castle');
     }
+
+    this.handleBuildSelection = (event) => {
+      const buildingId = event?.detail?.buildingId;
+      if (!buildingId) {
+        return;
+      }
+
+      const didBuild = this.buildBuilding(buildingId);
+      if (!didBuild) {
+        return;
+      }
+
+      const currentViewport = this.getSafeViewportSize({ width: this.scale.width, height: this.scale.height })
+        ?? { width: this.scale.width, height: this.scale.height };
+      this.renderCastleLayers(currentViewport.width, currentViewport.height);
+      this.openBuildPanel();
+    };
+
+    window.addEventListener('portal:castle-build', this.handleBuildSelection);
 
     this.input.keyboard.on('keydown-M', () => this.router.goTo(SCENES.MAP));
   }
@@ -92,14 +113,40 @@ export class CastleScene extends Phaser.Scene {
     return this.lastGoodViewport;
   }
 
+  getBuildPanelEntries(buildingSet, runtimeBuildings) {
+    return (buildingSet?.buildings ?? []).map((buildingDefinition) => ({
+      buildingId: buildingDefinition.buildingId,
+      label: String(buildingDefinition.buildingId ?? 'building').replace(/[_-]/g, ' ').replace(/\b\w/g, (ch) => ch.toUpperCase()),
+      built: Number.isFinite(runtimeBuildings?.[buildingDefinition.buildingId]) && runtimeBuildings[buildingDefinition.buildingId] > 0,
+    }));
+  }
 
   openBuildPanel() {
+    const { buildingSet, runtimeBuildings } = this.getCastleRenderContext();
+    const entries = this.getBuildPanelEntries(buildingSet, runtimeBuildings);
+
     window.gameUi?.openCastlePanel?.('build', {
       title: 'Build Panel',
-      body: `Available buildings:
-- Tavern
-- Barracks
-- Mage Guild`,
+      body: 'Select a structure to place a placeholder build in its castle slot.',
+      buildings: entries,
+    });
+  }
+
+  buildBuilding(buildingId) {
+    const { faction, buildingSet, runtimeBuildings } = this.getCastleRenderContext();
+    const definition = (buildingSet?.buildings ?? []).find((entry) => entry.buildingId === buildingId);
+    if (!definition) {
+      return false;
+    }
+
+    if (Number.isFinite(runtimeBuildings?.[buildingId]) && runtimeBuildings[buildingId] > 0) {
+      return false;
+    }
+
+    return setBuildingLevel({
+      factionId: faction?.id,
+      buildingId,
+      level: 1,
     });
   }
 
@@ -108,10 +155,7 @@ export class CastleScene extends Phaser.Scene {
 
     window.gameUi?.openCastlePanel?.('building', {
       title: 'Building Panel',
-      body: `${label} Level ${level}
-Actions:
-- Recruit units
-- Upgrade building`,
+      body: `${label} Level ${level}`,
     });
   }
 
@@ -129,7 +173,7 @@ Actions:
       const imageHeight = source.height || viewportHeight;
       const scale = Math.max(renderBounds.width / imageWidth, renderBounds.height / imageHeight);
       const centerX = renderBounds.centerX;
-      const centerY = renderBounds.centerY;
+      const centerY = renderBounds.centerY + (renderBounds.height * 0.06);
 
       const baseImage = this.add.image(centerX, centerY, baseKey)
         .setOrigin(0.5)
@@ -166,6 +210,25 @@ Actions:
     this.currentCastleTransform = null;
   }
 
+  renderBuildingPlaceholder({ x, y, z, buildingId, level, baseScale }) {
+    const markerWidth = Math.max(72, 96 * baseScale);
+    const markerHeight = Math.max(34, 44 * baseScale);
+    const marker = this.add.container(x, y).setDepth(z);
+
+    const plate = this.add.rectangle(0, -(markerHeight * 0.55), markerWidth, markerHeight, 0x1e293b, 0.82)
+      .setStrokeStyle(1, 0x93c5fd, 0.8)
+      .setOrigin(0.5);
+    const label = this.add.text(0, -(markerHeight * 0.55), `${buildingId.toUpperCase()} L${level}`, {
+      color: '#dbeafe',
+      fontFamily: 'Arial',
+      fontSize: `${Math.max(10, 11 * baseScale)}px`,
+      align: 'center',
+    }).setOrigin(0.5);
+
+    marker.add([plate, label]);
+    this.buildingLayer.add(marker);
+  }
+
   renderBuildingLayer({ layout, buildingSet, runtimeBuildings, onClickBuilding }) {
     const anchorBySlotId = new Map((layout?.anchors ?? []).map((anchor) => [anchor.slotId, anchor]));
     const placedBuildings = [...(buildingSet?.buildings ?? [])]
@@ -176,10 +239,7 @@ Actions:
       }))
       .filter(({ level, anchor }) => Number.isFinite(level) && level > 0 && anchor)
       .map(({ definition, level, anchor }) => {
-        const levelDefinition = definition.levels.find((entry) => entry.level === level);
-        if (!levelDefinition?.assetKey) {
-          return null;
-        }
+        const levelDefinition = definition.levels.find((entry) => entry.level === level) ?? definition.levels[0] ?? null;
 
         return {
           buildingId: definition.buildingId,
@@ -187,11 +247,10 @@ Actions:
           y: anchor.y,
           z: anchor.z ?? 0,
           scale: anchor.scale ?? 1,
-          assetKey: levelDefinition.assetKey,
+          assetKey: levelDefinition?.assetKey ?? null,
           level,
         };
       })
-      .filter(Boolean)
       .sort((a, b) => a.z - b.z);
 
     placedBuildings.forEach((building) => {
@@ -203,7 +262,7 @@ Actions:
         ? this.currentCastleTransform.topLeftY + (building.y * baseScale)
         : building.y;
 
-      if (textureExists(this, building.assetKey)) {
+      if (building.assetKey && textureExists(this, building.assetKey)) {
         const sprite = this.add.image(x, y, building.assetKey)
           .setOrigin(0.5, 1)
           .setScale(building.scale * baseScale)
@@ -218,13 +277,14 @@ Actions:
         return;
       }
 
-      const isDebugEnabled = typeof window !== 'undefined' && window.gameUi?.isDebugEnabled?.();
-      if (isDebugEnabled) {
-        const marker = this.add.circle(x, y - (12 * baseScale), Math.max(3, 4 * baseScale), 0x94a3b8, 0.18)
-          .setStrokeStyle(1, 0xe2e8f0, 0.35)
-          .setDepth(building.z);
-        this.buildingLayer.add(marker);
-      }
+      this.renderBuildingPlaceholder({
+        x,
+        y,
+        z: building.z,
+        buildingId: building.buildingId,
+        level: building.level,
+        baseScale,
+      });
     });
   }
 
@@ -270,13 +330,12 @@ Actions:
     const bottom = Phaser.Math.Clamp(bottomCandidate, top + 1, viewportHeight);
     const height = Math.max(MIN_VALID_PLAYABLE_HEIGHT, bottom - top);
     const width = Math.max(MIN_VALID_VIEWPORT_SIDE, viewportWidth);
-    const margin = Phaser.Math.Clamp(Math.min(width, height) * 0.03, 10, 30);
 
     return {
-      x: margin,
-      y: top + margin,
-      width: Math.max(1, width - (margin * 2)),
-      height: Math.max(1, height - (margin * 2)),
+      x: 0,
+      y: top,
+      width,
+      height: Math.max(1, height),
       centerX: width / 2,
       centerY: top + (height / 2),
     };

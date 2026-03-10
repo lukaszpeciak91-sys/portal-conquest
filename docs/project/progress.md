@@ -9,20 +9,22 @@
 - **Scene architecture:** `SceneRouter` is established and used for scene transitions.
 - **Runtime state layer:** `GameState` + runtime node state helpers are implemented as central run/session state.
 - **Data-driven baseline:** map/config/faction JSON loading is in place.
-- **Castle layered rendering + visual polish:** `CastleScene` now renders faction01 `castle_base.png` via manifest loading and a Phaser container layer stack (base/buildings/decor hooks), with follow-up presentation polish applied (improved framing/scale, no normal-view debug placeholders for missing overlays, compact top-right top bar behavior matching map/castle hub presentation).
+- **Castle layered rendering + visual polish:** `CastleScene` now renders faction01 `castle_base.png` as a fullscreen-style castle background within playable bounds (centered, aspect-preserving cover scaling) while keeping compact top-right controls and bottom mode navigation behavior.
 - **Documentation governance hardening:** strict per-file documentation update policy is now defined in `docs/project/workflow.md` to keep project knowledge centralized and reduce cross-file drift.
 
 ## Partial / Stub Systems
-- **CastleScene:** layered visual foundation is implemented, but building gameplay/recruitment systems are not implemented yet.
+- **CastleScene:** Build Panel now supports placeholder building construction into runtime state and renders built slots with temporary in-scene placeholders when final overlay art is unavailable (current human MVP set: Barracks, Tavern, Chapel).
 - **BattleScene:** placeholder/stub-level scene; battle loop is not yet implemented.
 - **MenuScene:** minimal placeholder entry scene.
 - **Node outcomes:** several node types still rely on minimal placeholder effects.
 
 ## Missing / Not Yet Implemented
 - Full battle mechanics and resolution loop.
-- Castle management loop (buildings/recruitment progression).
+- Final building overlay art pass and non-placeholder building visuals.
 - Complete run progression/win-state loop.
 - Rich faction differentiation gameplay systems.
+- Economy costs/checks for construction and building progression rules.
+- Recruitment and upgrade gameplay logic for constructed buildings.
 
 ## Asset Architecture Status
 - Asset manifest and shared loader architecture exist (`asset-manifest.json` + manifest loader utilities).

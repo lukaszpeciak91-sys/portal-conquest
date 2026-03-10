@@ -273,6 +273,20 @@ body {
   color: #dbeafe;
 }
 
+
+.castle-build-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+  margin: 0 0 10px;
+}
+
+.castle-build-list .ui-btn:disabled {
+  opacity: 0.72;
+  border-color: #334155;
+  background: rgba(15, 23, 42, 0.72);
+}
+
 .panel-actions {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

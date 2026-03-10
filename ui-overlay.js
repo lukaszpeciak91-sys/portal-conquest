@@ -9,6 +9,7 @@ import { SceneRouter } from './src/SceneRouter';
   const panelContents = Array.from(document.querySelectorAll('[data-panel-content]'));
   const castlePanelTitle = document.getElementById('castle-panel-title');
   const castlePanelBody = document.getElementById('castle-panel-body');
+  const castlePanelBuildList = document.getElementById('castle-panel-build-list');
   const debugToggleButton = document.querySelector('[data-action="toggle-debug"]');
   const mapDebugPanel = document.getElementById('map-debug-panel');
   const debugFields = {
@@ -209,9 +210,9 @@ import { SceneRouter } from './src/SceneRouter';
     build: {
       title: 'Build Panel',
       body: `Available buildings:
-- Tavern
 - Barracks
-- Mage Guild`,
+- Tavern
+- Chapel`,
     },
     building: {
       title: 'Building Panel',
@@ -245,6 +246,23 @@ Actions:
 
     if (castlePanelBody) {
       castlePanelBody.textContent = nextBody;
+    }
+
+    if (castlePanelBuildList) {
+      castlePanelBuildList.replaceChildren();
+      const buildings = Array.isArray(payload.buildings) ? payload.buildings : [];
+      buildings.forEach((building) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = `ui-btn ${building.built ? '' : 'ui-btn--primary'}`.trim();
+        button.dataset.action = 'castle-build';
+        button.dataset.buildingId = building.buildingId;
+        button.disabled = Boolean(building.built);
+        button.textContent = building.built
+          ? `${building.label} — Built`
+          : `Build ${building.label}`;
+        castlePanelBuildList.appendChild(button);
+      });
     }
 
     if (state.activeMode !== 'castle') {
@@ -318,6 +336,16 @@ Actions:
         const game = window.__PORTAL_GAME;
         const mapScene = game?.scene?.getScene?.('MapScene');
         mapScene?.setDebugEnabled?.(next);
+        return;
+      }
+
+      if (action === 'castle-build') {
+        const buildingId = trigger.dataset.buildingId;
+        if (buildingId) {
+          window.dispatchEvent(new CustomEvent('portal:castle-build', {
+            detail: { buildingId },
+          }));
+        }
         return;
       }
 
