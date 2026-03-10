@@ -10,6 +10,7 @@
 - **Runtime state layer:** `GameState` + runtime node state helpers are implemented as central run/session state.
 - **Data-driven baseline:** map/config/faction JSON loading is in place.
 - **Castle layered rendering foundation:** `CastleScene` now renders faction01 `castle_base.png` via manifest loading and a Phaser container layer stack (base/buildings/decor hooks) for future overlays.
+- **Documentation governance hardening:** strict per-file documentation update policy is now defined in `docs/project/workflow.md` to keep project knowledge centralized and reduce cross-file drift.
 
 ## Partial / Stub Systems
 - **CastleScene:** layered visual foundation is implemented, but building gameplay/recruitment systems are not implemented yet.
