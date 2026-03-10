@@ -3,7 +3,7 @@
     { "key": "map01", "path": "assets/maps/map01.png" }
   ],
   "castles": [
-    { "key": "castle_faction01_bg", "path": "assets/castles/faction01/castle_bg.png" }
+    { "key": "castle_faction01_base", "path": "assets/castles/faction01/castle_base.png" }
   ],
   "ui": [],
   "nodes": [],

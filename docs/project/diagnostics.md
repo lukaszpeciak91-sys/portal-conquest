@@ -1,5 +1,12 @@
 # Project Diagnostics Summary
 
+## 2026-03-10 — Castle Layer Rendering MVP (implementation)
+- Added a concrete castle asset contract for faction01 by wiring manifest key `castle_faction01_base` to `assets/castles/faction01/castle_base.png`, and documented the baseline path as `public/assets/castles/faction01/castle_base.png` (asset file is expected to be placed manually by repository owner).
+- Upgraded `CastleScene` from single-background rendering to a Phaser container-based layered stack (`baseLayer`, `buildingLayer`, `decorLayer`) with resize-safe re-rendering and shared transform-ready structure.
+- Kept the existing manifest/loader pipeline and safe fallback behavior: if the castle base texture is unavailable, scene renders a non-crashing fallback background + placeholder.
+- Prepared future expansion by creating `public/assets/castles/faction01/buildings/` as the overlay asset contract path; engine behavior remains safe when `castle_base.png` is temporarily missing.
+- Intentionally postponed: building placement/render logic, economy/recruitment systems, unlock rules, and interactive building gameplay.
+
 ## 2026-03-10 — Castle Rendering Contract (diagnostic)
 - `CastleScene` currently preloads `assetManifest.castles` and renders a single hardcoded key (`castle_faction01_bg`) using `this.add.image(...)`; there is no container-based castle layer stack yet.
 - Current scaling is viewport-cover (`Math.max(viewportWidth / imageWidth, viewportHeight / imageHeight)`) with centered origin, and resize re-renders the background object.
