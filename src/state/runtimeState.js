@@ -76,6 +76,11 @@ export function initializeRunState() {
   }
 
   GameState.nodeRuntime = {};
+  GameState.buildings = {
+    human: {
+      barracks: 1,
+    },
+  };
   clearPendingTransition();
 
   const startNodeId = getStartNodeId(map);

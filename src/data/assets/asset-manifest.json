@@ -1,9 +1,23 @@
 {
   "maps": [
-    { "key": "map01", "path": "assets/maps/map01.png" }
+    {
+      "key": "map01",
+      "path": "assets/maps/map01.png"
+    }
   ],
   "castles": [
-    { "key": "castle_faction01_base", "path": "assets/castles/faction01/castle_base.png" }
+    {
+      "key": "castle_faction01_base",
+      "path": "assets/castles/faction01/castle_base.png"
+    },
+    {
+      "key": "castle_human_barracks_lvl1",
+      "path": "assets/castles/human/buildings/barracks_lvl1.png"
+    },
+    {
+      "key": "castle_human_tavern_lvl1",
+      "path": "assets/castles/human/buildings/tavern_lvl1.png"
+    }
   ],
   "ui": [],
   "nodes": [],

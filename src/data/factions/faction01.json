@@ -1,6 +1,11 @@
 {
-  "id": "faction01",
+  "id": "human",
   "name": "Vanguard Accord",
+  "castle": {
+    "baseKey": "castle_faction01_base",
+    "layoutId": "human_castle_layout",
+    "buildingSetId": "human_buildings"
+  },
   "units": [
     {
       "unitId": "va-scout",
