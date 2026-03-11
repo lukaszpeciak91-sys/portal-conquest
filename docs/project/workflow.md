@@ -8,6 +8,7 @@
 5. **Use `SceneRouter` for scene transitions.** Avoid ad-hoc direct scene switching patterns.
 6. **Use `GameState` + runtime state helpers for persistent run state.** Avoid scene-local permanent state stores.
 7. **Use existing asset manifest/loader patterns.** Extend `asset-manifest.json` + shared loaders rather than inventing separate asset pipelines.
+8. **Do not store full diagnostic reports in repository docs.** Keep only compressed conclusions in `docs/project/diagnostics.md`; full analysis stays in the Codex conversation.
 
 ## Session Start Rule
 Every new project session should start with this order:
