@@ -12,11 +12,15 @@
     },
     {
       "key": "castle_human_barracks_lvl1",
-      "path": "assets/castles/human/buildings/barracks_lvl1.png"
+      "path": "assets/castles/faction01/buildings/barracks.png"
     },
     {
       "key": "castle_human_tavern_lvl1",
-      "path": "assets/castles/human/buildings/tavern_lvl1.png"
+      "path": "assets/castles/faction01/buildings/tavern.png"
+    },
+    {
+      "key": "castle_human_chapel_lvl1",
+      "path": "assets/castles/faction01/buildings/chapel.png"
     }
   ],
   "ui": [],

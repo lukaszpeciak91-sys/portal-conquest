@@ -127,3 +127,10 @@ After the future implementation task lands, update:
 - `docs/project/decisions.md` (record finalized data contracts: faction/layout/building/runtime schema decisions).
 - `docs/project/diagnostics.md` (add implementation verification summary against this readiness diagnostic).
 - `docs/project/workflow.md` only if workflow policy changes (not expected for feature-only implementation).
+
+## 2026-03-11 — Castle building overlay load + build glow (implementation verification)
+- Verified and corrected castle building overlay asset paths in manifest so human castle building keys now resolve to `public/assets/castles/faction01/buildings/{barracks,tavern,chapel}.png`.
+- `CastleScene` now warns once per building id when a built overlay asset key is unresolved, using the required warning text format: `Missing castle building asset: [name].png`.
+- Building overlays remain slot-driven from `castle_layout.json` anchors and render with bottom-center origin (`0.5, 1`) to sit naturally on the base courtyard without disproportionate scaling.
+- Added a temporary build glow animation (golden radial texture, additive blend) that renders below the building sprite and self-destroys after ~720ms.
+- Added debug slot marker rendering in castle scene (labels + marker rings) gated by current debug mode, enabling placement verification without changing gameplay behavior.
