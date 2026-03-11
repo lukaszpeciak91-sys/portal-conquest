@@ -90,6 +90,24 @@ Use `diagnostics.md` only for:
 - technical conclusions from diagnosis tasks
 - discovered risks / mismatches / blockers
 
+### Diagnostics storage rule
+Diagnostic workflow must follow this rule:
+
+- Full diagnostic analysis belongs in the Codex conversation.
+- Repository documentation must contain only compressed conclusions.
+
+`docs/project/diagnostics.md` should contain:
+- short summary of the issue
+- final technical conclusion
+- implementation direction
+
+Diagnostic reports must NOT include:
+- full file inspection lists
+- long architectural analysis
+- step-by-step debugging logs
+
+Purpose: keep repository documentation compact and readable.
+
 Do NOT use `diagnostics.md` as an implementation changelog.
 
 Only update it when:
