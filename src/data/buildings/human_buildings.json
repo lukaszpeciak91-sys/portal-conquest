@@ -3,7 +3,7 @@
   "buildings": [
     {
       "buildingId": "barracks",
-      "slotId": "LEFT_MID",
+      "slotId": "LEFT_FOREGROUND",
       "levels": [
         {
           "level": 1,
@@ -13,7 +13,7 @@
     },
     {
       "buildingId": "tavern",
-      "slotId": "CENTER_MID",
+      "slotId": "CENTER_FOREGROUND",
       "levels": [
         {
           "level": 1,
@@ -23,7 +23,7 @@
     },
     {
       "buildingId": "chapel",
-      "slotId": "RIGHT_MID",
+      "slotId": "RIGHT_FOREGROUND",
       "levels": [
         {
           "level": 1,
