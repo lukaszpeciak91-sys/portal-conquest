@@ -30,30 +30,22 @@
 - Long-term direction can include branching development inspired by Disciples.
 
 
-### Castle Building Slot Architecture (MVP)
+### Castle Building Slot Architecture
 The castle hub uses a fixed slot-based building system.
 
 Rules:
 
-- Maximum architectural capacity: **6 building slots**
-- MVP implementation: **3 buildings**
-
-Current MVP buildings:
-
+- Maximum slots: **6**
+- MVP buildings: **3**
 - Barracks
 - Tavern
 - Chapel
 
-Slots are defined in the castle layout file and represent fixed anchor positions for building overlays.
-
 Buildings are rendered as **transparent PNG overlays placed on top of the castle base illustration**.
 
-The castle base illustration must reserve clear visual space for all slots to avoid rebuilding the castle artwork later.
+The castle base must visually reserve space for all slots to prevent future redesign.
 
 Future factions must follow the same slot architecture.
-
-Purpose:
-Ensure the castle base illustration never requires structural redesign when adding buildings.
 
 ## Castle Interaction Flow
 - Click castle keep/base to open **Build Panel**.

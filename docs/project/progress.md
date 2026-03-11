@@ -13,18 +13,10 @@
 - **Documentation governance hardening:** strict per-file documentation update policy is now defined in `docs/project/workflow.md` to keep project knowledge centralized and reduce cross-file drift.
 
 ### Castle Building Placement System
-In progress.
+Milestone added.
 
-Goal:
-Connect castle layout anchors to building overlay assets.
-
-System responsibilities:
-
-- read castle layout slots
-- place building overlays on those slots
-- support responsive scaling across desktop and mobile
-
-This step prepares the engine for the full castle building system.
+Purpose:
+Connect layout anchors to building overlay assets and support responsive scaling.
 
 
 ## Partial / Stub Systems
