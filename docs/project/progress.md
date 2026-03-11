@@ -12,6 +12,21 @@
 - **Castle layered rendering + visual polish:** `CastleScene` now renders faction01 `castle_base.png` as a fullscreen-style castle background within playable bounds (centered, aspect-preserving cover scaling) while keeping compact top-right controls and bottom mode navigation behavior.
 - **Documentation governance hardening:** strict per-file documentation update policy is now defined in `docs/project/workflow.md` to keep project knowledge centralized and reduce cross-file drift.
 
+### Castle Building Placement System
+In progress.
+
+Goal:
+Connect castle layout anchors to building overlay assets.
+
+System responsibilities:
+
+- read castle layout slots
+- place building overlays on those slots
+- support responsive scaling across desktop and mobile
+
+This step prepares the engine for the full castle building system.
+
+
 ## Partial / Stub Systems
 - **CastleScene:** Build Panel supports placeholder building construction into runtime state and renders built slots through a data-driven 6-anchor castle layout contract (TOP_CENTER, LEFT/RIGHT_MID, LEFT/RIGHT_FOREGROUND, CENTER_FOREGROUND) for the human faction MVP set (Barracks, Tavern, Chapel).
 - **BattleScene:** placeholder/stub-level scene; battle loop is not yet implemented.
