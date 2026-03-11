@@ -56,3 +56,8 @@ Detailed diagnostic analysis was produced in the Codex session and is not stored
 - Building overlays remain slot-driven from `castle_layout.json` anchors and render with bottom-center origin (`0.5, 1`) to sit naturally on the base courtyard without disproportionate scaling.
 - Added a temporary build glow animation (golden radial texture, additive blend) that renders below the building sprite and self-destroys after ~720ms.
 - Added debug slot marker rendering in castle scene (labels + marker rings) gated by current debug mode, enabling placement verification without changing gameplay behavior.
+
+## 2026-03-11 — Castle overlay sizing contract mismatch (diagnostic)
+- Building overlays are authored at full-canvas resolution (`1536x1024`, same as `castle_base.png`) while runtime treats them as slot-local sprites and applies anchor scale (`anchor.scale * baseScale`) at slot coordinates, causing oversized/full-frame placement.
+- Final technical conclusion: current renderer lacks an explicit overlay sizing contract and currently conflates two incompatible asset authoring modes (full-canvas aligned overlays vs isolated building cutouts).
+- Implementation direction: standardize on slot-local isolated overlays with a shared layout-level default building scale plus optional per-building scale override, while keeping anchors normalized to base dimensions for faction portability.
