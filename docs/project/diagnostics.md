@@ -37,96 +37,18 @@
 
 ## 2026-03-10 — Castle Building System Readiness (diagnostic)
 
-### A. Files inspected
-- Project docs (read first per workflow):
-  - `docs/project/workflow.md`
-  - `docs/project/progress.md`
-  - `docs/project/decisions.md`
-  - `docs/project/diagnostics.md`
-  - `docs/project/generation-prompts.md`
-- Castle scene and render flow:
-  - `src/scenes/CastleScene.js`
-  - `src/assets/loadAssetsFromManifest.js`
-  - `src/data/assets/asset-manifest.json`
-- Castle/faction data contracts:
-  - `src/data/factions/index.json`
-  - `src/data/factions/faction01.json`
-  - `src/data/factions/human/faction.json`
-  - `src/data/factions/human/castle_layout.json`
-  - `src/data/factions/human/units.json`
-  - `src/data/factions/human/enemies.json`
-  - `src/data/factions/human/spells.json`
-- Runtime state:
-  - `src/state/GameState.js`
-  - `src/state/runtimeState.js`
-  - `src/state/loadGameData.js`
-- UI / castle actions:
-  - `ui-overlay.js`
-  - `index.html`
-- Asset directory verification:
-  - `public/assets/castles/faction01/`
-  - `public/assets/castles/faction01/buildings/`
-  - `public/assets/factions/human/castle/`
+Initial architecture review of the castle building system.
 
-### B. Existing reusable foundations
-- `CastleScene` already has a layered container stack (`baseLayer`, `buildingLayer`, `decorLayer`) and a centralized `renderCastleLayers(...)` path; this is a good renderer foundation for future overlay rendering.
-- Castle assets are already loaded through the shared manifest pipeline (`asset-manifest.json` + `loadAssetsFromManifest`), so future building overlays can reuse existing loader architecture.
-- Runtime persistence is centralized in `GameState` plus `runtimeState` helpers; this provides a proper place for future building runtime data instead of scene-local persistence.
-- UI already has castle mode routing and context-panel actions (`Build`, `Leave`) wired through shared overlay event handling.
+Result of the diagnosis:
+- The project already contains the core rendering foundation for layered castles (`baseLayer`, `buildingLayer`, `decorLayer` in `CastleScene`).
+- Asset loading for castle graphics is handled through the shared manifest pipeline.
+- A castle layout file with building anchors exists but is not yet connected to runtime rendering.
+- The UI build action is currently a placeholder and building runtime state is not implemented yet.
 
-### C. Existing partial logic or hooks
-- Rendering hooks exist but are currently placeholders:
-  - `buildingLayer` and `decorLayer` are created and cleared, but no building sprites are instantiated.
-- Castle base rendering is currently hardcoded to a single key (`castle_faction01_base`) rather than faction/layout-driven selection.
-- `castle_layout.json` exists (with `tavern`/`barracks` coordinates), but no runtime code imports or consumes it.
-- `src/data/factions/human/faction.json` contains `assets.castleBase`, but active runtime loading uses `src/data/factions/faction01.json`; there is currently a split/parallel faction data path.
-- UI Build action is a stub (`console.log('[UI] Castle Build')`) with no data/state linkage.
+Conclusion:
+The castle system foundation is correct, but the data-driven building pipeline (layout anchors → building definitions → runtime state → renderer) still requires implementation.
 
-### D. Missing parts
-- No building definition contract exists yet (costs, requirements, levels, output effects, art keys, etc.).
-- No renderer bridge from layout anchors to overlay assets exists.
-- No faction-to-castle-layout binding in active runtime state.
-- No runtime building state model exists (built/unlocked/upgraded queues or timestamps).
-- No save/load semantics for building progression.
-- No asset manifest entries for building overlays (only base castle key exists).
-
-### E. Recommended data-driven architecture
-Keep implementation narrow and additive to existing systems:
-1. **Faction definition (authoring entry point)**
-   - One active faction contract should reference:
-     - `castle.baseKey`
-     - `castle.layoutId`
-     - `castle.buildingSetId`
-   - Remove/avoid parallel faction schemas for runtime-critical castle data.
-2. **Castle layout anchors (pure placement contract)**
-   - Layout file keyed by `layoutId` containing named anchors/slots:
-     - `slotId`, `x`, `y`, optional `z`, optional per-slot scale/offset.
-   - No gameplay stats in layout file; placement only.
-3. **Building definitions (pure gameplay + art contract)**
-   - Building-set file keyed by `buildingSetId` containing building defs:
-     - `buildingId`, `displayName`, `slotId`, `levels[]`, each level mapping to overlay asset key and gameplay metadata.
-   - Keep faction-specific art overrides in data, not in scene branching.
-4. **Building runtime state (GameState-owned, serializable)**
-   - Add run/persistent structure keyed by `factionId` and `buildingId`:
-     - built flag, current level, unlock state (and later timers/queues if needed).
-   - `CastleScene` should render by combining:
-     - faction castle contract + layout anchors + building defs + runtime state.
-   - Scene should only interpret data and draw layers; no faction-specific conditionals.
-
-### F. Fast faction-addition rule
-If architecture is implemented correctly, adding a faction should require only data/assets (no scene logic edits):
-1. Faction entry (links `layoutId`, `buildingSetId`, base castle key).
-2. Castle layout file (slot anchors).
-3. Building-set definition file (buildings + level metadata + asset keys).
-4. Overlay PNG assets + base castle PNG following manifest key/path conventions.
-5. Manifest entries for new castle base and building overlay keys.
-
-### G. Documentation update recommendation
-After the future implementation task lands, update:
-- `docs/project/progress.md` (move castle building system from stub to implemented scope).
-- `docs/project/decisions.md` (record finalized data contracts: faction/layout/building/runtime schema decisions).
-- `docs/project/diagnostics.md` (add implementation verification summary against this readiness diagnostic).
-- `docs/project/workflow.md` only if workflow policy changes (not expected for feature-only implementation).
+Detailed diagnostic analysis was produced in the Codex session and is not stored in the repository to avoid bloating project documentation.
 
 ## 2026-03-11 — Castle building overlay load + build glow (implementation verification)
 - Verified and corrected castle building overlay asset paths in manifest so human castle building keys now resolve to `public/assets/castles/faction01/buildings/{barracks,tavern,chapel}.png`.
