@@ -36,3 +36,8 @@
   1. Implement real battle flow on top of current SceneRouter/state patterns.
   2. Implement castle hub systems using shared runtime state (not scene-local persistence).
   3. Continue asset-driven content expansion through manifest/JSON pipelines.
+
+## 2026-03-11 Update
+- **Castle building overlays now live:** built Barracks, Tavern, and Chapel now render from `public/assets/castles/faction01/buildings/` via manifest-backed keys with bottom-centered anchors and slot-based placement.
+- **Build feedback effect added:** newly constructed buildings now trigger a temporary Heroes-style warm glow animation beneath the building sprite (fade-in/brighten/fade-out lifecycle).
+- **Castle debug support:** when debug mode is enabled, castle slot markers are rendered to verify anchor alignment during scene tuning.

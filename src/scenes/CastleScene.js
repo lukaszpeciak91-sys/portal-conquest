@@ -10,6 +10,8 @@ import { setBuildingLevel } from '../state/runtimeState';
 
 const MIN_VALID_VIEWPORT_SIDE = 64;
 const MIN_VALID_PLAYABLE_HEIGHT = 120;
+const BUILD_GLOW_DURATION_MS = 720;
+const BUILD_GLOW_TEXTURE_KEY = 'castle-build-glow';
 const BUILDING_LAYOUTS = {
   human_castle_layout: humanCastleLayout,
 };
@@ -34,6 +36,9 @@ export class CastleScene extends Phaser.Scene {
       ?? { width: 1280, height: 720 };
 
     this.initializeLayerStack();
+    this.missingBuildingAssetWarnings = new Set();
+    this.pendingBuildGlowById = null;
+    this.debugEnabled = Boolean(window.gameUi?.isDebugEnabled?.() ?? false);
     this.renderCastleLayers(viewport.width, viewport.height);
 
     this.scale.on('resize', this.handleResize, this);
@@ -58,6 +63,8 @@ export class CastleScene extends Phaser.Scene {
         return;
       }
 
+      this.pendingBuildGlowById = buildingId;
+
       const currentViewport = this.getSafeViewportSize({ width: this.scale.width, height: this.scale.height })
         ?? { width: this.scale.width, height: this.scale.height };
       this.renderCastleLayers(currentViewport.width, currentViewport.height);
@@ -77,6 +84,13 @@ export class CastleScene extends Phaser.Scene {
     this.decorLayer = this.add.container(0, 0);
 
     this.castleLayerRoot.add([this.baseLayer, this.buildingLayer, this.decorLayer]);
+  }
+
+  setDebugEnabled(enabled) {
+    this.debugEnabled = Boolean(enabled);
+    const currentViewport = this.getSafeViewportSize({ width: this.scale.width, height: this.scale.height })
+      ?? { width: this.scale.width, height: this.scale.height };
+    this.renderCastleLayers(currentViewport.width, currentViewport.height);
   }
 
   getCastleRenderContext() {
@@ -229,8 +243,113 @@ export class CastleScene extends Phaser.Scene {
     this.buildingLayer.add(marker);
   }
 
+  createBuildGlowTexture() {
+    if (textureExists(this, BUILD_GLOW_TEXTURE_KEY)) {
+      return;
+    }
+
+    const radius = 120;
+    const diameter = radius * 2;
+    const graphics = this.make.graphics({ x: 0, y: 0, add: false });
+
+    for (let i = 12; i >= 1; i -= 1) {
+      const normalized = i / 12;
+      const alpha = 0.045 * normalized;
+      const ringRadius = radius * normalized;
+      graphics.fillStyle(0xffd56b, alpha);
+      graphics.fillCircle(radius, radius, ringRadius);
+    }
+
+    graphics.generateTexture(BUILD_GLOW_TEXTURE_KEY, diameter, diameter);
+    graphics.destroy();
+  }
+
+  renderBuildGlow({ x, y, z, scale }) {
+    this.createBuildGlowTexture();
+
+    if (!textureExists(this, BUILD_GLOW_TEXTURE_KEY)) {
+      return;
+    }
+
+    const glow = this.add.image(x, y, BUILD_GLOW_TEXTURE_KEY)
+      .setOrigin(0.5, 0.74)
+      .setScale(Math.max(0.4, scale * 0.82))
+      .setAlpha(0)
+      .setBlendMode(Phaser.BlendModes.ADD)
+      .setDepth(z - 0.5);
+
+    this.buildingLayer.add(glow);
+
+    this.tweens.timeline({
+      targets: glow,
+      tweens: [
+        {
+          alpha: 0.35,
+          scaleX: glow.scaleX * 0.92,
+          scaleY: glow.scaleY * 0.92,
+          duration: Math.round(BUILD_GLOW_DURATION_MS * 0.3),
+          ease: 'Sine.Out',
+        },
+        {
+          alpha: 0.82,
+          scaleX: glow.scaleX * 1,
+          scaleY: glow.scaleY * 1,
+          duration: Math.round(BUILD_GLOW_DURATION_MS * 0.3),
+          ease: 'Sine.InOut',
+        },
+        {
+          alpha: 0,
+          scaleX: glow.scaleX * 1.22,
+          scaleY: glow.scaleY * 1.22,
+          duration: Math.round(BUILD_GLOW_DURATION_MS * 0.4),
+          ease: 'Sine.In',
+        },
+      ],
+      onComplete: () => {
+        glow.destroy();
+      },
+    });
+  }
+
+  renderDebugSlotMarker({ x, y, slotId, z, scale }) {
+    if (!this.debugEnabled) {
+      return;
+    }
+
+    const size = Math.max(12, 18 * scale);
+    const marker = this.add.container(x, y).setDepth(z + 0.25);
+    const ring = this.add.circle(0, 0, size, 0x38bdf8, 0.22).setStrokeStyle(1, 0x7dd3fc, 0.9);
+    const label = this.add.text(0, -size - 8, slotId, {
+      color: '#e0f2fe',
+      fontFamily: 'Arial',
+      fontSize: `${Math.max(10, 10 * scale)}px`,
+    }).setOrigin(0.5, 1);
+
+    marker.add([ring, label]);
+    this.decorLayer.add(marker);
+  }
+
   renderBuildingLayer({ layout, buildingSet, runtimeBuildings, onClickBuilding }) {
     const anchorBySlotId = new Map((layout?.anchors ?? []).map((anchor) => [anchor.slotId, anchor]));
+
+    (layout?.anchors ?? []).forEach((anchor) => {
+      const baseScale = this.currentCastleTransform?.scale ?? 1;
+      const x = this.currentCastleTransform
+        ? this.currentCastleTransform.topLeftX + (anchor.x * baseScale)
+        : anchor.x;
+      const y = this.currentCastleTransform
+        ? this.currentCastleTransform.topLeftY + (anchor.y * baseScale)
+        : anchor.y;
+
+      this.renderDebugSlotMarker({
+        x,
+        y,
+        slotId: anchor.slotId,
+        z: anchor.z ?? 0,
+        scale: (anchor.scale ?? 1) * baseScale,
+      });
+    });
+
     const placedBuildings = [...(buildingSet?.buildings ?? [])]
       .map((buildingDefinition) => ({
         definition: buildingDefinition,
@@ -269,12 +388,26 @@ export class CastleScene extends Phaser.Scene {
           .setDepth(building.z)
           .setInteractive({ useHandCursor: true });
 
+        if (this.pendingBuildGlowById === building.buildingId) {
+          this.renderBuildGlow({
+            x,
+            y,
+            z: building.z,
+            scale: building.scale * baseScale,
+          });
+        }
+
         if (onClickBuilding) {
           sprite.on('pointerdown', () => onClickBuilding(building));
         }
 
         this.buildingLayer.add(sprite);
         return;
+      }
+
+      if (!this.missingBuildingAssetWarnings.has(building.buildingId)) {
+        this.missingBuildingAssetWarnings.add(building.buildingId);
+        console.warn(`Missing castle building asset: ${building.buildingId}.png`);
       }
 
       this.renderBuildingPlaceholder({
@@ -286,6 +419,8 @@ export class CastleScene extends Phaser.Scene {
         baseScale,
       });
     });
+
+    this.pendingBuildGlowById = null;
   }
 
   getCastleRenderBounds(viewportWidth, viewportHeight) {
