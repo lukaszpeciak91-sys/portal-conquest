@@ -17,7 +17,8 @@
       "levels": [
         {
           "level": 1,
-          "assetKey": "castle_human_tavern_lvl1"
+          "assetKey": "castle_human_tavern_lvl1",
+          "scale": 0.27
         }
       ]
     },

@@ -329,24 +329,51 @@ export class CastleScene extends Phaser.Scene {
     this.decorLayer.add(marker);
   }
 
+  getAnchorWorldPosition(anchorLike, layout) {
+    const baseWidth = Number.isFinite(layout?.baseSize?.width)
+      ? layout.baseSize.width
+      : this.currentCastleTransform?.imageWidth;
+    const baseHeight = Number.isFinite(layout?.baseSize?.height)
+      ? layout.baseSize.height
+      : this.currentCastleTransform?.imageHeight;
+    const hasNormalizedAnchor = Number.isFinite(anchorLike?.anchorX)
+      && Number.isFinite(anchorLike?.anchorY)
+      && Number.isFinite(baseWidth)
+      && Number.isFinite(baseHeight);
+
+    const localX = hasNormalizedAnchor ? anchorLike.anchorX * baseWidth : anchorLike?.x;
+    const localY = hasNormalizedAnchor ? anchorLike.anchorY * baseHeight : anchorLike?.y;
+    const baseScale = this.currentCastleTransform?.scale ?? 1;
+
+    if (this.currentCastleTransform) {
+      return {
+        x: this.currentCastleTransform.topLeftX + ((localX ?? 0) * baseScale),
+        y: this.currentCastleTransform.topLeftY + ((localY ?? 0) * baseScale),
+      };
+    }
+
+    return {
+      x: localX ?? 0,
+      y: localY ?? 0,
+    };
+  }
+
   renderBuildingLayer({ layout, buildingSet, runtimeBuildings, onClickBuilding }) {
+    const layoutDefaultBuildingScale = Number.isFinite(layout?.defaultBuildingScale)
+      ? layout.defaultBuildingScale
+      : 1;
     const anchorBySlotId = new Map((layout?.anchors ?? []).map((anchor) => [anchor.slotId, anchor]));
 
     (layout?.anchors ?? []).forEach((anchor) => {
       const baseScale = this.currentCastleTransform?.scale ?? 1;
-      const x = this.currentCastleTransform
-        ? this.currentCastleTransform.topLeftX + (anchor.x * baseScale)
-        : anchor.x;
-      const y = this.currentCastleTransform
-        ? this.currentCastleTransform.topLeftY + (anchor.y * baseScale)
-        : anchor.y;
+      const { x, y } = this.getAnchorWorldPosition(anchor, layout);
 
       this.renderDebugSlotMarker({
         x,
         y,
         slotId: anchor.slotId,
         z: anchor.z ?? 0,
-        scale: (anchor.scale ?? 1) * baseScale,
+        scale: layoutDefaultBuildingScale * baseScale,
       });
     });
 
@@ -362,10 +389,14 @@ export class CastleScene extends Phaser.Scene {
 
         return {
           buildingId: definition.buildingId,
+          anchorX: anchor.anchorX,
+          anchorY: anchor.anchorY,
           x: anchor.x,
           y: anchor.y,
           z: anchor.z ?? 0,
-          scale: anchor.scale ?? 1,
+          scale: Number.isFinite(levelDefinition?.scale)
+            ? levelDefinition.scale
+            : layoutDefaultBuildingScale,
           assetKey: levelDefinition?.assetKey ?? null,
           level,
         };
@@ -374,12 +405,7 @@ export class CastleScene extends Phaser.Scene {
 
     placedBuildings.forEach((building) => {
       const baseScale = this.currentCastleTransform?.scale ?? 1;
-      const x = this.currentCastleTransform
-        ? this.currentCastleTransform.topLeftX + (building.x * baseScale)
-        : building.x;
-      const y = this.currentCastleTransform
-        ? this.currentCastleTransform.topLeftY + (building.y * baseScale)
-        : building.y;
+      const { x, y } = this.getAnchorWorldPosition(building, layout);
 
       if (building.assetKey && textureExists(this, building.assetKey)) {
         const sprite = this.add.image(x, y, building.assetKey)
