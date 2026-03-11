@@ -1,46 +1,45 @@
 {
   "layoutId": "human_castle_layout",
+  "baseSize": {
+    "width": 1536,
+    "height": 1024
+  },
+  "defaultBuildingScale": 0.24,
   "anchors": [
     {
       "slotId": "TOP_CENTER",
-      "x": 768,
-      "y": 520,
-      "scale": 0.88,
+      "anchorX": 0.5,
+      "anchorY": 0.507812,
       "z": 10
     },
     {
       "slotId": "LEFT_MID",
-      "x": 520,
-      "y": 620,
-      "scale": 0.92,
+      "anchorX": 0.338542,
+      "anchorY": 0.605469,
       "z": 16
     },
     {
       "slotId": "RIGHT_MID",
-      "x": 1018,
-      "y": 610,
-      "scale": 0.92,
+      "anchorX": 0.66276,
+      "anchorY": 0.595703,
       "z": 16
     },
     {
       "slotId": "LEFT_FOREGROUND",
-      "x": 404,
-      "y": 760,
-      "scale": 1,
+      "anchorX": 0.263021,
+      "anchorY": 0.742188,
       "z": 24
     },
     {
       "slotId": "RIGHT_FOREGROUND",
-      "x": 1132,
-      "y": 758,
-      "scale": 1,
+      "anchorX": 0.736979,
+      "anchorY": 0.740234,
       "z": 24
     },
     {
       "slotId": "CENTER_FOREGROUND",
-      "x": 768,
-      "y": 804,
-      "scale": 1.04,
+      "anchorX": 0.5,
+      "anchorY": 0.785156,
       "z": 28
     }
   ]

@@ -48,3 +48,5 @@ Connect layout anchors to building overlay assets and support responsive scaling
 - **Castle building overlays now live:** built Barracks, Tavern, and Chapel now render from `public/assets/castles/faction01/buildings/` via manifest-backed keys with bottom-centered anchors and slot-based placement.
 - **Build feedback effect added:** newly constructed buildings now trigger a temporary Heroes-style warm glow animation beneath the building sprite (fade-in/brighten/fade-out lifecycle).
 - **Castle debug support:** when debug mode is enabled, castle slot markers are rendered to verify anchor alignment during scene tuning.
+- **Normalized castle overlay contract implemented:** castle layout now uses normalized slot anchors (`anchorX`, `anchorY`) plus `defaultBuildingScale`, and renderer scale priority is `building level scale override -> layout default`.
+
