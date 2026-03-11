@@ -13,14 +13,14 @@
 - **Documentation governance hardening:** strict per-file documentation update policy is now defined in `docs/project/workflow.md` to keep project knowledge centralized and reduce cross-file drift.
 
 ## Partial / Stub Systems
-- **CastleScene:** Build Panel now supports placeholder building construction into runtime state and renders built slots with temporary in-scene placeholders when final overlay art is unavailable (current human MVP set: Barracks, Tavern, Chapel).
+- **CastleScene:** Build Panel supports placeholder building construction into runtime state and renders built slots through a data-driven 6-anchor castle layout contract (TOP_CENTER, LEFT/RIGHT_MID, LEFT/RIGHT_FOREGROUND, CENTER_FOREGROUND) for the human faction MVP set (Barracks, Tavern, Chapel).
 - **BattleScene:** placeholder/stub-level scene; battle loop is not yet implemented.
 - **MenuScene:** minimal placeholder entry scene.
 - **Node outcomes:** several node types still rely on minimal placeholder effects.
 
 ## Missing / Not Yet Implemented
 - Full battle mechanics and resolution loop.
-- Final building overlay art pass and non-placeholder building visuals.
+- Final building overlay art pass and non-placeholder building visuals (anchor contract is ready; art assets still pending).
 - Complete run progression/win-state loop.
 - Rich faction differentiation gameplay systems.
 - Economy costs/checks for construction and building progression rules.
