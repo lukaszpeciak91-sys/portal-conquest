@@ -30,22 +30,68 @@
 - Long-term direction can include branching development inspired by Disciples.
 
 
-### Castle Building Slot Architecture
-The castle hub uses a fixed slot-based building system.
+### Castle Building System — MVP Structure
+The human faction castle MVP design is finalized as a fixed **6-building** system built on top of the existing layered castle rendering contract.
 
-Rules:
+Final MVP building set:
 
-- Maximum slots: **6**
-- MVP buildings: **3**
-- Barracks
-- Tavern
-- Chapel
+- **Unit buildings (3)**
+  - **Barracks** — melee line
+  - **Archery Range** — ranged line
+  - **Chapel** — support line
+- **System buildings (3)**
+  - **Tavern** — hero recruitment and hero progression interaction hub
+  - **Forge** — army stat upgrade progression
+  - **Command Hall** — morale/speed/elite promotion progression
 
-Buildings are rendered as **transparent PNG overlays placed on top of the castle base illustration**.
+System building design rules:
 
-The castle base must visually reserve space for all slots to prevent future redesign.
+- **Tavern**
+  - Level 1: recruit hero
+  - Level 2: hero stat upgrade choice
+  - Level 3: hero special ability/trait
+  - Hero gains XP from battles, but hero level advancement requires Tavern interaction.
+- **Forge**
+  - Level 1: unlocks higher building upgrade tiers
+  - Level 2: army attack bonus
+  - Level 3: army defense bonus
+  - Exact numeric values are intentionally TBD.
+- **Command Hall**
+  - Level 1: army morale bonus
+  - Level 2: army speed/initiative bonus
+  - Level 3: unlock Elite Promotion
+  - Only one Elite unit is allowed per army.
 
-Future factions must follow the same slot architecture.
+Unit line progression rule:
+
+- Unit lines evolve through the unit experience system, not through extra building dependency chains.
+
+Fixed slot architecture:
+
+- Slot 1 → Barracks
+- Slot 2 → Archery Range
+- Slot 3 → Chapel
+- Slot 4 → Tavern
+- Slot 5 → Forge
+- Slot 6 → Command Hall
+
+Asset contract for human faction castle overlays:
+
+- Base: `public/assets/castles/faction01/castle_base.png`
+- Overlay folder: `public/assets/castles/faction01/buildings/`
+- Expected transparent PNG overlays:
+  - `barracks.png`
+  - `archery_range.png`
+  - `chapel.png`
+  - `tavern.png`
+  - `forge.png`
+  - `command_hall.png`
+
+All overlays must align with the base castle perspective and remain isolated PNG layers for slot-based placement.
+
+Implementation note:
+
+- Current human faction castle runtime/art coverage may still expose only a partial subset of final overlays while this finalized MVP structure is phased in.
 
 ## Castle Interaction Flow
 - Click castle keep/base to open **Build Panel**.
@@ -54,7 +100,7 @@ Future factions must follow the same slot architecture.
 - Current faction MVP castle layout uses a maximum of **6 anchor slots** as a stable placement contract for both placeholders and future transparent PNG building overlays.
 - Castle layout anchors are authored as normalized coordinates (`anchorX`, `anchorY`) relative to castle base dimensions and paired with a layout-level `defaultBuildingScale`; per-building level definitions may optionally override scale when needed.
 - Build Panel is the construction entry point and immediately marks a selected building as built in runtime state (placeholder-only logic for now).
-- Current human-faction MVP base building set exposed in Build Panel: **Barracks, Tavern, Chapel**.
+- Current human-faction Build Panel/runtime currently exposes a partial subset of final overlays: **Barracks, Tavern, Chapel**.
 - Built buildings may render with temporary in-scene placeholders until final transparent overlay PNGs are available.
 - Castle/map top bar presentation uses a compact top-right control cluster (no full-width heavy strip in normal gameplay view).
 

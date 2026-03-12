@@ -89,11 +89,13 @@ OUTPUT
 
 Use this template for structures placed on top of `castle_base.png`.
 
-Example output names:
-- `barracks_lv1.png`
-- `tavern_lv1.png`
-- `temple_lv1.png`
-- `mage_tower_lv1.png`
+Expected faction01 MVP output names:
+- `barracks.png`
+- `archery_range.png`
+- `chapel.png`
+- `tavern.png`
+- `forge.png`
+- `command_hall.png`
 
 ```text
 Create a strategy game building overlay asset.
@@ -112,6 +114,10 @@ ASSET ROLE
 - Buildings are interactive gameplay objects placed in the castle courtyard
 - Buildings are not part of the main castle structure
 - The building must feel grounded on the courtyard after placement, without bringing its own environment
+
+
+MVP INTEGRATION NOTE
+- All six MVP castle building overlays (`barracks.png`, `archery_range.png`, `chapel.png`, `tavern.png`, `forge.png`, `command_hall.png`) must follow identical perspective, lighting, and integration rules so they align on the same `castle_base.png` scene.
 
 INTEGRATION CONSTRAINTS
 - Asset will be overlaid on top of an existing castle base illustration

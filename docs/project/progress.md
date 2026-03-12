@@ -20,18 +20,20 @@ Connect layout anchors to building overlay assets and support responsive scaling
 
 
 ## Partial / Stub Systems
-- **CastleScene:** Build Panel supports placeholder building construction into runtime state and renders built slots through a data-driven 6-anchor castle layout contract (TOP_CENTER, LEFT/RIGHT_MID, LEFT/RIGHT_FOREGROUND, CENTER_FOREGROUND) for the human faction MVP set (Barracks, Tavern, Chapel).
+- **CastleScene:** Build Panel supports placeholder building construction into runtime state and renders built slots through a data-driven 6-anchor castle layout contract (TOP_CENTER, LEFT/RIGHT_MID, LEFT/RIGHT_FOREGROUND, CENTER_FOREGROUND).
+- **Castle MVP design contract finalized (documentation level):** final 6-building set is now locked as Barracks, Archery Range, Chapel, Tavern, Forge, and Command Hall.
 - **BattleScene:** placeholder/stub-level scene; battle loop is not yet implemented.
 - **MenuScene:** minimal placeholder entry scene.
 - **Node outcomes:** several node types still rely on minimal placeholder effects.
 
 ## Missing / Not Yet Implemented
 - Full battle mechanics and resolution loop.
-- Final building overlay art pass and non-placeholder building visuals (anchor contract is ready; art assets still pending).
+- Final building overlay art pass for remaining human faction overlays (`archery_range.png`, `forge.png`, `command_hall.png`) and non-placeholder visuals.
 - Complete run progression/win-state loop.
 - Rich faction differentiation gameplay systems.
 - Economy costs/checks for construction and building progression rules.
 - Recruitment and upgrade gameplay logic for constructed buildings.
+- Gameplay logic for Tavern/Forge/Command Hall progression, hero progression interactions, and elite promotion is not yet implemented.
 
 ## Asset Architecture Status
 - Asset manifest and shared loader architecture exist (`asset-manifest.json` + manifest loader utilities).
@@ -45,8 +47,8 @@ Connect layout anchors to building overlay assets and support responsive scaling
   3. Continue asset-driven content expansion through manifest/JSON pipelines.
 
 ## 2026-03-11 Update
-- **Castle building overlays now live:** built Barracks, Tavern, and Chapel now render from `public/assets/castles/faction01/buildings/` via manifest-backed keys with bottom-centered anchors and slot-based placement.
+- **Castle building overlays currently implemented in runtime:** Barracks, Tavern, and Chapel render from `public/assets/castles/faction01/buildings/` via manifest-backed keys with bottom-centered anchors and slot-based placement.
+- **Remaining finalized MVP overlays planned:** `archery_range.png`, `forge.png`, and `command_hall.png` are part of the finalized 6-building design set but are not yet implemented in runtime art coverage.
 - **Build feedback effect added:** newly constructed buildings now trigger a temporary Heroes-style warm glow animation beneath the building sprite (fade-in/brighten/fade-out lifecycle).
 - **Castle debug support:** when debug mode is enabled, castle slot markers are rendered to verify anchor alignment during scene tuning.
 - **Normalized castle overlay contract implemented:** castle layout now uses normalized slot anchors (`anchorX`, `anchorY`) plus `defaultBuildingScale`, and renderer scale priority is `building level scale override -> layout default`.
-
