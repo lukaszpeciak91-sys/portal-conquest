@@ -525,6 +525,16 @@ export class CastleScene extends Phaser.Scene {
       return;
     }
 
+    const camera = this.cameras?.main;
+    if (camera) {
+      camera.setViewport(0, 0, viewport.width, viewport.height);
+      camera.setSize(viewport.width, viewport.height);
+      camera.setBounds(0, 0, viewport.width, viewport.height);
+      camera.centerOn(viewport.width / 2, viewport.height / 2);
+      camera.preRender();
+    }
+
     this.renderCastleLayers(viewport.width, viewport.height);
+    console.log(`[CastleScene] resize ${viewport.width}x${viewport.height}`);
   }
 }

@@ -953,6 +953,15 @@ export class MapScene extends Phaser.Scene {
 
     this.layoutMapBackground(viewportWidth, viewportHeight);
 
+    const camera = this.cameras?.main;
+    if (camera) {
+      camera.setViewport(0, 0, viewportWidth, viewportHeight);
+      camera.setSize(viewportWidth, viewportHeight);
+      camera.setBounds(0, 0, viewportWidth, viewportHeight);
+      camera.centerOn(viewportWidth / 2, viewportHeight / 2);
+      camera.preRender();
+    }
+
     const mapNodes = GameState.data?.map?.nodes ?? [];
     mapNodes.forEach((node) => {
       const marker = this.nodeMarkers.get(node.id);
@@ -970,6 +979,7 @@ export class MapScene extends Phaser.Scene {
       this.heroMarker.setPosition(point.x, point.y);
     }
 
+    console.log(`[MapScene] resize ${viewportWidth}x${viewportHeight}`);
   }
 
   updateHud() {
