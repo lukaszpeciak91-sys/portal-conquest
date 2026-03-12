@@ -185,9 +185,9 @@ export class CastleScene extends Phaser.Scene {
       const source = this.textures.get(baseKey).getSourceImage();
       const imageWidth = source.width || viewportWidth;
       const imageHeight = source.height || viewportHeight;
-      const scale = Math.max(renderBounds.width / imageWidth, renderBounds.height / imageHeight);
+      const scale = Math.min(renderBounds.width / imageWidth, renderBounds.height / imageHeight);
       const centerX = renderBounds.centerX;
-      const centerY = renderBounds.centerY + (renderBounds.height * 0.06);
+      const centerY = renderBounds.centerY;
 
       const baseImage = this.add.image(centerX, centerY, baseKey)
         .setOrigin(0.5)
