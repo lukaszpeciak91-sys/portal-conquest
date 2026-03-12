@@ -40,46 +40,47 @@ Output requirements:
 
 ---
 
-## CASTLE BASE PROMPT — LOCKED ASSET CONTRACT (v1.1)
+## Castle Background Prompt — Locked Asset Contract (v1.2)
 
 Use this template to generate the foundational castle scene that later receives building overlays.
 
 Target file in pipeline: `castle_base.png`
 
 ```text
-Create a 2D dark fantasy castle settlement base illustration for a strategy game town screen.
+Create a fantasy strategy game castle background.
 
-Purpose:
-- This image is the base layer only
-- Individual buildings will be added later as separate overlay assets
+STYLE
+Dark fantasy semi-painterly illustration inspired by Heroes III and Disciples II.
 
-Technical constraints:
-- Landscape-oriented composition optimized for game UI readability
-- Maintain a stable perspective that can be reused by future building overlays
-- Reserve clear visual space and construction slots for future structures
+FORMAT
+- 16:9 landscape
+- Designed for a strategy game town screen
 
-Composition rules:
-- Show terrain, walls, cliffs, courtyards, foundations, and environmental storytelling elements
-- Leave intentional empty build areas where structures can appear later
-- Terrain should look natural but remain relatively flat in building anchor zones
-- Avoid rocks, stairs, props, trees, or uneven geometry in construction zones
-- Construction zones must remain readable and support future building overlays
-- Do not overfill the scene with permanent architecture
-- Keep focal balance so UI can sit on top without obscuring critical scene readability
+ASSET ROLE
+- Castle base image is the atmospheric background layer
+- Buildings are separate gameplay elements placed later in courtyard slots
+- Do not merge future building gameplay structures into the castle walls
 
-Art direction:
-- Dark fantasy tone inspired by classic strategy aesthetics (Heroes III / Disciples II spirit)
-- Semi-painterly rendering, medium detail
-- Strong silhouette readability, atmospheric but gameplay-friendly
-- Prioritize gameplay readability over realism
-- The image must function as a strategy game interface background, not a cinematic illustration
-- Avoid excessive micro-detail
-- No photorealism, no excessive visual noise
+COMPOSITION
+- Top area: sky and upper castle towers
+- Middle area: main castle mass as the epic faction identity
+- Lower area (critical gameplay zone): open courtyard for building placement
+- Position the main castle slightly higher in frame to preserve a clear foreground play zone
+- The lower 25–35% of the image must stay readable as an open courtyard
+- Courtyard surface should be neutral and buildable (stone courtyard, dirt yard, plaza)
+- Courtyard must remain uncluttered and support readable placement of 6 building slots
+- No foreground objects blocking build placement areas
+- No characters, no UI, no text
 
-Output requirements:
+ART DIRECTION
+- Epic dark fantasy atmosphere, gameplay-readable first
+- Semi-painterly rendering, medium detail, strong silhouettes
+- Avoid photorealism and noisy micro-detail
+- Keep visual hierarchy clear so castle identity and courtyard gameplay zone are both legible
+
+OUTPUT
 - Final image intended as `castle_base.png`
-- No text, no icons, no logos, no watermark, no embedded UI
-- Keep lighting and color mood consistent with a corrupted dark fantasy world
+- No logos, no watermark, no embedded UI
 ```
 
 ---
@@ -95,30 +96,44 @@ Example output names:
 - `mage_tower_lv1.png`
 
 ```text
-Create a single isolated 2D dark fantasy building asset for a castle-town interface in a strategy game.
+Create a strategy game building overlay asset.
 
-Building target:
+STYLE
+- Same visual style as the castle base
+
+FORMAT
+- Transparent background
+
+CONTENT
 - [INSERT BUILDING TYPE, e.g. Barracks Level 1 / Tavern Level 1 / Temple Level 1]
+- Single building centered
 
-Integration constraints:
+ASSET ROLE
+- Buildings are interactive gameplay objects placed in the castle courtyard
+- Buildings are not part of the main castle structure
+- The building must feel grounded on the courtyard after placement, without bringing its own environment
+
+INTEGRATION CONSTRAINTS
 - Asset will be overlaid on top of an existing castle base illustration
 - Use the same camera angle and perspective as the base scene
 - Structure must be positioned and designed to sit naturally on a predefined base slot
 - Keep silhouette clear and recognizable at gameplay viewing size
+- Match the castle base perspective, lighting direction, and color palette
 
-Technical output requirements:
+GROUND
+- Only a very small base footprint is allowed
+
+TECHNICAL OUTPUT REQUIREMENTS
 - Transparent PNG background (alpha channel required)
-- No sky, no terrain plate, no frame, no backdrop
+- No sky, no full courtyard, no large terrain plate, no frame, no backdrop
 - Isolated building only
 - Clean edges for layering in-engine
 
-Art direction:
-- Dark fantasy architecture consistent with the castle base
-- Semi-painterly style, medium detail, readable forms
-- Avoid photorealistic rendering and over-textured noise
-- Color and lighting should match a moody corrupted fantasy world
-
-Negative constraints:
+NO
+- Large terrain environment
+- Full courtyard scene
+- Environment background
+- Sky
 - No text, no labels, no logos, no watermark
 - No additional characters unless explicitly requested
 ```
