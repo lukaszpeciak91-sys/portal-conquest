@@ -47,6 +47,7 @@ Connect layout anchors to building overlay assets and support responsive scaling
 
 ## 2026-03-11 Update
 - **Castle building overlays currently implemented in runtime:** all finalized MVP overlays (Barracks, Archery Range, Chapel, Tavern, Forge, Command Hall) render from `public/assets/castles/faction01/buildings/` via manifest-backed keys with bottom-centered anchors and slot-based placement.
+- **Castle build menu source constrained to finalized MVP IDs:** `CastleScene` now derives buildable entries through a finalized ordered id set (`barracks`, `archery_range`, `chapel`, `tavern`, `forge`, `command_hall`) while still resolving definitions from the existing `human_buildings` data and existing construction flow.
 - **Build feedback effect added:** newly constructed buildings now trigger a temporary Heroes-style warm glow animation beneath the building sprite (fade-in/brighten/fade-out lifecycle).
 - **Castle debug support:** when debug mode is enabled, castle slot markers are rendered to verify anchor alignment during scene tuning.
 - **Normalized castle overlay contract implemented:** castle layout now uses normalized slot anchors (`anchorX`, `anchorY`) plus `defaultBuildingScale`, and renderer scale priority is `building level scale override -> layout default`.
