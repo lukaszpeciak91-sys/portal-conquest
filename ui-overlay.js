@@ -211,8 +211,11 @@ import { SceneRouter } from './src/SceneRouter';
       title: 'Build Panel',
       body: `Available buildings:
 - Barracks
+- Archery Range
+- Chapel
 - Tavern
-- Chapel`,
+- Forge
+- Command Hall`,
     },
     building: {
       title: 'Building Panel',

@@ -12,6 +12,26 @@
       ]
     },
     {
+      "buildingId": "archery_range",
+      "slotId": "LEFT_MID",
+      "levels": [
+        {
+          "level": 1,
+          "assetKey": "castle_human_archery_range_lvl1"
+        }
+      ]
+    },
+    {
+      "buildingId": "chapel",
+      "slotId": "RIGHT_FOREGROUND",
+      "levels": [
+        {
+          "level": 1,
+          "assetKey": "castle_human_chapel_lvl1"
+        }
+      ]
+    },
+    {
       "buildingId": "tavern",
       "slotId": "CENTER_FOREGROUND",
       "levels": [
@@ -23,12 +43,22 @@
       ]
     },
     {
-      "buildingId": "chapel",
-      "slotId": "RIGHT_FOREGROUND",
+      "buildingId": "forge",
+      "slotId": "RIGHT_MID",
       "levels": [
         {
           "level": 1,
-          "assetKey": "castle_human_chapel_lvl1"
+          "assetKey": "castle_human_forge_lvl1"
+        }
+      ]
+    },
+    {
+      "buildingId": "command_hall",
+      "slotId": "TOP_CENTER",
+      "levels": [
+        {
+          "level": 1,
+          "assetKey": "castle_human_command_hall_lvl1"
         }
       ]
     }
