@@ -21,6 +21,18 @@
     {
       "key": "castle_human_chapel_lvl1",
       "path": "assets/castles/faction01/buildings/chapel.png"
+    },
+    {
+      "key": "castle_human_archery_range_lvl1",
+      "path": "assets/castles/faction01/buildings/archery_range.png"
+    },
+    {
+      "key": "castle_human_forge_lvl1",
+      "path": "assets/castles/faction01/buildings/forge.png"
+    },
+    {
+      "key": "castle_human_command_hall_lvl1",
+      "path": "assets/castles/faction01/buildings/command_hall.png"
     }
   ],
   "ui": [],
