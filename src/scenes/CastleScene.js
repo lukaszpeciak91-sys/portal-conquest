@@ -12,6 +12,14 @@ const MIN_VALID_VIEWPORT_SIDE = 64;
 const MIN_VALID_PLAYABLE_HEIGHT = 120;
 const BUILD_GLOW_DURATION_MS = 720;
 const BUILD_GLOW_TEXTURE_KEY = 'castle-build-glow';
+const FINALIZED_MVP_BUILDING_IDS = [
+  'barracks',
+  'archery_range',
+  'chapel',
+  'tavern',
+  'forge',
+  'command_hall',
+];
 const BUILDING_LAYOUTS = {
   human_castle_layout: humanCastleLayout,
 };
@@ -128,11 +136,29 @@ export class CastleScene extends Phaser.Scene {
   }
 
   getBuildPanelEntries(buildingSet, runtimeBuildings) {
-    return (buildingSet?.buildings ?? []).map((buildingDefinition) => ({
+    return this.getBuildableBuildingDefinitions(buildingSet).map((buildingDefinition) => ({
       buildingId: buildingDefinition.buildingId,
       label: String(buildingDefinition.buildingId ?? 'building').replace(/[_-]/g, ' ').replace(/\b\w/g, (ch) => ch.toUpperCase()),
       built: Number.isFinite(runtimeBuildings?.[buildingDefinition.buildingId]) && runtimeBuildings[buildingDefinition.buildingId] > 0,
     }));
+  }
+
+  getBuildableBuildingDefinitions(buildingSet) {
+    const definitionsById = new Map((buildingSet?.buildings ?? []).map((definition) => [definition.buildingId, definition]));
+
+    return FINALIZED_MVP_BUILDING_IDS.flatMap((buildingId) => {
+      const definition = definitionsById.get(buildingId);
+      if (definition) {
+        return [definition];
+      }
+
+      if (!this.missingBuildingAssetWarnings.has(`missing-definition:${buildingId}`)) {
+        this.missingBuildingAssetWarnings.add(`missing-definition:${buildingId}`);
+        console.warn(`Missing castle building definition: ${buildingId}`);
+      }
+
+      return [];
+    });
   }
 
   openBuildPanel() {
@@ -148,7 +174,7 @@ export class CastleScene extends Phaser.Scene {
 
   buildBuilding(buildingId) {
     const { faction, buildingSet, runtimeBuildings } = this.getCastleRenderContext();
-    const definition = (buildingSet?.buildings ?? []).find((entry) => entry.buildingId === buildingId);
+    const definition = this.getBuildableBuildingDefinitions(buildingSet).find((entry) => entry.buildingId === buildingId);
     if (!definition) {
       return false;
     }
@@ -377,7 +403,7 @@ export class CastleScene extends Phaser.Scene {
       });
     });
 
-    const placedBuildings = [...(buildingSet?.buildings ?? [])]
+    const placedBuildings = this.getBuildableBuildingDefinitions(buildingSet)
       .map((buildingDefinition) => ({
         definition: buildingDefinition,
         level: runtimeBuildings?.[buildingDefinition.buildingId],
