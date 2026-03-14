@@ -101,7 +101,7 @@ All overlays must align with the base castle perspective and remain isolated PNG
 - Click a built building overlay to open **Building Panel**.
 - Building slots are anchor-only and remain invisible until a building exists.
 - Current faction MVP castle layout uses a maximum of **6 anchor slots** as a stable placement contract for both placeholders and future transparent PNG building overlays.
-- Castle layout anchors are authored as normalized coordinates (`anchorX`, `anchorY`) relative to castle base dimensions and paired with a layout-level `defaultBuildingScale`; per-building level definitions may optionally override scale when needed.
+- Castle layout anchors are authored as normalized coordinates (`anchorX`, `anchorY`) relative to castle base dimensions and paired with a layout-level `defaultBuildingScale`; helper pixel coordinates (`pixelX`, `pixelY`) are retained only for debug/authoring verification and are not runtime placement inputs.
 - Build Panel is the construction entry point and immediately marks a selected building as built in runtime state (placeholder-only logic for now).
 - Current human-faction Build Panel/runtime exposes the full finalized MVP building set: **Barracks, Archery Range, Chapel, Tavern, Forge, Command Hall**.
 - Built buildings may render with temporary in-scene placeholders until final transparent overlay PNGs are available.
