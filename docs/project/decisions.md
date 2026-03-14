@@ -33,6 +33,13 @@
 ### Castle Building System — MVP Structure
 The human faction castle MVP design is finalized as a fixed **6-building** system built on top of the existing layered castle rendering contract.
 
+### Finalized Human Castle Template Contract (Authoritative)
+- Human castle reference visual style remains dark fantasy semi-painterly, gameplay-readable first, and aligned to the same 16:9 layered-castle direction used by runtime.
+- The six-slot courtyard template is the stable composition contract for faction template generation and future faction adaptation.
+- For faction reference template establishment, visible stone foundations/build pads in `castle_base.png` are accepted and recommended to preserve slot readability.
+- Overlay-first castle expansion remains the preferred architecture: base scene first, isolated transparent building overlays layered afterward.
+- Base building generation is done first for the finalized MVP set; upgraded building tiers are intentionally postponed until placement/scale validation is complete.
+
 Final MVP building set:
 
 - **Unit buildings (3)**
@@ -88,10 +95,6 @@ Asset contract for human faction castle overlays:
   - `command_hall.png`
 
 All overlays must align with the base castle perspective and remain isolated PNG layers for slot-based placement.
-
-Implementation note:
-
-- Human faction castle runtime now wires all finalized MVP building IDs and manifest-backed overlay keys; missing files still fall back safely to placeholder markers with a warning.
 
 ## Castle Interaction Flow
 - Click castle keep/base to open **Build Panel**.

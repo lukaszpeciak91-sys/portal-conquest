@@ -14,11 +14,8 @@
 - **Documentation governance hardening:** strict per-file documentation update policy is now defined in `docs/project/workflow.md` to keep project knowledge centralized and reduce cross-file drift.
 
 ### Castle Building Placement System
-Milestone added.
-
-Purpose:
-Connect layout anchors to building overlay assets and support responsive scaling.
-
+- Layout anchors connect to building overlay assets with responsive scaling behavior in `CastleScene`.
+- Finalized human-faction slot/building contract is now clearly documented as the active template reference for future castle generation.
 
 ## Partial / Stub Systems
 - **CastleScene:** Build Panel now exposes and constructs all finalized MVP buildings (Barracks, Archery Range, Chapel, Tavern, Forge, Command Hall) via the existing runtime/state flow and 6-anchor layout contract (TOP_CENTER, LEFT/RIGHT_MID, LEFT/RIGHT_FOREGROUND, CENTER_FOREGROUND).
