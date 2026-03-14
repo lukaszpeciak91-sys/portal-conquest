@@ -212,7 +212,7 @@ export class CastleScene extends Phaser.Scene {
       const source = this.textures.get(baseKey).getSourceImage();
       const imageWidth = source.width || viewportWidth;
       const imageHeight = source.height || viewportHeight;
-      const scale = Math.min(renderBounds.width / imageWidth, renderBounds.height / imageHeight);
+      const scale = Math.max(renderBounds.width / imageWidth, renderBounds.height / imageHeight);
       const centerX = renderBounds.centerX;
       const centerY = renderBounds.centerY;
 
@@ -226,11 +226,13 @@ export class CastleScene extends Phaser.Scene {
       }
 
       this.currentCastleTransform = {
-        imageWidth,
-        imageHeight,
-        scale,
-        topLeftX: centerX - ((imageWidth * scale) / 2),
-        topLeftY: centerY - ((imageHeight * scale) / 2),
+        sourceWidth: imageWidth,
+        sourceHeight: imageHeight,
+        renderedWidth: baseImage.displayWidth,
+        renderedHeight: baseImage.displayHeight,
+        scale: baseImage.scaleX,
+        centerX: baseImage.x,
+        centerY: baseImage.y,
       };
 
       this.baseLayer.add(baseImage);
@@ -272,8 +274,9 @@ export class CastleScene extends Phaser.Scene {
       return null;
     }
 
-    const localY = pointer.worldY - this.currentCastleTransform.topLeftY;
-    const normalizedY = localY / (this.currentCastleTransform.imageHeight * this.currentCastleTransform.scale);
+    const topY = this.currentCastleTransform.centerY - (this.currentCastleTransform.renderedHeight / 2);
+    const localY = pointer.worldY - topY;
+    const normalizedY = localY / this.currentCastleTransform.renderedHeight;
     return Phaser.Math.Clamp(normalizedY, 0, 1);
   }
 
@@ -442,43 +445,40 @@ export class CastleScene extends Phaser.Scene {
   }
 
   getAnchorWorldPosition(anchorLike, layout, options = {}) {
-    const baseWidth = Number.isFinite(layout?.baseWidth)
-      ? layout.baseWidth
-      : Number.isFinite(layout?.baseSize?.width)
-        ? layout.baseSize.width
-        : this.currentCastleTransform?.imageWidth;
-    const baseHeight = Number.isFinite(layout?.baseHeight)
-      ? layout.baseHeight
-      : Number.isFinite(layout?.baseSize?.height)
-        ? layout.baseSize.height
-        : this.currentCastleTransform?.imageHeight;
+    const transform = this.currentCastleTransform;
     const hasNormalizedAnchor = Number.isFinite(anchorLike?.anchorX)
-      && Number.isFinite(anchorLike?.anchorY)
-      && Number.isFinite(baseWidth)
-      && Number.isFinite(baseHeight);
+      && Number.isFinite(anchorLike?.anchorY);
 
-    const localX = hasNormalizedAnchor
-      ? anchorLike.anchorX * baseWidth
-      : options.allowPixelFallback
-        ? anchorLike?.x
-        : 0;
-    const localY = hasNormalizedAnchor
-      ? anchorLike.anchorY * baseHeight
-      : options.allowPixelFallback
-        ? anchorLike?.y
-        : 0;
-    const baseScale = this.currentCastleTransform?.scale ?? 1;
-
-    if (this.currentCastleTransform) {
+    if (transform && hasNormalizedAnchor) {
       return {
-        x: this.currentCastleTransform.topLeftX + ((localX ?? 0) * baseScale),
-        y: this.currentCastleTransform.topLeftY + ((localY ?? 0) * baseScale),
+        x: transform.centerX + ((anchorLike.anchorX - 0.5) * transform.renderedWidth),
+        y: transform.centerY + ((anchorLike.anchorY - 0.5) * transform.renderedHeight),
+      };
+    }
+
+    if (transform && options.allowPixelFallback && Number.isFinite(anchorLike?.x) && Number.isFinite(anchorLike?.y)) {
+      const baseWidth = Number.isFinite(layout?.baseWidth)
+        ? layout.baseWidth
+        : Number.isFinite(layout?.baseSize?.width)
+          ? layout.baseSize.width
+          : transform.sourceWidth;
+      const baseHeight = Number.isFinite(layout?.baseHeight)
+        ? layout.baseHeight
+        : Number.isFinite(layout?.baseSize?.height)
+          ? layout.baseSize.height
+          : transform.sourceHeight;
+      const normalizedX = baseWidth > 0 ? anchorLike.x / baseWidth : 0;
+      const normalizedY = baseHeight > 0 ? anchorLike.y / baseHeight : 0;
+
+      return {
+        x: transform.centerX + ((normalizedX - 0.5) * transform.renderedWidth),
+        y: transform.centerY + ((normalizedY - 0.5) * transform.renderedHeight),
       };
     }
 
     return {
-      x: localX ?? 0,
-      y: localY ?? 0,
+      x: options.allowPixelFallback ? (anchorLike?.x ?? 0) : 0,
+      y: options.allowPixelFallback ? (anchorLike?.y ?? 0) : 0,
     };
   }
 
@@ -522,9 +522,7 @@ export class CastleScene extends Phaser.Scene {
           x: anchor.x,
           y: anchor.y,
           z: anchor.z ?? 0,
-          scale: Number.isFinite(levelDefinition?.scale)
-            ? levelDefinition.scale
-            : layoutDefaultBuildingScale,
+          scale: layoutDefaultBuildingScale,
           assetKey: levelDefinition?.assetKey ?? null,
           level,
         };
