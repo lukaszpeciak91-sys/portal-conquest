@@ -12,6 +12,7 @@ const MIN_VALID_VIEWPORT_SIDE = 64;
 const MIN_VALID_PLAYABLE_HEIGHT = 120;
 const BUILD_GLOW_DURATION_MS = 720;
 const BUILD_GLOW_TEXTURE_KEY = 'castle-build-glow';
+const DEFAULT_COURTYARD_BOUNDARY_Y = 0.72;
 const FINALIZED_MVP_BUILDING_IDS = [
   'barracks',
   'archery_range',
@@ -211,7 +212,7 @@ export class CastleScene extends Phaser.Scene {
       const source = this.textures.get(baseKey).getSourceImage();
       const imageWidth = source.width || viewportWidth;
       const imageHeight = source.height || viewportHeight;
-      const scale = Math.max(renderBounds.width / imageWidth, renderBounds.height / imageHeight);
+      const scale = Math.min(renderBounds.width / imageWidth, renderBounds.height / imageHeight);
       const centerX = renderBounds.centerX;
       const centerY = renderBounds.centerY;
 
@@ -248,6 +249,59 @@ export class CastleScene extends Phaser.Scene {
 
     this.baseLayer.add([fallbackBackground, fallbackPlaceholder]);
     this.currentCastleTransform = null;
+  }
+
+  getCourtyardBoundaryY(layout) {
+    const boundary = Number.isFinite(layout?.courtyardBoundaryY)
+      ? layout.courtyardBoundaryY
+      : DEFAULT_COURTYARD_BOUNDARY_Y;
+
+    return Phaser.Math.Clamp(boundary, 0, 1);
+  }
+
+  isInCourtyardByAnchor(anchorLike, layout) {
+    if (!Number.isFinite(anchorLike?.anchorY)) {
+      return true;
+    }
+
+    return anchorLike.anchorY >= this.getCourtyardBoundaryY(layout);
+  }
+
+  getPointerCastleNormalizedY(pointer) {
+    if (!this.currentCastleTransform) {
+      return null;
+    }
+
+    const localY = pointer.worldY - this.currentCastleTransform.topLeftY;
+    const normalizedY = localY / (this.currentCastleTransform.imageHeight * this.currentCastleTransform.scale);
+    return Phaser.Math.Clamp(normalizedY, 0, 1);
+  }
+
+  createConstructionSlotHotspots({ layout, runtimeBuildings, buildingSet, onClickConstruct }) {
+    const builtBuildingIds = new Set(
+      this.getBuildableBuildingDefinitions(buildingSet)
+        .filter((buildingDefinition) => Number.isFinite(runtimeBuildings?.[buildingDefinition.buildingId]) && runtimeBuildings[buildingDefinition.buildingId] > 0)
+        .map((buildingDefinition) => buildingDefinition.buildingId),
+    );
+    const slotToBuilding = new Map((buildingSet?.buildings ?? []).map((building) => [building.slotId, building.buildingId]));
+    const baseScale = this.currentCastleTransform?.scale ?? 1;
+
+    (layout?.anchors ?? []).forEach((anchor) => {
+      const mappedBuildingId = slotToBuilding.get(anchor.slotId);
+      const isBuilt = mappedBuildingId ? builtBuildingIds.has(mappedBuildingId) : false;
+      if (isBuilt || this.isInCourtyardByAnchor(anchor, layout)) {
+        return;
+      }
+
+      const { x, y } = this.getAnchorWorldPosition(anchor, layout);
+      const hotspotRadius = Math.max(24, 52 * baseScale);
+      const hotspot = this.add.circle(x, y, hotspotRadius, 0xffffff, 0.001)
+        .setDepth((anchor.z ?? 0) + 0.1)
+        .setInteractive({ useHandCursor: true });
+
+      hotspot.on('pointerdown', onClickConstruct);
+      this.decorLayer.add(hotspot);
+    });
   }
 
   renderBuildingPlaceholder({ x, y, z, buildingId, level, baseScale }) {
@@ -434,11 +488,15 @@ export class CastleScene extends Phaser.Scene {
       const { x, y } = this.getAnchorWorldPosition(building, layout);
 
       if (building.assetKey && textureExists(this, building.assetKey)) {
+        const interactiveBuilding = this.isInCourtyardByAnchor(building, layout);
         const sprite = this.add.image(x, y, building.assetKey)
           .setOrigin(0.5, 1)
           .setScale(building.scale * baseScale)
-          .setDepth(building.z)
-          .setInteractive({ useHandCursor: true });
+          .setDepth(building.z);
+
+        if (interactiveBuilding) {
+          sprite.setInteractive({ useHandCursor: true });
+        }
 
         if (this.pendingBuildGlowById === building.buildingId) {
           this.renderBuildGlow({
@@ -449,7 +507,7 @@ export class CastleScene extends Phaser.Scene {
           });
         }
 
-        if (onClickBuilding) {
+        if (interactiveBuilding && onClickBuilding) {
           sprite.on('pointerdown', () => onClickBuilding(building));
         }
 
@@ -536,12 +594,27 @@ export class CastleScene extends Phaser.Scene {
     const { castle, layout, buildingSet, runtimeBuildings } = this.getCastleRenderContext();
     const baseKey = castle?.baseKey ?? 'castle_faction01_base';
 
-    this.renderBaseLayer(viewportWidth, viewportHeight, baseKey, () => this.openBuildPanel());
+    this.renderBaseLayer(viewportWidth, viewportHeight, baseKey, (pointer) => {
+      const pointerCastleY = this.getPointerCastleNormalizedY(pointer);
+      if (!Number.isFinite(pointerCastleY)) {
+        return;
+      }
+
+      if (pointerCastleY < this.getCourtyardBoundaryY(layout)) {
+        this.openBuildPanel();
+      }
+    });
     this.renderBuildingLayer({
       layout,
       buildingSet,
       runtimeBuildings,
       onClickBuilding: (building) => this.openBuildingPanel(building.buildingId, building.level),
+    });
+    this.createConstructionSlotHotspots({
+      layout,
+      runtimeBuildings,
+      buildingSet,
+      onClickConstruct: () => this.openBuildPanel(),
     });
   }
 
