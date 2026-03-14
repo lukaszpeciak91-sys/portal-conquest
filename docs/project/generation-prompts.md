@@ -40,9 +40,11 @@ Output requirements:
 
 ---
 
-## Castle Background Prompt — Locked Asset Contract (v1.2)
+## Castle Background Prompt — Finalized Base Contract (Human Template Authority)
 
 Use this template to generate the foundational castle scene that later receives building overlays.
+
+This is the authoritative castle-base contract for establishing and extending faction templates.
 
 Target file in pipeline: `castle_base.png`
 
@@ -69,7 +71,11 @@ COMPOSITION
 - The lower 25–35% of the image must stay readable as an open courtyard
 - Courtyard surface should be neutral and buildable (stone courtyard, dirt yard, plaza)
 - Courtyard must remain uncluttered and support readable placement of 6 building slots
+- Courtyard composition must keep 6 stable, readable build positions (no ambiguous overlap)
 - No foreground objects blocking build placement areas
+- Preserve safe margins around major structures (do not let critical shapes touch frame edges)
+- Maintain a camera/perspective that is compatible with isolated building overlays placed later
+- For faction template establishment, visible stone build pads/foundations are allowed and recommended
 - No characters, no UI, no text
 
 ART DIRECTION
@@ -123,7 +129,7 @@ INTEGRATION CONSTRAINTS
 - Asset will be overlaid on top of an existing castle base illustration
 - Use the same camera angle and perspective as the base scene
 - Structure must be positioned and designed to sit naturally on a predefined base slot
-- Keep silhouette clear and recognizable at gameplay viewing size
+- Keep silhouette clear and recognizable at mobile gameplay viewing size
 - Match the castle base perspective, lighting direction, and color palette
 
 GROUND
@@ -145,6 +151,10 @@ NO
 ```
 
 Background transparency is mandatory for all castle building overlays.
+
+Final overlay contract reminder:
+- Keep only a small base contact/footprint for ground integration.
+- Include no environment background elements of any kind.
 
 ---
 

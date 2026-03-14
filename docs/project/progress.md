@@ -13,11 +13,8 @@
 - **Documentation governance hardening:** strict per-file documentation update policy is now defined in `docs/project/workflow.md` to keep project knowledge centralized and reduce cross-file drift.
 
 ### Castle Building Placement System
-Milestone added.
-
-Purpose:
-Connect layout anchors to building overlay assets and support responsive scaling.
-
+- Layout anchors connect to building overlay assets with responsive scaling behavior in `CastleScene`.
+- Finalized human-faction slot/building contract is now clearly documented as the active template reference for future castle generation.
 
 ## Partial / Stub Systems
 - **CastleScene:** Build Panel now exposes and constructs all finalized MVP buildings (Barracks, Archery Range, Chapel, Tavern, Forge, Command Hall) via the existing runtime/state flow and 6-anchor layout contract (TOP_CENTER, LEFT/RIGHT_MID, LEFT/RIGHT_FOREGROUND, CENTER_FOREGROUND).
@@ -45,9 +42,7 @@ Connect layout anchors to building overlay assets and support responsive scaling
   2. Implement castle hub systems using shared runtime state (not scene-local persistence).
   3. Continue asset-driven content expansion through manifest/JSON pipelines.
 
-## 2026-03-11 Update
-- **Castle building overlays currently implemented in runtime:** all finalized MVP overlays (Barracks, Archery Range, Chapel, Tavern, Forge, Command Hall) render from `public/assets/castles/faction01/buildings/` via manifest-backed keys with bottom-centered anchors and slot-based placement.
-- **Castle build menu source constrained to finalized MVP IDs:** `CastleScene` now derives buildable entries through a finalized ordered id set (`barracks`, `archery_range`, `chapel`, `tavern`, `forge`, `command_hall`) while still resolving definitions from the existing `human_buildings` data and existing construction flow.
-- **Build feedback effect added:** newly constructed buildings now trigger a temporary Heroes-style warm glow animation beneath the building sprite (fade-in/brighten/fade-out lifecycle).
-- **Castle debug support:** when debug mode is enabled, castle slot markers are rendered to verify anchor alignment during scene tuning.
-- **Normalized castle overlay contract implemented:** castle layout now uses normalized slot anchors (`anchorX`, `anchorY`) plus `defaultBuildingScale`, and renderer scale priority is `building level scale override -> layout default`.
+## Castle Template / Overlay Contract Status
+- Human faction visual castle template is stabilized at design/documentation level around a finalized 6-slot courtyard structure and finalized MVP building IDs.
+- The MVP overlay art contract is now reference-ready: isolated transparent building PNGs, stable naming, and base-scene compatibility requirements are centralized in project docs.
+- Runtime alignment remains consistent with the documented contract: normalized layout anchors, manifest-backed castle overlay keys, and ordered finalized MVP building IDs are in active use.
