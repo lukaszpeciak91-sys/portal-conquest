@@ -5,6 +5,7 @@
     "height": 1024
   },
   "defaultBuildingScale": 0.24,
+  "courtyardBoundaryY": 0.72,
   "anchors": [
     {
       "slotId": "TOP_CENTER",
