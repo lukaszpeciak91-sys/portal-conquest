@@ -1,47 +1,64 @@
 {
   "layoutId": "human_castle_layout",
-  "baseSize": {
-    "width": 1536,
-    "height": 1024
-  },
-  "defaultBuildingScale": 0.24,
-  "courtyardBoundaryY": 0.72,
-  "anchors": [
+  "castleId": "faction01",
+  "baseImage": "castle_base.png",
+  "baseWidth": 1536,
+  "baseHeight": 1024,
+  "defaultBuildingScale": 1,
+  "anchorOrigin": "bottom-center",
+  "notes": [
+    "Anchors are based on the visual centers of the six build pads in the finalized human castle template.",
+    "Values should be treated as authoritative starting points and verified once in-engine with actual overlay PNGs.",
+    "Building sprites should use bottom-center origin so they sit naturally on the foundations."
+  ],
+  "slots": [
     {
-      "slotId": "TOP_CENTER",
+      "slotId": 1,
+      "buildingId": "barracks",
+      "anchorX": 0.1081,
+      "anchorY": 0.6924,
+      "pixelX": 166,
+      "pixelY": 709
+    },
+    {
+      "slotId": 2,
+      "buildingId": "archery_range",
       "anchorX": 0.5,
-      "anchorY": 0.507812,
-      "z": 10
+      "anchorY": 0.6797,
+      "pixelX": 768,
+      "pixelY": 696
     },
     {
-      "slotId": "LEFT_MID",
-      "anchorX": 0.338542,
-      "anchorY": 0.605469,
-      "z": 16
+      "slotId": 3,
+      "buildingId": "chapel",
+      "anchorX": 0.8503,
+      "anchorY": 0.6797,
+      "pixelX": 1306,
+      "pixelY": 696
     },
     {
-      "slotId": "RIGHT_MID",
-      "anchorX": 0.66276,
-      "anchorY": 0.595703,
-      "z": 16
+      "slotId": 4,
+      "buildingId": "tavern",
+      "anchorX": 0.1393,
+      "anchorY": 0.8076,
+      "pixelX": 214,
+      "pixelY": 827
     },
     {
-      "slotId": "LEFT_FOREGROUND",
-      "anchorX": 0.263021,
-      "anchorY": 0.742188,
-      "z": 24
-    },
-    {
-      "slotId": "RIGHT_FOREGROUND",
-      "anchorX": 0.736979,
-      "anchorY": 0.740234,
-      "z": 24
-    },
-    {
-      "slotId": "CENTER_FOREGROUND",
+      "slotId": 5,
+      "buildingId": "forge",
       "anchorX": 0.5,
-      "anchorY": 0.785156,
-      "z": 28
+      "anchorY": 0.7998,
+      "pixelX": 768,
+      "pixelY": 819
+    },
+    {
+      "slotId": 6,
+      "buildingId": "command_hall",
+      "anchorX": 0.862,
+      "anchorY": 0.7998,
+      "pixelX": 1324,
+      "pixelY": 819
     }
   ]
 }

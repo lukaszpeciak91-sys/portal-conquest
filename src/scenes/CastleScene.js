@@ -277,26 +277,46 @@ export class CastleScene extends Phaser.Scene {
     return Phaser.Math.Clamp(normalizedY, 0, 1);
   }
 
+  getLayoutSlots(layout, buildingSet) {
+    const hasFinalizedSlots = Array.isArray(layout?.slots) && layout.slots.length > 0;
+    if (hasFinalizedSlots) {
+      return layout.slots.map((slot, index) => ({
+        slotId: slot.slotId,
+        buildingId: slot.buildingId,
+        anchorX: slot.anchorX,
+        anchorY: slot.anchorY,
+        pixelX: slot.pixelX,
+        pixelY: slot.pixelY,
+        z: Number.isFinite(slot?.z) ? slot.z : Math.round((slot?.anchorY ?? 0) * 100) + index,
+      }));
+    }
+
+    const slotToBuilding = new Map((buildingSet?.buildings ?? []).map((building) => [building.slotId, building.buildingId]));
+    return (layout?.anchors ?? []).map((anchor) => ({
+      ...anchor,
+      buildingId: slotToBuilding.get(anchor.slotId),
+      z: Number.isFinite(anchor?.z) ? anchor.z : Math.round((anchor?.anchorY ?? 0) * 100),
+    }));
+  }
+
   createConstructionSlotHotspots({ layout, runtimeBuildings, buildingSet, onClickConstruct }) {
     const builtBuildingIds = new Set(
       this.getBuildableBuildingDefinitions(buildingSet)
         .filter((buildingDefinition) => Number.isFinite(runtimeBuildings?.[buildingDefinition.buildingId]) && runtimeBuildings[buildingDefinition.buildingId] > 0)
         .map((buildingDefinition) => buildingDefinition.buildingId),
     );
-    const slotToBuilding = new Map((buildingSet?.buildings ?? []).map((building) => [building.slotId, building.buildingId]));
     const baseScale = this.currentCastleTransform?.scale ?? 1;
 
-    (layout?.anchors ?? []).forEach((anchor) => {
-      const mappedBuildingId = slotToBuilding.get(anchor.slotId);
-      const isBuilt = mappedBuildingId ? builtBuildingIds.has(mappedBuildingId) : false;
-      if (isBuilt || this.isInCourtyardByAnchor(anchor, layout)) {
+    this.getLayoutSlots(layout, buildingSet).forEach((slot) => {
+      const isBuilt = slot.buildingId ? builtBuildingIds.has(slot.buildingId) : false;
+      if (isBuilt || this.isInCourtyardByAnchor(slot, layout)) {
         return;
       }
 
-      const { x, y } = this.getAnchorWorldPosition(anchor, layout);
+      const { x, y } = this.getAnchorWorldPosition(slot, layout);
       const hotspotRadius = Math.max(24, 52 * baseScale);
       const hotspot = this.add.circle(x, y, hotspotRadius, 0xffffff, 0.001)
-        .setDepth((anchor.z ?? 0) + 0.1)
+        .setDepth((slot.z ?? 0) + 0.1)
         .setInteractive({ useHandCursor: true });
 
       hotspot.on('pointerdown', onClickConstruct);
@@ -391,7 +411,7 @@ export class CastleScene extends Phaser.Scene {
     });
   }
 
-  renderDebugSlotMarker({ x, y, slotId, z, scale }) {
+  renderDebugSlotMarker({ x, y, slotId, pixelX, pixelY, z, scale, layout }) {
     if (!this.debugEnabled) {
       return;
     }
@@ -399,30 +419,54 @@ export class CastleScene extends Phaser.Scene {
     const size = Math.max(12, 18 * scale);
     const marker = this.add.container(x, y).setDepth(z + 0.25);
     const ring = this.add.circle(0, 0, size, 0x38bdf8, 0.22).setStrokeStyle(1, 0x7dd3fc, 0.9);
-    const label = this.add.text(0, -size - 8, slotId, {
+    const slotLabel = Number.isFinite(pixelX) && Number.isFinite(pixelY)
+      ? `${slotId} (${pixelX}, ${pixelY})`
+      : String(slotId);
+    const label = this.add.text(0, -size - 8, slotLabel, {
       color: '#e0f2fe',
       fontFamily: 'Arial',
       fontSize: `${Math.max(10, 10 * scale)}px`,
     }).setOrigin(0.5, 1);
 
     marker.add([ring, label]);
+
+    if (Number.isFinite(pixelX) && Number.isFinite(pixelY)) {
+      const pixelReference = this.getAnchorWorldPosition({ x: pixelX, y: pixelY }, layout, { allowPixelFallback: true });
+      const crosshair = this.add.rectangle(pixelReference.x, pixelReference.y, Math.max(4, 6 * scale), Math.max(4, 6 * scale), 0xf97316, 0.7)
+        .setDepth(z + 0.24)
+        .setOrigin(0.5);
+      this.decorLayer.add(crosshair);
+    }
+
     this.decorLayer.add(marker);
   }
 
-  getAnchorWorldPosition(anchorLike, layout) {
-    const baseWidth = Number.isFinite(layout?.baseSize?.width)
-      ? layout.baseSize.width
-      : this.currentCastleTransform?.imageWidth;
-    const baseHeight = Number.isFinite(layout?.baseSize?.height)
-      ? layout.baseSize.height
-      : this.currentCastleTransform?.imageHeight;
+  getAnchorWorldPosition(anchorLike, layout, options = {}) {
+    const baseWidth = Number.isFinite(layout?.baseWidth)
+      ? layout.baseWidth
+      : Number.isFinite(layout?.baseSize?.width)
+        ? layout.baseSize.width
+        : this.currentCastleTransform?.imageWidth;
+    const baseHeight = Number.isFinite(layout?.baseHeight)
+      ? layout.baseHeight
+      : Number.isFinite(layout?.baseSize?.height)
+        ? layout.baseSize.height
+        : this.currentCastleTransform?.imageHeight;
     const hasNormalizedAnchor = Number.isFinite(anchorLike?.anchorX)
       && Number.isFinite(anchorLike?.anchorY)
       && Number.isFinite(baseWidth)
       && Number.isFinite(baseHeight);
 
-    const localX = hasNormalizedAnchor ? anchorLike.anchorX * baseWidth : anchorLike?.x;
-    const localY = hasNormalizedAnchor ? anchorLike.anchorY * baseHeight : anchorLike?.y;
+    const localX = hasNormalizedAnchor
+      ? anchorLike.anchorX * baseWidth
+      : options.allowPixelFallback
+        ? anchorLike?.x
+        : 0;
+    const localY = hasNormalizedAnchor
+      ? anchorLike.anchorY * baseHeight
+      : options.allowPixelFallback
+        ? anchorLike?.y
+        : 0;
     const baseScale = this.currentCastleTransform?.scale ?? 1;
 
     if (this.currentCastleTransform) {
@@ -442,18 +486,22 @@ export class CastleScene extends Phaser.Scene {
     const layoutDefaultBuildingScale = Number.isFinite(layout?.defaultBuildingScale)
       ? layout.defaultBuildingScale
       : 1;
-    const anchorBySlotId = new Map((layout?.anchors ?? []).map((anchor) => [anchor.slotId, anchor]));
+    const layoutSlots = this.getLayoutSlots(layout, buildingSet);
+    const slotByBuildingId = new Map(layoutSlots.map((slot) => [slot.buildingId, slot]));
 
-    (layout?.anchors ?? []).forEach((anchor) => {
+    layoutSlots.forEach((slot) => {
       const baseScale = this.currentCastleTransform?.scale ?? 1;
-      const { x, y } = this.getAnchorWorldPosition(anchor, layout);
+      const { x, y } = this.getAnchorWorldPosition(slot, layout);
 
       this.renderDebugSlotMarker({
         x,
         y,
-        slotId: anchor.slotId,
-        z: anchor.z ?? 0,
+        slotId: slot.slotId,
+        pixelX: slot.pixelX,
+        pixelY: slot.pixelY,
+        z: slot.z ?? 0,
         scale: layoutDefaultBuildingScale * baseScale,
+        layout,
       });
     });
 
@@ -461,7 +509,7 @@ export class CastleScene extends Phaser.Scene {
       .map((buildingDefinition) => ({
         definition: buildingDefinition,
         level: runtimeBuildings?.[buildingDefinition.buildingId],
-        anchor: anchorBySlotId.get(buildingDefinition.slotId),
+        anchor: slotByBuildingId.get(buildingDefinition.buildingId),
       }))
       .filter(({ level, anchor }) => Number.isFinite(level) && level > 0 && anchor)
       .map(({ definition, level, anchor }) => {

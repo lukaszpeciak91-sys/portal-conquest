@@ -58,3 +58,4 @@ Connect layout anchors to building overlay assets and support responsive scaling
 - Rendering contract defined.
 - Interaction zones implemented.
 - Castle composition grid documented.
+- Finalized `faction01` castle slot layout is now authored as explicit JSON `slots` data (`slotId`, `buildingId`, `anchorX`, `anchorY`, plus debug-only `pixelX`, `pixelY`) and consumed directly by runtime placement.
