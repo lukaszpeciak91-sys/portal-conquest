@@ -138,3 +138,63 @@ All overlays must align with the base castle perspective and remain isolated PNG
 - Do not create parallel persistent state systems outside `GameState`/runtime state layer.
 - Do not build castle purely as disconnected DOM-only UI separate from game architecture.
 - Do not assume multiplayer is in MVP unless explicitly promoted later.
+
+
+### Castle Screen Layout Contract
+
+Rendering contract (permanent):
+
+- Castle base rendering uses **contain/full-frame scaling** (`Math.min(...)`) to preserve original aspect ratio.
+- Castle illustration is always centered within playable castle bounds.
+- Castle artwork is never cropped; letterboxing is explicitly acceptable when viewport ratio differs.
+- Contract goal: towers, walls, and courtyard always remain fully visible across screen sizes/factions.
+
+Interaction zone split:
+
+- Castle screen is split by a layout-defined boundary into two zones.
+- **Above boundary (structure zone):** construction intent (open Build Panel / construct via empty slots).
+- **Below boundary (courtyard zone):** interaction with existing buildings (upgrade/recruit/open building panel).
+
+Courtyard boundary:
+
+- Canonical source: `courtyardBoundaryY` in `src/data/factions/human/castle_layout.json`.
+- Value is normalized (0..1) over castle base height and currently set to `0.72`.
+- Renderer clamps boundary safely and uses it for click routing.
+
+Castle composition grid (art contract):
+
+- Target aspect ratio: **16:9 landscape**.
+- Recommended base resolution: **1920×1080 or higher**.
+- Zone guidance:
+  - Top ~30%: sky + tower silhouettes.
+  - Middle ~45%: castle mass + building slot region.
+  - Bottom ~25%: open courtyard gameplay area.
+
+Building slot zone and anchor mapping:
+
+- Mid/lower castle space must preserve readable room for overlay anchors.
+- Stable slot mapping remains:
+  1. Barracks
+  2. Archery Range
+  3. Chapel
+  4. Tavern
+  5. Forge
+  6. Command Hall
+- Slot placement is driven by `castle_layout.json` anchors (`anchorX`, `anchorY`, `z`).
+
+Art safe margins:
+
+- Recommended framing margins for all future castle base artwork:
+  - top 5%
+  - left 5%
+  - right 5%
+  - bottom 8–10%
+- Important structures must not touch frame edges.
+
+AI generation rule for future castle base prompts:
+
+- “The castle must be fully visible within the frame.
+  Leave safe margins around all edges.
+  The lower part of the image must contain an open courtyard area for gameplay interactions.
+  The mid section must contain clear areas for building overlays.
+  No important structures should touch the frame edges.”
