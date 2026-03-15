@@ -48,6 +48,9 @@ export class CastleScene extends Phaser.Scene {
     this.missingBuildingAssetWarnings = new Set();
     this.pendingBuildGlowById = null;
     this.debugEnabled = Boolean(window.gameUi?.isDebugEnabled?.() ?? false);
+    this.debugOptions = {
+      showSlotCenters: this.debugEnabled,
+    };
     this.renderCastleLayers(viewport.width, viewport.height);
 
     this.scale.on('resize', this.handleResize, this);
@@ -89,14 +92,16 @@ export class CastleScene extends Phaser.Scene {
     this.castleLayerRoot = this.add.container(0, 0).setDepth(0);
 
     this.baseLayer = this.add.container(0, 0);
+    this.debugSlotLayer = this.add.container(0, 0);
     this.buildingLayer = this.add.container(0, 0);
     this.decorLayer = this.add.container(0, 0);
 
-    this.castleLayerRoot.add([this.baseLayer, this.buildingLayer, this.decorLayer]);
+    this.castleLayerRoot.add([this.baseLayer, this.debugSlotLayer, this.buildingLayer, this.decorLayer]);
   }
 
   setDebugEnabled(enabled) {
     this.debugEnabled = Boolean(enabled);
+    this.debugOptions.showSlotCenters = this.debugEnabled;
     const currentViewport = this.getSafeViewportSize({ width: this.scale.width, height: this.scale.height })
       ?? { width: this.scale.width, height: this.scale.height };
     this.renderCastleLayers(currentViewport.width, currentViewport.height);
@@ -414,49 +419,30 @@ export class CastleScene extends Phaser.Scene {
     });
   }
 
-  renderDebugSlotMarker({ x, y, slotId, pixelX, pixelY, z, scale, layout }) {
-    if (!this.debugEnabled) {
+  renderDebugSlotMarker({ x, y, slotId, z }) {
+    if (!this.debugOptions?.showSlotCenters) {
       return;
     }
 
-    const size = Math.max(12, 18 * scale);
     const marker = this.add.container(x, y).setDepth(z + 0.25);
-    const ring = this.add.circle(0, 0, size, 0x38bdf8, 0.22).setStrokeStyle(1, 0x7dd3fc, 0.9);
-    const slotLabel = Number.isFinite(pixelX) && Number.isFinite(pixelY)
-      ? `${slotId} (${pixelX}, ${pixelY})`
-      : String(slotId);
-    const label = this.add.text(0, -size - 8, slotLabel, {
-      color: '#e0f2fe',
+    const radius = 10;
+    const horizontal = this.add.rectangle(0, 0, radius * 2, 2, 0xff0000, 0.95).setOrigin(0.5);
+    const vertical = this.add.rectangle(0, 0, 2, radius * 2, 0xff0000, 0.95).setOrigin(0.5);
+    const ring = this.add.circle(0, 0, radius, 0xff0000, 0).setStrokeStyle(1, 0xff0000, 0.85);
+    const label = this.add.text(0, -(radius + 4), String(slotId), {
+      color: '#fecaca',
       fontFamily: 'Arial',
-      fontSize: `${Math.max(10, 10 * scale)}px`,
+      fontSize: '11px',
     }).setOrigin(0.5, 1);
 
-    marker.add([ring, label]);
-
-    if (Number.isFinite(pixelX) && Number.isFinite(pixelY)) {
-      const pixelReference = this.getAnchorWorldPosition({ x: pixelX, y: pixelY }, layout, { allowPixelFallback: true });
-      const crosshair = this.add.rectangle(pixelReference.x, pixelReference.y, Math.max(4, 6 * scale), Math.max(4, 6 * scale), 0xf97316, 0.7)
-        .setDepth(z + 0.24)
-        .setOrigin(0.5);
-      this.decorLayer.add(crosshair);
-    }
-
-    this.decorLayer.add(marker);
+    marker.add([horizontal, vertical, ring, label]);
+    this.debugSlotLayer.add(marker);
   }
 
   getAnchorWorldPosition(anchorLike, layout, options = {}) {
     const transform = this.currentCastleTransform;
-    const hasNormalizedAnchor = Number.isFinite(anchorLike?.anchorX)
-      && Number.isFinite(anchorLike?.anchorY);
 
-    if (transform && hasNormalizedAnchor) {
-      return {
-        x: transform.centerX + ((anchorLike.anchorX - 0.5) * transform.renderedWidth),
-        y: transform.centerY + ((anchorLike.anchorY - 0.5) * transform.renderedHeight),
-      };
-    }
-
-    if (transform && options.allowPixelFallback && Number.isFinite(anchorLike?.x) && Number.isFinite(anchorLike?.y)) {
+    if (transform && Number.isFinite(anchorLike?.x) && Number.isFinite(anchorLike?.y)) {
       const baseWidth = Number.isFinite(layout?.baseWidth)
         ? layout.baseWidth
         : Number.isFinite(layout?.baseSize?.width)
@@ -476,6 +462,16 @@ export class CastleScene extends Phaser.Scene {
       };
     }
 
+    const hasNormalizedAnchor = Number.isFinite(anchorLike?.anchorX)
+      && Number.isFinite(anchorLike?.anchorY);
+
+    if (transform && hasNormalizedAnchor) {
+      return {
+        x: transform.centerX + ((anchorLike.anchorX - 0.5) * transform.renderedWidth),
+        y: transform.centerY + ((anchorLike.anchorY - 0.5) * transform.renderedHeight),
+      };
+    }
+
     return {
       x: options.allowPixelFallback ? (anchorLike?.x ?? 0) : 0,
       y: options.allowPixelFallback ? (anchorLike?.y ?? 0) : 0,
@@ -483,25 +479,17 @@ export class CastleScene extends Phaser.Scene {
   }
 
   renderBuildingLayer({ layout, buildingSet, runtimeBuildings, onClickBuilding }) {
-    const layoutDefaultBuildingScale = Number.isFinite(layout?.defaultBuildingScale)
-      ? layout.defaultBuildingScale
-      : 1;
     const layoutSlots = this.getLayoutSlots(layout, buildingSet);
     const slotByBuildingId = new Map(layoutSlots.map((slot) => [slot.buildingId, slot]));
 
     layoutSlots.forEach((slot) => {
-      const baseScale = this.currentCastleTransform?.scale ?? 1;
       const { x, y } = this.getAnchorWorldPosition(slot, layout);
 
       this.renderDebugSlotMarker({
         x,
         y,
         slotId: slot.slotId,
-        pixelX: slot.pixelX,
-        pixelY: slot.pixelY,
         z: slot.z ?? 0,
-        scale: layoutDefaultBuildingScale * baseScale,
-        layout,
       });
     });
 
@@ -514,10 +502,6 @@ export class CastleScene extends Phaser.Scene {
       .filter(({ level, anchor }) => Number.isFinite(level) && level > 0 && anchor)
       .map(({ definition, level, anchor }) => {
         const levelDefinition = definition.levels.find((entry) => entry.level === level) ?? definition.levels[0] ?? null;
-        const levelScaleOverride = Number.isFinite(levelDefinition?.scale)
-          ? levelDefinition.scale
-          : null;
-        const buildingScale = levelScaleOverride ?? layoutDefaultBuildingScale;
 
         return {
           buildingId: definition.buildingId,
@@ -526,7 +510,9 @@ export class CastleScene extends Phaser.Scene {
           x: anchor.x,
           y: anchor.y,
           z: anchor.z ?? 0,
-          scale: buildingScale,
+          offsetX: Number.isFinite(anchor?.offsetX) ? anchor.offsetX : 0,
+          offsetY: Number.isFinite(anchor?.offsetY) ? anchor.offsetY : 0,
+          targetWidthPx: Number.isFinite(anchor?.targetWidthPx) ? anchor.targetWidthPx : null,
           assetKey: levelDefinition?.assetKey ?? null,
           level,
         };
@@ -535,14 +521,23 @@ export class CastleScene extends Phaser.Scene {
 
     placedBuildings.forEach((building) => {
       const baseScale = this.currentCastleTransform?.scale ?? 1;
-      const { x, y } = this.getAnchorWorldPosition(building, layout);
+      const placement = {
+        x: building.x + building.offsetX,
+        y: building.y + building.offsetY,
+      };
+      const { x, y } = this.getAnchorWorldPosition(placement, layout);
 
       if (building.assetKey && textureExists(this, building.assetKey)) {
         const interactiveBuilding = this.isInCourtyardByAnchor(building, layout);
         const sprite = this.add.image(x, y, building.assetKey)
           .setOrigin(0.5, 1)
-          .setScale(building.scale * baseScale)
           .setDepth(building.z);
+        const source = this.textures.get(building.assetKey).getSourceImage();
+        const spriteWidth = Number.isFinite(source?.width) ? source.width : 0;
+        const resolvedScale = Number.isFinite(building.targetWidthPx) && spriteWidth > 0
+          ? (building.targetWidthPx / spriteWidth)
+          : 1;
+        sprite.setScale(resolvedScale);
 
         if (interactiveBuilding) {
           sprite.setInteractive({ useHandCursor: true });
@@ -553,7 +548,7 @@ export class CastleScene extends Phaser.Scene {
             x,
             y,
             z: building.z,
-            scale: building.scale * baseScale,
+            scale: resolvedScale,
           });
         }
 
@@ -638,6 +633,7 @@ export class CastleScene extends Phaser.Scene {
 
   renderCastleLayers(viewportWidth, viewportHeight) {
     this.clearLayer(this.baseLayer);
+    this.clearLayer(this.debugSlotLayer);
     this.clearLayer(this.buildingLayer);
     this.clearLayer(this.decorLayer);
 

@@ -4,7 +4,6 @@
   "baseImage": "castle_base.png",
   "baseWidth": 1536,
   "baseHeight": 1024,
-  "defaultBuildingScale": 1,
   "anchorOrigin": "bottom-center",
   "notes": [
     "Anchors are based on the visual centers of the six build pads in the finalized human castle template.",
@@ -13,52 +12,76 @@
   ],
   "slots": [
     {
-      "slotId": 1,
+      "slotId": "slot_1",
       "buildingId": "barracks",
-      "anchorX": 0.1081,
-      "anchorY": 0.6924,
-      "pixelX": 166,
-      "pixelY": 709
+      "anchorX": 0.16796875,
+      "anchorY": 0.6220703125,
+      "pixelX": 258,
+      "pixelY": 637,
+      "targetWidthPx": 340,
+      "targetHeightPx": 300,
+      "offsetX": -8,
+      "offsetY": -6
     },
     {
-      "slotId": 2,
+      "slotId": "slot_2",
       "buildingId": "archery_range",
-      "anchorX": 0.5,
-      "anchorY": 0.6797,
-      "pixelX": 768,
-      "pixelY": 696
+      "anchorX": 0.4778645833333333,
+      "anchorY": 0.6220703125,
+      "pixelX": 734,
+      "pixelY": 637,
+      "targetWidthPx": 420,
+      "targetHeightPx": 270,
+      "offsetX": 10,
+      "offsetY": -4
     },
     {
-      "slotId": 3,
+      "slotId": "slot_3",
       "buildingId": "chapel",
-      "anchorX": 0.8503,
-      "anchorY": 0.6797,
-      "pixelX": 1306,
-      "pixelY": 696
+      "anchorX": 0.7688802083333334,
+      "anchorY": 0.623046875,
+      "pixelX": 1181,
+      "pixelY": 638,
+      "targetWidthPx": 300,
+      "targetHeightPx": 330,
+      "offsetX": -6,
+      "offsetY": -8
     },
     {
-      "slotId": 4,
+      "slotId": "slot_4",
       "buildingId": "tavern",
-      "anchorX": 0.1393,
-      "anchorY": 0.8076,
-      "pixelX": 214,
-      "pixelY": 827
+      "anchorX": 0.14518229166666666,
+      "anchorY": 0.751953125,
+      "pixelX": 223,
+      "pixelY": 770,
+      "targetWidthPx": 360,
+      "targetHeightPx": 300,
+      "offsetX": 4,
+      "offsetY": -6
     },
     {
-      "slotId": 5,
+      "slotId": "slot_5",
       "buildingId": "forge",
-      "anchorX": 0.5,
-      "anchorY": 0.7998,
-      "pixelX": 768,
-      "pixelY": 819
+      "anchorX": 0.5045572916666666,
+      "anchorY": 0.7509765625,
+      "pixelX": 775,
+      "pixelY": 769,
+      "targetWidthPx": 350,
+      "targetHeightPx": 270,
+      "offsetX": -5,
+      "offsetY": -4
     },
     {
-      "slotId": 6,
+      "slotId": "slot_6",
       "buildingId": "command_hall",
-      "anchorX": 0.862,
-      "anchorY": 0.7998,
-      "pixelX": 1324,
-      "pixelY": 819
+      "anchorX": 0.8177083333333334,
+      "anchorY": 0.7509765625,
+      "pixelX": 1256,
+      "pixelY": 769,
+      "targetWidthPx": 340,
+      "targetHeightPx": 330,
+      "offsetX": -4,
+      "offsetY": -8
     }
   ]
 }
