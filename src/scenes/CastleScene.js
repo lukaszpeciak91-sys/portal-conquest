@@ -534,8 +534,20 @@ export class CastleScene extends Phaser.Scene {
           .setDepth(building.z);
         const source = this.textures.get(building.assetKey).getSourceImage();
         const spriteWidth = Number.isFinite(source?.width) ? source.width : 0;
-        const resolvedScale = Number.isFinite(building.targetWidthPx) && spriteWidth > 0
-          ? (building.targetWidthPx / spriteWidth)
+        const layoutBaseWidth = Number.isFinite(layout?.baseWidth)
+          ? layout.baseWidth
+          : Number.isFinite(layout?.baseSize?.width)
+            ? layout.baseSize.width
+            : this.currentCastleTransform?.sourceWidth;
+        const renderedCastleWidth = this.currentCastleTransform?.renderedWidth;
+        const renderedTargetWidth = Number.isFinite(building.targetWidthPx)
+          && Number.isFinite(layoutBaseWidth)
+          && layoutBaseWidth > 0
+          && Number.isFinite(renderedCastleWidth)
+          ? ((building.targetWidthPx / layoutBaseWidth) * renderedCastleWidth)
+          : null;
+        const resolvedScale = Number.isFinite(renderedTargetWidth) && spriteWidth > 0
+          ? (renderedTargetWidth / spriteWidth)
           : 1;
         sprite.setScale(resolvedScale);
 

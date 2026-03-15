@@ -67,6 +67,14 @@ import { SceneRouter } from './src/SceneRouter';
     renderDebugPanel();
   }
 
+  function syncSceneDebugEnabled(enabled) {
+    const game = window.__PORTAL_GAME;
+    const mapScene = game?.scene?.getScene?.('MapScene');
+    const castleScene = game?.scene?.getScene?.('CastleScene');
+    mapScene?.setDebugEnabled?.(Boolean(enabled));
+    castleScene?.setDebugEnabled?.(Boolean(enabled));
+  }
+
   function updateDebugPanel(payload = {}) {
     state.debug = {
       ...state.debug,
@@ -336,9 +344,7 @@ Actions:
       if (action === 'toggle-debug') {
         const next = !state.debugEnabled;
         setDebugEnabled(next);
-        const game = window.__PORTAL_GAME;
-        const mapScene = game?.scene?.getScene?.('MapScene');
-        mapScene?.setDebugEnabled?.(next);
+        syncSceneDebugEnabled(next);
         return;
       }
 
@@ -386,9 +392,7 @@ Actions:
     setDebugPanel: updateDebugPanel,
     setDebugEnabled: (enabled) => {
       setDebugEnabled(enabled);
-      const game = window.__PORTAL_GAME;
-      const mapScene = game?.scene?.getScene?.('MapScene');
-      mapScene?.setDebugEnabled?.(Boolean(enabled));
+      syncSceneDebugEnabled(enabled);
     },
     isDebugEnabled: () => state.debugEnabled,
   };
