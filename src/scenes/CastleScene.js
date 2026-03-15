@@ -181,7 +181,7 @@ export class CastleScene extends Phaser.Scene {
   }
 
   buildBuilding(buildingId) {
-    const { faction, buildingSet, runtimeBuildings } = this.getCastleRenderContext();
+    const { faction, layout, buildingSet, runtimeBuildings } = this.getCastleRenderContext();
     const definition = this.getBuildableBuildingDefinitions(buildingSet).find((entry) => entry.buildingId === buildingId);
     if (!definition) {
       return false;
@@ -191,11 +191,43 @@ export class CastleScene extends Phaser.Scene {
       return false;
     }
 
-    return setBuildingLevel({
+    const didSetLevel = setBuildingLevel({
       factionId: faction?.id,
       buildingId,
       level: 1,
     });
+
+    if (didSetLevel) {
+      const targetSlot = this.getLayoutSlots(layout, buildingSet).find((slot) => slot.buildingId === buildingId);
+      const updatedLevel = GameState.buildings?.[faction?.id]?.[buildingId] ?? null;
+
+      if (buildingId === 'barracks' && targetSlot?.slotId === 'slot_1') {
+        this.emitDiagnosticLog('[CastleOverlayDiagnostic] Building state after construction trigger', {
+          buildingId,
+          factionId: faction?.id ?? null,
+          level: updatedLevel,
+          built: Number.isFinite(updatedLevel) && updatedLevel > 0,
+          slotId: targetSlot?.slotId ?? null,
+        });
+      }
+    }
+
+    return didSetLevel;
+  }
+
+
+  emitDiagnosticLog(label, payload) {
+    console.info(label, payload);
+
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    if (!Array.isArray(window.__castleOverlayDiagnosticLogs)) {
+      window.__castleOverlayDiagnosticLogs = [];
+    }
+
+    window.__castleOverlayDiagnosticLogs.push({ label, payload });
   }
 
   openBuildingPanel(buildingId, level) {
@@ -301,6 +333,10 @@ export class CastleScene extends Phaser.Scene {
         anchorY: slot.anchorY,
         slotCenterX: slot.slotCenterX,
         slotCenterY: slot.slotCenterY,
+        targetWidthPx: slot.targetWidthPx,
+        targetHeightPx: slot.targetHeightPx,
+        offsetX: slot.offsetX,
+        offsetY: slot.offsetY,
         z: Number.isFinite(slot?.z) ? slot.z : Math.round((slot?.anchorY ?? 0) * 100) + index,
       }));
     }
@@ -512,12 +548,14 @@ export class CastleScene extends Phaser.Scene {
         return {
           buildingId: definition.buildingId,
           anchorY: anchor.anchorY,
+          slotId: anchor.slotId,
           slotCenterX: Number.isFinite(anchor?.slotCenterX) ? anchor.slotCenterX : null,
           slotCenterY: Number.isFinite(anchor?.slotCenterY) ? anchor.slotCenterY : null,
           z: anchor.z ?? 0,
           offsetX: Number.isFinite(anchor?.offsetX) ? anchor.offsetX : 0,
           offsetY: Number.isFinite(anchor?.offsetY) ? anchor.offsetY : 0,
           targetWidthPx: Number.isFinite(anchor?.targetWidthPx) ? anchor.targetWidthPx : null,
+          targetHeightPx: Number.isFinite(anchor?.targetHeightPx) ? anchor.targetHeightPx : null,
           assetKey: levelDefinition?.assetKey ?? null,
           level,
         };
@@ -547,7 +585,48 @@ export class CastleScene extends Phaser.Scene {
           + ((building.offsetY / AUTHORED_CASTLE_BASE_HEIGHT) * baseRectHeight)
         : 0;
 
-      if (building.assetKey && textureExists(this, building.assetKey)) {
+      const isDiagnosticTarget = building.buildingId === 'barracks' && building.slotId === 'slot_1';
+
+      if (isDiagnosticTarget) {
+        this.emitDiagnosticLog('[CastleOverlayDiagnostic] Render path', {
+          file: 'src/scenes/CastleScene.js',
+          functionName: 'renderBuildingLayer',
+          layerContainer: 'this.buildingLayer',
+        });
+        this.emitDiagnosticLog('[CastleOverlayDiagnostic] Castle base rect', {
+          baseRectLeft: baseRectLeft ?? null,
+          baseRectTop: baseRectTop ?? null,
+          baseRectWidth: baseRectWidth ?? null,
+          baseRectHeight: baseRectHeight ?? null,
+          currentCastleTransformScale: this.currentCastleTransform?.scale ?? null,
+          currentCastleTransformRenderedWidth: this.currentCastleTransform?.renderedWidth ?? null,
+          currentCastleTransformRenderedHeight: this.currentCastleTransform?.renderedHeight ?? null,
+        });
+        this.emitDiagnosticLog('[CastleOverlayDiagnostic] Calibration inputs', {
+          buildingId: building.buildingId,
+          slotId: building.slotId,
+          slotCenterX: building.slotCenterX,
+          slotCenterY: building.slotCenterY,
+          targetWidthPx: building.targetWidthPx,
+          targetHeightPx: building.targetHeightPx,
+          offsetX: building.offsetX,
+          offsetY: building.offsetY,
+        });
+      }
+
+      const hasTexture = building.assetKey ? textureExists(this, building.assetKey) : false;
+
+      if (isDiagnosticTarget) {
+        const textureSource = hasTexture ? this.textures.get(building.assetKey).getSourceImage() : null;
+        this.emitDiagnosticLog('[CastleOverlayDiagnostic] Texture info', {
+          textureKey: building.assetKey,
+          textureExists: hasTexture,
+          spriteSourceWidth: Number.isFinite(textureSource?.width) ? textureSource.width : null,
+          spriteSourceHeight: Number.isFinite(textureSource?.height) ? textureSource.height : null,
+        });
+      }
+
+      if (building.assetKey && hasTexture) {
         const interactiveBuilding = this.isInCourtyardByAnchor(building, layout);
         const sprite = this.add.image(x, y, building.assetKey)
           .setOrigin(0.5, 1)
@@ -563,6 +642,23 @@ export class CastleScene extends Phaser.Scene {
           ? (renderedTargetWidth / spriteWidth)
           : 1;
         sprite.setScale(resolvedScale);
+
+        if (isDiagnosticTarget) {
+          this.emitDiagnosticLog('[CastleOverlayDiagnostic] Final computed render values', {
+            sceneX: x,
+            sceneY: y,
+            renderedTargetWidth: renderedTargetWidth ?? null,
+            resolvedScale,
+            finalScaleX: sprite.scaleX,
+            finalScaleY: sprite.scaleY,
+            spriteOriginX: sprite.originX,
+            spriteOriginY: sprite.originY,
+            spriteVisible: sprite.visible,
+            spriteAlpha: sprite.alpha,
+            spriteDepth: sprite.depth,
+            parentContainerName: this.buildingLayer?.name ?? '(unnamed container)',
+          });
+        }
 
         if (interactiveBuilding) {
           sprite.setInteractive({ useHandCursor: true });
