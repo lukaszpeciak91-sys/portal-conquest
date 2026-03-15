@@ -35,6 +35,7 @@ The human faction castle MVP design is finalized as a fixed **6-building** syste
 
 ### Finalized Human Castle Template Contract (Authoritative)
 - Human castle reference visual style remains dark fantasy semi-painterly, gameplay-readable first, and aligned to the same 16:9 layered-castle direction used by runtime.
+- Canonical authored human base reference is `public/assets/castles/faction01/castle_base.png` in `1536x1024` base-space dimensions for slot calibration.
 - The six-slot courtyard template is the stable composition contract for faction template generation and future faction adaptation.
 - For faction reference template establishment, visible stone foundations/build pads in `castle_base.png` are accepted and recommended to preserve slot readability.
 - Overlay-first castle expansion remains the preferred architecture: base scene first, isolated transparent building overlays layered afterward.
@@ -101,7 +102,8 @@ All overlays must align with the base castle perspective and remain isolated PNG
 - Click a built building overlay to open **Building Panel**.
 - Building slots are anchor-only and remain invisible until a building exists.
 - Current faction MVP castle layout uses a maximum of **6 anchor slots** as a stable placement contract for both placeholders and future transparent PNG building overlays.
-- Castle layout anchors are authored as normalized coordinates (`anchorX`, `anchorY`) relative to castle base dimensions and paired with a layout-level `defaultBuildingScale`; helper pixel coordinates (`pixelX`, `pixelY`) are retained only for debug/authoring verification and are not runtime placement inputs.
+- Castle layout anchors are authored as normalized coordinates (`anchorX`, `anchorY`) relative to castle base dimensions and paired with a layout-level `defaultBuildingScale`.
+- Human layout also keeps base-space slot center calibration (`slotCenterX`, `slotCenterY`) aligned to the canonical `1536x1024` base image so pad centers can be updated without runtime formula changes.
 - Build Panel is the construction entry point and immediately marks a selected building as built in runtime state (placeholder-only logic for now).
 - Current human-faction Build Panel/runtime exposes the full finalized MVP building set: **Barracks, Archery Range, Chapel, Tavern, Forge, Command Hall**.
 - Built buildings may render with temporary in-scene placeholders until final transparent overlay PNGs are available.
