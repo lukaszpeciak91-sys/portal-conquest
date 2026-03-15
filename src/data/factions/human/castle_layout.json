@@ -28,12 +28,12 @@
       "buildingId": "archery_range",
       "anchorX": 0.4778645833333333,
       "anchorY": 0.6220703125,
-      "targetWidthPx": 440,
+      "targetWidthPx": 426,
       "targetHeightPx": 270,
-      "offsetX": 10,
-      "offsetY": -4,
-      "slotCenterX": 742,
-      "slotCenterY": 665
+      "offsetX": 2,
+      "offsetY": -1,
+      "slotCenterX": 738,
+      "slotCenterY": 663
     },
     {
       "slotId": "slot_3",
@@ -76,12 +76,12 @@
       "buildingId": "command_hall",
       "anchorX": 0.8177083333333334,
       "anchorY": 0.7509765625,
-      "targetWidthPx": 381,
+      "targetWidthPx": 370,
       "targetHeightPx": 330,
-      "offsetX": -4,
-      "offsetY": -8,
-      "slotCenterX": 1240,
-      "slotCenterY": 789
+      "offsetX": -16,
+      "offsetY": -5,
+      "slotCenterX": 1232,
+      "slotCenterY": 787
     }
   ]
 }
