@@ -15,6 +15,10 @@ const BUILD_GLOW_TEXTURE_KEY = 'castle-build-glow';
 const DEFAULT_COURTYARD_BOUNDARY_Y = 0.72;
 const AUTHORED_CASTLE_BASE_WIDTH = 1536;
 const AUTHORED_CASTLE_BASE_HEIGHT = 1024;
+const BUILDING_FOOTPOINT_BY_ID = {
+  archery_range: { footX: 208, footY: 250 },
+  command_hall: { footX: 170, footY: 305 },
+};
 const FINALIZED_MVP_BUILDING_IDS = [
   'barracks',
   'archery_range',
@@ -628,18 +632,29 @@ export class CastleScene extends Phaser.Scene {
 
       if (building.assetKey && hasTexture) {
         const interactiveBuilding = this.isInCourtyardByAnchor(building, layout);
-        const sprite = this.add.image(x, y, building.assetKey)
-          .setOrigin(0.5, 1)
-          .setDepth(building.z);
         const source = this.textures.get(building.assetKey).getSourceImage();
-        const spriteWidth = Number.isFinite(source?.width) ? source.width : 0;
+        const spriteSourceWidth = Number.isFinite(source?.width) ? source.width : 0;
+        const spriteSourceHeight = Number.isFinite(source?.height) ? source.height : 0;
+        const calibratedFootpoint = BUILDING_FOOTPOINT_BY_ID[building.buildingId];
+        const hasCalibratedFootpoint = calibratedFootpoint
+          && spriteSourceWidth > 0
+          && spriteSourceHeight > 0;
+        const originX = hasCalibratedFootpoint
+          ? (calibratedFootpoint.footX / spriteSourceWidth)
+          : 0.5;
+        const originY = hasCalibratedFootpoint
+          ? (calibratedFootpoint.footY / spriteSourceHeight)
+          : 1;
+        const sprite = this.add.image(x, y, building.assetKey)
+          .setOrigin(originX, originY)
+          .setDepth(building.z);
         const renderedCastleWidth = this.currentCastleTransform?.baseRectWidth;
         const renderedTargetWidth = Number.isFinite(building.targetWidthPx)
           && Number.isFinite(renderedCastleWidth)
           ? ((building.targetWidthPx / AUTHORED_CASTLE_BASE_WIDTH) * renderedCastleWidth)
           : null;
-        const resolvedScale = Number.isFinite(renderedTargetWidth) && spriteWidth > 0
-          ? (renderedTargetWidth / spriteWidth)
+        const resolvedScale = Number.isFinite(renderedTargetWidth) && spriteSourceWidth > 0
+          ? (renderedTargetWidth / spriteSourceWidth)
           : 1;
         sprite.setScale(resolvedScale);
 
