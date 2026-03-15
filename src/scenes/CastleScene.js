@@ -507,8 +507,6 @@ export class CastleScene extends Phaser.Scene {
           buildingId: definition.buildingId,
           anchorX: anchor.anchorX,
           anchorY: anchor.anchorY,
-          x: anchor.x,
-          y: anchor.y,
           z: anchor.z ?? 0,
           offsetX: Number.isFinite(anchor?.offsetX) ? anchor.offsetX : 0,
           offsetY: Number.isFinite(anchor?.offsetY) ? anchor.offsetY : 0,
@@ -522,8 +520,8 @@ export class CastleScene extends Phaser.Scene {
     placedBuildings.forEach((building) => {
       const baseScale = this.currentCastleTransform?.scale ?? 1;
       const placement = {
-        x: building.x + building.offsetX,
-        y: building.y + building.offsetY,
+        anchorX: building.anchorX + building.offsetX,
+        anchorY: building.anchorY + building.offsetY,
       };
       const { x, y } = this.getAnchorWorldPosition(placement, layout);
 
