@@ -6,6 +6,7 @@ import { syncSceneState } from '../state/sceneState';
 import map01FallbackUrl from '../data/maps/map01.png';
 import assetManifest, { loadAssetsFromManifest } from '../assets/loadAssetsFromManifest';
 import { addFallbackPlaceholder, textureExists } from '../assets/safeTexture';
+import { getPlayableBounds } from './playableBounds';
 
 const NODE_TYPES = {
   CASTLE: 'castle',
@@ -158,56 +159,12 @@ export class MapScene extends Phaser.Scene {
   }
 
   getPlayableBounds(viewportWidth, viewportHeight) {
-    const rootStyle = typeof window !== 'undefined'
-      ? getComputedStyle(document.documentElement)
-      : null;
-
-    const toNumber = (value) => {
-      const parsed = Number.parseFloat(value ?? '0');
-      return Number.isFinite(parsed) ? parsed : 0;
-    };
-
-    const topInset = toNumber(rootStyle?.getPropertyValue('--safe-top'));
-    const bottomInset = toNumber(rootStyle?.getPropertyValue('--safe-bottom'));
-    const topBarHeightVar = toNumber(rootStyle?.getPropertyValue('--top-bar-height'));
-    const bottomBarHeightVar = toNumber(rootStyle?.getPropertyValue('--bottom-bar-height'));
-
-    const topBarRect = typeof document !== 'undefined'
-      ? document.querySelector('.top-bar')?.getBoundingClientRect?.() ?? null
-      : null;
-    const bottomBarRect = typeof document !== 'undefined'
-      ? document.querySelector('.bottom-mode-bar')?.getBoundingClientRect?.() ?? null
-      : null;
-    const gameContainerRect = typeof document !== 'undefined'
-      ? document.querySelector('#game-container')?.getBoundingClientRect?.() ?? null
-      : null;
-
-    const relativeTopBarBottom = topBarRect && gameContainerRect
-      ? Math.max(0, topBarRect.bottom - gameContainerRect.top)
-      : null;
-    const relativeBottomBarTop = bottomBarRect && gameContainerRect
-      ? Math.max(0, bottomBarRect.top - gameContainerRect.top)
-      : null;
-
-    const fallbackTop = Phaser.Math.Clamp(topInset + topBarHeightVar, 0, Math.max(0, viewportHeight - 1));
-    const fallbackBottom = Phaser.Math.Clamp(viewportHeight - (bottomInset + bottomBarHeightVar), fallbackTop + 1, viewportHeight);
-
-    const topCandidate = Number.isFinite(relativeTopBarBottom) ? relativeTopBarBottom : fallbackTop;
-    const bottomCandidate = Number.isFinite(relativeBottomBarTop) ? relativeBottomBarTop : fallbackBottom;
-
-    const top = Phaser.Math.Clamp(topCandidate, 0, Math.max(0, viewportHeight - 1));
-    const bottom = Phaser.Math.Clamp(bottomCandidate, top + 1, viewportHeight);
-    const width = Math.max(1, viewportWidth);
-    const height = Math.max(1, bottom - top);
-
-    return {
-      x: 0,
-      y: top,
-      width,
-      height,
-      centerX: width / 2,
-      centerY: top + (height / 2),
-    };
+    return getPlayableBounds({
+      viewportWidth,
+      viewportHeight,
+      minViewportSide: 1,
+      minPlayableHeight: 1,
+    });
   }
 
   isPlayableBoundsValid(bounds) {

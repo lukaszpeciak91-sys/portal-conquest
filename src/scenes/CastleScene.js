@@ -7,6 +7,7 @@ import humanCastleLayout from '../data/factions/human/castle_layout.json';
 import humanBuildingSet from '../data/buildings/human_buildings.json';
 import { GameState } from '../state/GameState';
 import { setBuildingLevel } from '../state/runtimeState';
+import { getPlayableBounds } from './playableBounds';
 
 const MIN_VALID_VIEWPORT_SIDE = 64;
 const MIN_VALID_PLAYABLE_HEIGHT = 120;
@@ -700,56 +701,12 @@ export class CastleScene extends Phaser.Scene {
   }
 
   getCastleRenderBounds(viewportWidth, viewportHeight) {
-    const rootStyle = typeof window !== 'undefined'
-      ? getComputedStyle(document.documentElement)
-      : null;
-
-    const toNumber = (value) => {
-      const parsed = Number.parseFloat(value ?? '0');
-      return Number.isFinite(parsed) ? parsed : 0;
-    };
-
-    const topInset = toNumber(rootStyle?.getPropertyValue('--safe-top'));
-    const bottomInset = toNumber(rootStyle?.getPropertyValue('--safe-bottom'));
-    const topBarHeightVar = toNumber(rootStyle?.getPropertyValue('--top-bar-height'));
-    const bottomBarHeightVar = toNumber(rootStyle?.getPropertyValue('--bottom-bar-height'));
-
-    const topBarRect = typeof document !== 'undefined'
-      ? document.querySelector('.top-bar')?.getBoundingClientRect?.() ?? null
-      : null;
-    const bottomBarRect = typeof document !== 'undefined'
-      ? document.querySelector('.bottom-mode-bar')?.getBoundingClientRect?.() ?? null
-      : null;
-    const gameContainerRect = typeof document !== 'undefined'
-      ? document.querySelector('#game-container')?.getBoundingClientRect?.() ?? null
-      : null;
-
-    const relativeTopBarBottom = topBarRect && gameContainerRect
-      ? Math.max(0, topBarRect.bottom - gameContainerRect.top)
-      : null;
-    const relativeBottomBarTop = bottomBarRect && gameContainerRect
-      ? Math.max(0, bottomBarRect.top - gameContainerRect.top)
-      : null;
-
-    const fallbackTop = Phaser.Math.Clamp(topInset + topBarHeightVar, 0, Math.max(0, viewportHeight - 1));
-    const fallbackBottom = Phaser.Math.Clamp(viewportHeight - (bottomInset + bottomBarHeightVar), fallbackTop + 1, viewportHeight);
-
-    const topCandidate = Number.isFinite(relativeTopBarBottom) ? relativeTopBarBottom : fallbackTop;
-    const bottomCandidate = Number.isFinite(relativeBottomBarTop) ? relativeBottomBarTop : fallbackBottom;
-
-    const top = Phaser.Math.Clamp(topCandidate, 0, Math.max(0, viewportHeight - 1));
-    const bottom = Phaser.Math.Clamp(bottomCandidate, top + 1, viewportHeight);
-    const height = Math.max(MIN_VALID_PLAYABLE_HEIGHT, bottom - top);
-    const width = Math.max(MIN_VALID_VIEWPORT_SIDE, viewportWidth);
-
-    return {
-      x: 0,
-      y: top,
-      width,
-      height: Math.max(1, height),
-      centerX: width / 2,
-      centerY: top + (height / 2),
-    };
+    return getPlayableBounds({
+      viewportWidth,
+      viewportHeight,
+      minViewportSide: MIN_VALID_VIEWPORT_SIDE,
+      minPlayableHeight: MIN_VALID_PLAYABLE_HEIGHT,
+    });
   }
 
   renderCastleLayers(viewportWidth, viewportHeight) {
