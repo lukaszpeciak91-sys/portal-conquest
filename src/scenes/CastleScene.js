@@ -16,6 +16,7 @@ const BUILD_GLOW_TEXTURE_KEY = 'castle-build-glow';
 const DEFAULT_COURTYARD_BOUNDARY_Y = 0.72;
 const AUTHORED_CASTLE_BASE_WIDTH = 1536;
 const AUTHORED_CASTLE_BASE_HEIGHT = 1024;
+const CASTLE_BASE_VERTICAL_FRAMING_BIAS = 0.06;
 const FINALIZED_MVP_BUILDING_IDS = [
   'barracks',
   'archery_range',
@@ -254,7 +255,7 @@ export class CastleScene extends Phaser.Scene {
       const imageHeight = source.height || viewportHeight;
       const scale = Math.max(renderBounds.width / imageWidth, renderBounds.height / imageHeight);
       const centerX = renderBounds.centerX;
-      const centerY = renderBounds.centerY;
+      const centerY = renderBounds.centerY + ((imageHeight * scale) * CASTLE_BASE_VERTICAL_FRAMING_BIAS);
 
       const baseImage = this.add.image(centerX, centerY, baseKey)
         .setOrigin(0.5)

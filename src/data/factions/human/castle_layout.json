@@ -20,8 +20,8 @@
       "targetHeightPx": 300,
       "offsetX": -8,
       "offsetY": -6,
-      "slotCenterX": 256,
-      "slotCenterY": 683
+      "slotCenterX": 270,
+      "slotCenterY": 662
     },
     {
       "slotId": "slot_2",
@@ -33,7 +33,7 @@
       "offsetX": 2,
       "offsetY": -1,
       "slotCenterX": 768,
-      "slotCenterY": 683
+      "slotCenterY": 662
     },
     {
       "slotId": "slot_3",
@@ -44,8 +44,8 @@
       "targetHeightPx": 330,
       "offsetX": -6,
       "offsetY": -8,
-      "slotCenterX": 1174,
-      "slotCenterY": 683
+      "slotCenterX": 1160,
+      "slotCenterY": 662
     },
     {
       "slotId": "slot_4",
@@ -56,8 +56,8 @@
       "targetHeightPx": 300,
       "offsetX": 4,
       "offsetY": -6,
-      "slotCenterX": 207,
-      "slotCenterY": 840
+      "slotCenterX": 225,
+      "slotCenterY": 818
     },
     {
       "slotId": "slot_5",
@@ -69,7 +69,7 @@
       "offsetX": -5,
       "offsetY": -4,
       "slotCenterX": 772,
-      "slotCenterY": 842
+      "slotCenterY": 820
     },
     {
       "slotId": "slot_6",
@@ -80,8 +80,8 @@
       "targetHeightPx": 330,
       "offsetX": -16,
       "offsetY": -5,
-      "slotCenterX": 1272,
-      "slotCenterY": 840
+      "slotCenterX": 1250,
+      "slotCenterY": 818
     }
   ]
 }
