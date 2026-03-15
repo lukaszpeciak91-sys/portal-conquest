@@ -55,7 +55,7 @@
 - Rendering contract defined.
 - Interaction zones implemented.
 - Castle composition grid documented.
-- Finalized `faction01` castle slot layout is now authored as explicit JSON `slots` data (`slotId`, `buildingId`, `anchorX`, `anchorY`, plus debug-only `pixelX`, `pixelY`) and consumed directly by runtime placement.
+- Finalized `faction01` castle slot layout is now authored as explicit JSON `slots` data (`slotId`, `buildingId`, `anchorX`, `anchorY`, `slotCenterX`, `slotCenterY`) and consumed directly by runtime placement.
 
 ## 2026-03-15 Update
 - Human `castle_base.png` is now treated as the canonical authored base reference at `1536x1024` for calibration work.
