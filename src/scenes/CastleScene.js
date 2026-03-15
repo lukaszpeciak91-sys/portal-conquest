@@ -212,7 +212,7 @@ export class CastleScene extends Phaser.Scene {
       const source = this.textures.get(baseKey).getSourceImage();
       const imageWidth = source.width || viewportWidth;
       const imageHeight = source.height || viewportHeight;
-      const scale = Math.max(renderBounds.width / imageWidth, renderBounds.height / imageHeight);
+      const scale = Math.min(renderBounds.width / imageWidth, renderBounds.height / imageHeight);
       const centerX = renderBounds.centerX;
       const centerY = renderBounds.centerY;
 
@@ -514,6 +514,10 @@ export class CastleScene extends Phaser.Scene {
       .filter(({ level, anchor }) => Number.isFinite(level) && level > 0 && anchor)
       .map(({ definition, level, anchor }) => {
         const levelDefinition = definition.levels.find((entry) => entry.level === level) ?? definition.levels[0] ?? null;
+        const levelScaleOverride = Number.isFinite(levelDefinition?.scale)
+          ? levelDefinition.scale
+          : null;
+        const buildingScale = levelScaleOverride ?? layoutDefaultBuildingScale;
 
         return {
           buildingId: definition.buildingId,
@@ -522,7 +526,7 @@ export class CastleScene extends Phaser.Scene {
           x: anchor.x,
           y: anchor.y,
           z: anchor.z ?? 0,
-          scale: layoutDefaultBuildingScale,
+          scale: buildingScale,
           assetKey: levelDefinition?.assetKey ?? null,
           level,
         };
