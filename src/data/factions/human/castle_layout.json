@@ -16,72 +16,72 @@
       "buildingId": "barracks",
       "anchorX": 0.16796875,
       "anchorY": 0.6220703125,
-      "pixelX": 258,
-      "pixelY": 637,
       "targetWidthPx": 340,
       "targetHeightPx": 300,
       "offsetX": -8,
-      "offsetY": -6
+      "offsetY": -6,
+      "slotCenterX": 258,
+      "slotCenterY": 637
     },
     {
       "slotId": "slot_2",
       "buildingId": "archery_range",
       "anchorX": 0.4778645833333333,
       "anchorY": 0.6220703125,
-      "pixelX": 734,
-      "pixelY": 637,
       "targetWidthPx": 420,
       "targetHeightPx": 270,
       "offsetX": 10,
-      "offsetY": -4
+      "offsetY": -4,
+      "slotCenterX": 734,
+      "slotCenterY": 637
     },
     {
       "slotId": "slot_3",
       "buildingId": "chapel",
       "anchorX": 0.7688802083333334,
       "anchorY": 0.623046875,
-      "pixelX": 1181,
-      "pixelY": 638,
       "targetWidthPx": 300,
       "targetHeightPx": 330,
       "offsetX": -6,
-      "offsetY": -8
+      "offsetY": -8,
+      "slotCenterX": 1181,
+      "slotCenterY": 638
     },
     {
       "slotId": "slot_4",
       "buildingId": "tavern",
       "anchorX": 0.14518229166666666,
       "anchorY": 0.751953125,
-      "pixelX": 223,
-      "pixelY": 770,
       "targetWidthPx": 360,
       "targetHeightPx": 300,
       "offsetX": 4,
-      "offsetY": -6
+      "offsetY": -6,
+      "slotCenterX": 223,
+      "slotCenterY": 770
     },
     {
       "slotId": "slot_5",
       "buildingId": "forge",
       "anchorX": 0.5045572916666666,
       "anchorY": 0.7509765625,
-      "pixelX": 775,
-      "pixelY": 769,
       "targetWidthPx": 350,
       "targetHeightPx": 270,
       "offsetX": -5,
-      "offsetY": -4
+      "offsetY": -4,
+      "slotCenterX": 775,
+      "slotCenterY": 769
     },
     {
       "slotId": "slot_6",
       "buildingId": "command_hall",
       "anchorX": 0.8177083333333334,
       "anchorY": 0.7509765625,
-      "pixelX": 1256,
-      "pixelY": 769,
       "targetWidthPx": 340,
       "targetHeightPx": 330,
       "offsetX": -4,
-      "offsetY": -8
+      "offsetY": -8,
+      "slotCenterX": 1256,
+      "slotCenterY": 769
     }
   ]
 }

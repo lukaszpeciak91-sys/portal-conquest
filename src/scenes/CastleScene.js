@@ -13,6 +13,8 @@ const MIN_VALID_PLAYABLE_HEIGHT = 120;
 const BUILD_GLOW_DURATION_MS = 720;
 const BUILD_GLOW_TEXTURE_KEY = 'castle-build-glow';
 const DEFAULT_COURTYARD_BOUNDARY_Y = 0.72;
+const AUTHORED_CASTLE_BASE_WIDTH = 1536;
+const AUTHORED_CASTLE_BASE_HEIGHT = 1024;
 const FINALIZED_MVP_BUILDING_IDS = [
   'barracks',
   'archery_range',
@@ -238,6 +240,10 @@ export class CastleScene extends Phaser.Scene {
         scale: baseImage.scaleX,
         centerX: baseImage.x,
         centerY: baseImage.y,
+        baseRectLeft: baseImage.x - (baseImage.displayWidth / 2),
+        baseRectTop: baseImage.y - (baseImage.displayHeight / 2),
+        baseRectWidth: baseImage.displayWidth,
+        baseRectHeight: baseImage.displayHeight,
       };
 
       this.baseLayer.add(baseImage);
@@ -293,8 +299,8 @@ export class CastleScene extends Phaser.Scene {
         buildingId: slot.buildingId,
         anchorX: slot.anchorX,
         anchorY: slot.anchorY,
-        pixelX: slot.pixelX,
-        pixelY: slot.pixelY,
+        slotCenterX: slot.slotCenterX,
+        slotCenterY: slot.slotCenterY,
         z: Number.isFinite(slot?.z) ? slot.z : Math.round((slot?.anchorY ?? 0) * 100) + index,
       }));
     }
@@ -505,8 +511,9 @@ export class CastleScene extends Phaser.Scene {
 
         return {
           buildingId: definition.buildingId,
-          anchorX: anchor.anchorX,
           anchorY: anchor.anchorY,
+          slotCenterX: Number.isFinite(anchor?.slotCenterX) ? anchor.slotCenterX : null,
+          slotCenterY: Number.isFinite(anchor?.slotCenterY) ? anchor.slotCenterY : null,
           z: anchor.z ?? 0,
           offsetX: Number.isFinite(anchor?.offsetX) ? anchor.offsetX : 0,
           offsetY: Number.isFinite(anchor?.offsetY) ? anchor.offsetY : 0,
@@ -519,11 +526,26 @@ export class CastleScene extends Phaser.Scene {
 
     placedBuildings.forEach((building) => {
       const baseScale = this.currentCastleTransform?.scale ?? 1;
-      const placement = {
-        anchorX: building.anchorX + building.offsetX,
-        anchorY: building.anchorY + building.offsetY,
-      };
-      const { x, y } = this.getAnchorWorldPosition(placement, layout);
+      const baseRectLeft = this.currentCastleTransform?.baseRectLeft;
+      const baseRectTop = this.currentCastleTransform?.baseRectTop;
+      const baseRectWidth = this.currentCastleTransform?.baseRectWidth;
+      const baseRectHeight = this.currentCastleTransform?.baseRectHeight;
+      const hasCalibratedPlacement = Number.isFinite(baseRectLeft)
+        && Number.isFinite(baseRectTop)
+        && Number.isFinite(baseRectWidth)
+        && Number.isFinite(baseRectHeight)
+        && Number.isFinite(building.slotCenterX)
+        && Number.isFinite(building.slotCenterY);
+      const x = hasCalibratedPlacement
+        ? baseRectLeft
+          + ((building.slotCenterX / AUTHORED_CASTLE_BASE_WIDTH) * baseRectWidth)
+          + ((building.offsetX / AUTHORED_CASTLE_BASE_WIDTH) * baseRectWidth)
+        : 0;
+      const y = hasCalibratedPlacement
+        ? baseRectTop
+          + ((building.slotCenterY / AUTHORED_CASTLE_BASE_HEIGHT) * baseRectHeight)
+          + ((building.offsetY / AUTHORED_CASTLE_BASE_HEIGHT) * baseRectHeight)
+        : 0;
 
       if (building.assetKey && textureExists(this, building.assetKey)) {
         const interactiveBuilding = this.isInCourtyardByAnchor(building, layout);
@@ -532,17 +554,10 @@ export class CastleScene extends Phaser.Scene {
           .setDepth(building.z);
         const source = this.textures.get(building.assetKey).getSourceImage();
         const spriteWidth = Number.isFinite(source?.width) ? source.width : 0;
-        const layoutBaseWidth = Number.isFinite(layout?.baseWidth)
-          ? layout.baseWidth
-          : Number.isFinite(layout?.baseSize?.width)
-            ? layout.baseSize.width
-            : this.currentCastleTransform?.sourceWidth;
-        const renderedCastleWidth = this.currentCastleTransform?.renderedWidth;
+        const renderedCastleWidth = this.currentCastleTransform?.baseRectWidth;
         const renderedTargetWidth = Number.isFinite(building.targetWidthPx)
-          && Number.isFinite(layoutBaseWidth)
-          && layoutBaseWidth > 0
           && Number.isFinite(renderedCastleWidth)
-          ? ((building.targetWidthPx / layoutBaseWidth) * renderedCastleWidth)
+          ? ((building.targetWidthPx / AUTHORED_CASTLE_BASE_WIDTH) * renderedCastleWidth)
           : null;
         const resolvedScale = Number.isFinite(renderedTargetWidth) && spriteWidth > 0
           ? (renderedTargetWidth / spriteWidth)
