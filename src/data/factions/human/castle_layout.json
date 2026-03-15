@@ -16,11 +16,11 @@
       "buildingId": "barracks",
       "anchorX": 0.16796875,
       "anchorY": 0.6220703125,
-      "targetWidthPx": 381,
+      "targetWidthPx": 360,
       "targetHeightPx": 300,
       "offsetX": -8,
       "offsetY": -6,
-      "slotCenterX": 258,
+      "slotCenterX": 276,
       "slotCenterY": 665
     },
     {
@@ -28,11 +28,11 @@
       "buildingId": "archery_range",
       "anchorX": 0.4778645833333333,
       "anchorY": 0.6220703125,
-      "targetWidthPx": 470,
+      "targetWidthPx": 440,
       "targetHeightPx": 270,
       "offsetX": 10,
       "offsetY": -4,
-      "slotCenterX": 734,
+      "slotCenterX": 742,
       "slotCenterY": 665
     },
     {
@@ -40,11 +40,11 @@
       "buildingId": "chapel",
       "anchorX": 0.7688802083333334,
       "anchorY": 0.623046875,
-      "targetWidthPx": 336,
+      "targetWidthPx": 320,
       "targetHeightPx": 330,
       "offsetX": -6,
       "offsetY": -8,
-      "slotCenterX": 1181,
+      "slotCenterX": 1166,
       "slotCenterY": 666
     },
     {
@@ -56,7 +56,7 @@
       "targetHeightPx": 300,
       "offsetX": 4,
       "offsetY": -6,
-      "slotCenterX": 223,
+      "slotCenterX": 240,
       "slotCenterY": 790
     },
     {
@@ -68,7 +68,7 @@
       "targetHeightPx": 270,
       "offsetX": -5,
       "offsetY": -4,
-      "slotCenterX": 775,
+      "slotCenterX": 781,
       "slotCenterY": 789
     },
     {
@@ -80,7 +80,7 @@
       "targetHeightPx": 330,
       "offsetX": -4,
       "offsetY": -8,
-      "slotCenterX": 1256,
+      "slotCenterX": 1240,
       "slotCenterY": 789
     }
   ]
