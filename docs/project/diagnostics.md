@@ -61,3 +61,9 @@ Detailed diagnostic analysis was produced in the Codex session and is not stored
 - Building overlays are authored at full-canvas resolution (`1536x1024`, same as `castle_base.png`) while runtime treats them as slot-local sprites and applies anchor scale (`anchor.scale * baseScale`) at slot coordinates, causing oversized/full-frame placement.
 - Final technical conclusion: current renderer lacks an explicit overlay sizing contract and currently conflates two incompatible asset authoring modes (full-canvas aligned overlays vs isolated building cutouts).
 - Implementation direction: standardize on slot-local isolated overlays with a shared layout-level default building scale plus optional per-building scale override, while keeping anchors normalized to base dimensions for faction portability.
+
+## 2026-03-15 — Castle transform/anchor/scale mismatch (diagnostic)
+- Castle base is currently rendered with **cover** scaling (`Math.max(renderBounds.width / imageWidth, renderBounds.height / imageHeight)`), so the base is cropped whenever viewport/playable aspect ratio differs from the authored base aspect ratio.
+- Slot anchors are mapped against the **rendered (possibly cropped) base dimensions** around center (`center + (anchor - 0.5) * renderedSize`), so normalized anchors themselves are working but are being applied to a cropped transform space instead of a fully visible contain-fit base.
+- Building overlay scale currently uses only `layout.defaultBuildingScale * castleBaseScale`; per-level/asset scale overrides in building definitions are not applied, which can make overlays appear uniformly too large.
+- Implementation direction: keep current architecture (layout slots + normalized anchors + layered containers), but align runtime math to the documented contract by using contain/full-frame base fit and honoring per-building level scale override in the existing scale-composition path.
