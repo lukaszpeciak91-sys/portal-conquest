@@ -56,3 +56,8 @@
 - Interaction zones implemented.
 - Castle composition grid documented.
 - Finalized `faction01` castle slot layout is now authored as explicit JSON `slots` data (`slotId`, `buildingId`, `anchorX`, `anchorY`, plus debug-only `pixelX`, `pixelY`) and consumed directly by runtime placement.
+
+## 2026-03-15 Update
+- Human `castle_base.png` is now treated as the canonical authored base reference at `1536x1024` for calibration work.
+- Human slot calibration in `src/data/factions/human/castle_layout.json` was refreshed for the canonical base image, updating the six runtime `slotCenterX` / `slotCenterY` values while preserving existing slot/building IDs and sizing/offset metadata.
+- Future castle visual generation/calibration should preserve the same stable gameplay-center approach: central castle read, readable open courtyard, six clearly separable build pads, and safe side-extension behavior when adapting to wider presentation ratios.
