@@ -74,3 +74,15 @@ Detailed diagnostic analysis was produced in the Codex session and is not stored
 - Confirmed mismatch is in overlay sizing and offsets contract application: `targetWidthPx` is applied directly as `targetWidthPx / spriteSourceWidth` (not multiplied by castle contain scale), and `offsetX/offsetY` are added in base pixels before normalization (therefore transformed correctly).
 - Final technical conclusion: primary calibration drift is scale-space mismatch (`targetWidthPx` interpreted as scene-space output instead of base-space value mapped through rendered-rect scale), plus castle debug toggle propagation gap (UI toggle only updates `MapScene`, so CastleScene markers typically stay stale/off after toggle).
 - Implementation direction: keep placement transform path; update sizing to apply base-space-to-rendered scale factor (or normalized width contract), and route debug toggle updates to active `CastleScene` alongside `MapScene`.
+
+## 2026-03-15 — Castle Overlay Diagnostic (diagnostic)
+Issue discovered during overlay rendering investigation.
+
+Root cause:
+Finalized layout slots expose `anchorX` / `anchorY` fields, but `CastleScene` placement logic reads `anchor.x` / `anchor.y`.
+
+Effect:
+Overlay placement receives undefined coordinates which may cause invalid sprite placement or invisible buildings.
+
+Resolution:
+Normalize anchor field access in `CastleScene` placement logic.
