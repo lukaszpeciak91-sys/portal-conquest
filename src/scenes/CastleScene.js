@@ -14,9 +14,9 @@ const MIN_VALID_PLAYABLE_HEIGHT = 120;
 const BUILD_GLOW_DURATION_MS = 720;
 const BUILD_GLOW_TEXTURE_KEY = 'castle-build-glow';
 const DEFAULT_COURTYARD_BOUNDARY_Y = 0.72;
-const AUTHORED_CASTLE_BASE_WIDTH = 1536;
-const AUTHORED_CASTLE_BASE_HEIGHT = 1024;
 const CASTLE_BASE_VERTICAL_FRAMING_BIAS = 0.06;
+const DEFAULT_BUILDING_FOOTPOINT_X = 0.5;
+const DEFAULT_BUILDING_FOOTPOINT_Y = 0.95;
 const FINALIZED_MVP_BUILDING_IDS = [
   'barracks',
   'archery_range',
@@ -53,7 +53,7 @@ export class CastleScene extends Phaser.Scene {
     this.pendingBuildGlowById = null;
     this.debugEnabled = Boolean(window.gameUi?.isDebugEnabled?.() ?? false);
     this.debugOptions = {
-      showSlotCenters: this.debugEnabled,
+      showPlacementMarkers: this.debugEnabled,
     };
     this.renderCastleLayers(viewport.width, viewport.height);
 
@@ -105,7 +105,7 @@ export class CastleScene extends Phaser.Scene {
 
   setDebugEnabled(enabled) {
     this.debugEnabled = Boolean(enabled);
-    this.debugOptions.showSlotCenters = this.debugEnabled;
+    this.debugOptions.showPlacementMarkers = this.debugEnabled;
     const currentViewport = this.getSafeViewportSize({ width: this.scale.width, height: this.scale.height })
       ?? { width: this.scale.width, height: this.scale.height };
     this.renderCastleLayers(currentViewport.width, currentViewport.height);
@@ -331,12 +331,18 @@ export class CastleScene extends Phaser.Scene {
       return layout.slots.map((slot, index) => ({
         slotId: slot.slotId,
         buildingId: slot.buildingId,
+        slotCenter: {
+          x: slot.slotCenterX,
+          y: slot.slotCenterY,
+        },
+        buildAnchor: {
+          x: slot.buildAnchorX,
+          y: slot.buildAnchorY,
+        },
         anchorX: slot.anchorX,
         anchorY: slot.anchorY,
-        slotCenterX: slot.slotCenterX,
-        slotCenterY: slot.slotCenterY,
-        targetWidthPx: slot.targetWidthPx,
-        targetHeightPx: slot.targetHeightPx,
+        slotScale: Number.isFinite(slot.slotScale) ? slot.slotScale : 1,
+        footpointOverride: slot.footpointOverride ?? null,
         offsetX: slot.offsetX,
         offsetY: slot.offsetY,
         z: Number.isFinite(slot?.z) ? slot.z : Math.round((slot?.anchorY ?? 0) * 100) + index,
@@ -463,18 +469,19 @@ export class CastleScene extends Phaser.Scene {
     });
   }
 
-  renderDebugSlotMarker({ x, y, slotId, z }) {
-    if (!this.debugOptions?.showSlotCenters) {
+  renderDebugSlotMarker({ x, y, slotId, z, color, labelColor }) {
+    if (!this.debugOptions?.showPlacementMarkers) {
       return;
     }
 
     const marker = this.add.container(x, y).setDepth(z + 0.25);
     const radius = 10;
-    const horizontal = this.add.rectangle(0, 0, radius * 2, 2, 0xff0000, 0.95).setOrigin(0.5);
-    const vertical = this.add.rectangle(0, 0, 2, radius * 2, 0xff0000, 0.95).setOrigin(0.5);
-    const ring = this.add.circle(0, 0, radius, 0xff0000, 0).setStrokeStyle(1, 0xff0000, 0.85);
+    const markerColor = Number.isFinite(color) ? color : 0xff0000;
+    const horizontal = this.add.rectangle(0, 0, radius * 2, 2, markerColor, 0.95).setOrigin(0.5);
+    const vertical = this.add.rectangle(0, 0, 2, radius * 2, markerColor, 0.95).setOrigin(0.5);
+    const ring = this.add.circle(0, 0, radius, markerColor, 0).setStrokeStyle(1, markerColor, 0.85);
     const label = this.add.text(0, -(radius + 4), String(slotId), {
-      color: '#fecaca',
+      color: labelColor ?? '#fecaca',
       fontFamily: 'Arial',
       fontSize: '11px',
     }).setOrigin(0.5, 1);
@@ -525,15 +532,32 @@ export class CastleScene extends Phaser.Scene {
   renderBuildingLayer({ layout, buildingSet, runtimeBuildings, onClickBuilding }) {
     const layoutSlots = this.getLayoutSlots(layout, buildingSet);
     const slotByBuildingId = new Map(layoutSlots.map((slot) => [slot.buildingId, slot]));
+    const defaultFootpointX = Number.isFinite(layout?.defaultFootpointX)
+      ? layout.defaultFootpointX
+      : DEFAULT_BUILDING_FOOTPOINT_X;
+    const defaultFootpointY = Number.isFinite(layout?.defaultFootpointY)
+      ? layout.defaultFootpointY
+      : DEFAULT_BUILDING_FOOTPOINT_Y;
 
     layoutSlots.forEach((slot) => {
-      const { x, y } = this.getAnchorWorldPosition(slot, layout);
+      const slotCenter = this.getAnchorWorldPosition(slot.slotCenter, layout);
+      const buildAnchor = this.getAnchorWorldPosition(slot.buildAnchor, layout);
 
       this.renderDebugSlotMarker({
-        x,
-        y,
-        slotId: slot.slotId,
+        x: slotCenter.x,
+        y: slotCenter.y,
+        slotId: `${slot.slotId} C`,
         z: slot.z ?? 0,
+        color: 0xff0000,
+        labelColor: '#fecaca',
+      });
+      this.renderDebugSlotMarker({
+        x: buildAnchor.x,
+        y: buildAnchor.y,
+        slotId: `${slot.slotId} A`,
+        z: slot.z ?? 0,
+        color: 0x3b82f6,
+        labelColor: '#bfdbfe',
       });
     });
 
@@ -551,13 +575,12 @@ export class CastleScene extends Phaser.Scene {
           buildingId: definition.buildingId,
           anchorY: anchor.anchorY,
           slotId: anchor.slotId,
-          slotCenterX: Number.isFinite(anchor?.slotCenterX) ? anchor.slotCenterX : null,
-          slotCenterY: Number.isFinite(anchor?.slotCenterY) ? anchor.slotCenterY : null,
+          buildAnchor: anchor.buildAnchor,
           z: anchor.z ?? 0,
           offsetX: Number.isFinite(anchor?.offsetX) ? anchor.offsetX : 0,
           offsetY: Number.isFinite(anchor?.offsetY) ? anchor.offsetY : 0,
-          targetWidthPx: Number.isFinite(anchor?.targetWidthPx) ? anchor.targetWidthPx : null,
-          targetHeightPx: Number.isFinite(anchor?.targetHeightPx) ? anchor.targetHeightPx : null,
+          slotScale: Number.isFinite(anchor?.slotScale) ? anchor.slotScale : 1,
+          footpointOverride: anchor?.footpointOverride ?? null,
           assetKey: levelDefinition?.assetKey ?? null,
           level,
         };
@@ -570,22 +593,9 @@ export class CastleScene extends Phaser.Scene {
       const baseRectTop = this.currentCastleTransform?.baseRectTop;
       const baseRectWidth = this.currentCastleTransform?.baseRectWidth;
       const baseRectHeight = this.currentCastleTransform?.baseRectHeight;
-      const hasCalibratedPlacement = Number.isFinite(baseRectLeft)
-        && Number.isFinite(baseRectTop)
-        && Number.isFinite(baseRectWidth)
-        && Number.isFinite(baseRectHeight)
-        && Number.isFinite(building.slotCenterX)
-        && Number.isFinite(building.slotCenterY);
-      const x = hasCalibratedPlacement
-        ? baseRectLeft
-          + ((building.slotCenterX / AUTHORED_CASTLE_BASE_WIDTH) * baseRectWidth)
-          + ((building.offsetX / AUTHORED_CASTLE_BASE_WIDTH) * baseRectWidth)
-        : 0;
-      const y = hasCalibratedPlacement
-        ? baseRectTop
-          + ((building.slotCenterY / AUTHORED_CASTLE_BASE_HEIGHT) * baseRectHeight)
-          + ((building.offsetY / AUTHORED_CASTLE_BASE_HEIGHT) * baseRectHeight)
-        : 0;
+      const buildAnchorPosition = this.getAnchorWorldPosition(building.buildAnchor, layout);
+      const x = buildAnchorPosition.x;
+      const y = buildAnchorPosition.y;
 
       const isDiagnosticTarget = building.buildingId === 'barracks' && building.slotId === 'slot_1';
 
@@ -607,10 +617,8 @@ export class CastleScene extends Phaser.Scene {
         this.emitDiagnosticLog('[CastleOverlayDiagnostic] Calibration inputs', {
           buildingId: building.buildingId,
           slotId: building.slotId,
-          slotCenterX: building.slotCenterX,
-          slotCenterY: building.slotCenterY,
-          targetWidthPx: building.targetWidthPx,
-          targetHeightPx: building.targetHeightPx,
+          buildAnchor: building.buildAnchor,
+          slotScale: building.slotScale,
           offsetX: building.offsetX,
           offsetY: building.offsetY,
         });
@@ -630,26 +638,22 @@ export class CastleScene extends Phaser.Scene {
 
       if (building.assetKey && hasTexture) {
         const interactiveBuilding = this.isInCourtyardByAnchor(building, layout);
+        const footpointX = Number.isFinite(building.footpointOverride?.x)
+          ? building.footpointOverride.x
+          : defaultFootpointX;
+        const footpointY = Number.isFinite(building.footpointOverride?.y)
+          ? building.footpointOverride.y
+          : defaultFootpointY;
         const sprite = this.add.image(x, y, building.assetKey)
-          .setOrigin(0.5, 1)
+          .setOrigin(footpointX, footpointY)
           .setDepth(building.z);
-        const source = this.textures.get(building.assetKey).getSourceImage();
-        const spriteWidth = Number.isFinite(source?.width) ? source.width : 0;
-        const renderedCastleWidth = this.currentCastleTransform?.baseRectWidth;
-        const renderedTargetWidth = Number.isFinite(building.targetWidthPx)
-          && Number.isFinite(renderedCastleWidth)
-          ? ((building.targetWidthPx / AUTHORED_CASTLE_BASE_WIDTH) * renderedCastleWidth)
-          : null;
-        const resolvedScale = Number.isFinite(renderedTargetWidth) && spriteWidth > 0
-          ? (renderedTargetWidth / spriteWidth)
-          : 1;
+        const resolvedScale = (building.slotScale ?? 1) * baseScale;
         sprite.setScale(resolvedScale);
 
         if (isDiagnosticTarget) {
           this.emitDiagnosticLog('[CastleOverlayDiagnostic] Final computed render values', {
             sceneX: x,
             sceneY: y,
-            renderedTargetWidth: renderedTargetWidth ?? null,
             resolvedScale,
             finalScaleX: sprite.scaleX,
             finalScaleY: sprite.scaleY,
@@ -680,6 +684,14 @@ export class CastleScene extends Phaser.Scene {
         }
 
         this.buildingLayer.add(sprite);
+        this.renderDebugSlotMarker({
+          x: sprite.x,
+          y: sprite.y,
+          slotId: `${building.slotId} F`,
+          z: building.z ?? 0,
+          color: 0x22c55e,
+          labelColor: '#bbf7d0',
+        });
         return;
       }
 

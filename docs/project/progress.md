@@ -61,3 +61,8 @@
 - Human `castle_base.png` is now treated as the canonical authored base reference at `1536x1024` for calibration work.
 - Human slot calibration in `src/data/factions/human/castle_layout.json` was refreshed for the canonical base image, updating the six runtime `slotCenterX` / `slotCenterY` values while preserving existing slot/building IDs and sizing/offset metadata.
 - Future castle visual generation/calibration should preserve the same stable gameplay-center approach: central castle read, readable open courtyard, six clearly separable build pads, and safe side-extension behavior when adapting to wider presentation ratios.
+
+## 2026-03-19 Update
+- Human castle runtime layout now uses finalized terrace placement data authored for `2048x1152` base art, including per-slot `slotCenter`, `buildAnchor`, and authored slot scale values for all 6 buildings.
+- Human building placement now uses footpoint anchoring as the active runtime rule (default origin `0.5, 0.95`) so each sprite footpoint lands on the slot `buildAnchor`.
+- Castle debug mode now renders three distinct placement markers per slot/building: slot center (red), build anchor (blue), and sprite footpoint (green).
