@@ -92,6 +92,9 @@ Normalize anchor field access in `CastleScene` placement logic.
 - Added one-time runtime validation warning for building overlays that are near base-canvas dimensions, making isolated slot-local PNG contract violations explicit without magic auto-normalization.
 - Added debug/dev overlay bounds validation against a slot-local envelope around each build anchor, with explicit warnings when rendered bounds exceed expected local area.
 
+## 2026-03-20 — Legacy full-canvas overlay compatibility restoration (implementation conclusion)
+- Confirmed compatibility restoration path: shipped legacy full-canvas human building overlays now use explicit data-authored `targetWidthPx` with `legacyFullCanvasCompat` mode, keeping build-anchor/footpoint placement unchanged while preventing slotScale/baseScale fallback from becoming the effective size source.
+
 ## 2026-03-20 — Fullscreen exit viewport settle recovery (implementation)
 - Confirmed root cause lived in shared fullscreen settle flow: the settled sampling phase still read forced transition-time `innerWidth/innerHeight`, so scenes could accept transient bounds as stable after fullscreen exit.
 - Fixed the sequencing by ending transition-time forcing before the settled pass when fullscreen is no longer active, so settled sampling now reads true post-exit viewport state.

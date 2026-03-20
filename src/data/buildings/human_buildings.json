@@ -7,7 +7,9 @@
       "levels": [
         {
           "level": 1,
-          "assetKey": "castle_human_barracks_lvl1"
+          "assetKey": "castle_human_barracks_lvl1",
+          "legacyFullCanvasCompat": true,
+          "targetWidthPx": 420
         }
       ]
     },
@@ -17,7 +19,9 @@
       "levels": [
         {
           "level": 1,
-          "assetKey": "castle_human_archery_range_lvl1"
+          "assetKey": "castle_human_archery_range_lvl1",
+          "legacyFullCanvasCompat": true,
+          "targetWidthPx": 440
         }
       ]
     },
@@ -27,7 +31,9 @@
       "levels": [
         {
           "level": 1,
-          "assetKey": "castle_human_chapel_lvl1"
+          "assetKey": "castle_human_chapel_lvl1",
+          "legacyFullCanvasCompat": true,
+          "targetWidthPx": 410
         }
       ]
     },
@@ -38,7 +44,8 @@
         {
           "level": 1,
           "assetKey": "castle_human_tavern_lvl1",
-          "scale": 0.27
+          "legacyFullCanvasCompat": true,
+          "targetWidthPx": 380
         }
       ]
     },
@@ -48,7 +55,9 @@
       "levels": [
         {
           "level": 1,
-          "assetKey": "castle_human_forge_lvl1"
+          "assetKey": "castle_human_forge_lvl1",
+          "legacyFullCanvasCompat": true,
+          "targetWidthPx": 360
         }
       ]
     },
@@ -58,7 +67,9 @@
       "levels": [
         {
           "level": 1,
-          "assetKey": "castle_human_command_hall_lvl1"
+          "assetKey": "castle_human_command_hall_lvl1",
+          "legacyFullCanvasCompat": true,
+          "targetWidthPx": 500
         }
       ]
     }
