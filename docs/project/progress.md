@@ -10,7 +10,7 @@
 - **Scene architecture:** `SceneRouter` is established and used for scene transitions.
 - **Runtime state layer:** `GameState` + runtime node state helpers are implemented as central run/session state.
 - **Data-driven baseline:** map/config/faction JSON loading is in place.
-- **Castle layered rendering + visual polish:** `CastleScene` now renders faction01 `castle_base.png` as a fullscreen-style castle background within playable bounds (centered, aspect-preserving cover scaling) while keeping compact top-right controls and bottom mode navigation behavior.
+- **Castle layered rendering + visual polish:** `CastleScene` now renders faction01 `castle_base.png` inside playable bounds using centered contain/full-frame scaling, preserving full castle framing while keeping compact top-right controls and bottom mode navigation behavior.
 - **Documentation governance hardening:** strict per-file documentation update policy is now defined in `docs/project/workflow.md` to keep project knowledge centralized and reduce cross-file drift.
 
 ### Castle Building Placement System
@@ -66,3 +66,9 @@
 - Human castle runtime layout now uses finalized terrace placement data authored for `2048x1152` base art, including per-slot `slotCenter`, `buildAnchor`, and authored slot scale values for all 6 buildings.
 - Human building placement now uses footpoint anchoring as the active runtime rule (default origin `0.5, 0.95`) so each sprite footpoint lands on the slot `buildAnchor`.
 - Castle debug mode now renders three distinct placement markers per slot/building: slot center (red), build anchor (blue), and sprite footpoint (green).
+
+## 2026-03-20 Update
+- Castle overlay sizing now interprets `targetWidthPx` in authored castle base-space and maps that width through the active contain-fit base transform before applying sprite scale.
+- Scale resolution is deterministic: explicit per-level/per-building width override (`targetWidthPx`) first, then explicit scale override, then slot/layout defaults.
+- Slot `offsetX`/`offsetY` are now applied through the same base-space anchor transform path as build anchors, preserving grounded placement behavior after resize.
+- Runtime now emits one-time validation warnings when a castle building texture is suspiciously close to full base-canvas dimensions, enforcing isolated slot-local overlay authoring.
