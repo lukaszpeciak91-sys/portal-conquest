@@ -97,6 +97,7 @@ Asset contract for human faction castle overlays:
 
 All overlays must align with the base castle perspective and remain isolated PNG layers for slot-based placement.
 Runtime enforcement rule: overlay assets that are near full base-canvas dimensions are treated as contract violations and must trigger explicit warnings (no silent magic auto-scaling).
+Debug/dev enforcement rule: when overlay bounds significantly exceed the slot-local area around a building build-anchor, runtime emits explicit warnings and visual debug bounds for verification.
 
 ## Castle Interaction Flow
 - Click castle keep/base to open **Build Panel**.
