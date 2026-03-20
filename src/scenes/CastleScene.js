@@ -18,6 +18,9 @@ const CASTLE_BASE_VERTICAL_FRAMING_BIAS = 0.06;
 const DEFAULT_BUILDING_FOOTPOINT_X = 0.5;
 const DEFAULT_BUILDING_FOOTPOINT_Y = 0.95;
 const FULL_CANVAS_OVERLAY_WARNING_RATIO = 0.85;
+const OVERSIZED_OVERLAY_SIDE_RATIO = 0.55;
+const OVERLAY_LOCAL_BOUNDS_WIDTH_MULTIPLIER = 1.75;
+const OVERLAY_LOCAL_BOUNDS_HEIGHT_MULTIPLIER = 1.85;
 const FINALIZED_MVP_BUILDING_IDS = [
   'barracks',
   'archery_range',
@@ -492,6 +495,27 @@ export class CastleScene extends Phaser.Scene {
     this.debugSlotLayer.add(marker);
   }
 
+  isOverlayValidationEnabled() {
+    const devMode = Boolean(import.meta.env?.DEV);
+    return this.debugEnabled || devMode;
+  }
+
+  renderDebugRect({ x, y, width, height, z, color = 0xffffff, alpha = 0.8, lineWidth = 1 }) {
+    if (!this.debugOptions?.showPlacementMarkers) {
+      return;
+    }
+
+    if (!(Number.isFinite(x) && Number.isFinite(y) && Number.isFinite(width) && Number.isFinite(height))) {
+      return;
+    }
+
+    const graphics = this.add.graphics();
+    graphics.lineStyle(lineWidth, color, alpha);
+    graphics.strokeRect(x, y, width, height);
+    graphics.setDepth((Number.isFinite(z) ? z : 0) + 0.2);
+    this.debugSlotLayer.add(graphics);
+  }
+
   getAnchorWorldPosition(anchorLike, layout, options = {}) {
     const transform = this.currentCastleTransform;
 
@@ -550,6 +574,23 @@ export class CastleScene extends Phaser.Scene {
     const defaultFootpointY = Number.isFinite(layout?.defaultFootpointY)
       ? layout.defaultFootpointY
       : DEFAULT_BUILDING_FOOTPOINT_Y;
+    const baseRect = {
+      left: this.currentCastleTransform?.baseRectLeft,
+      top: this.currentCastleTransform?.baseRectTop,
+      width: this.currentCastleTransform?.baseRectWidth,
+      height: this.currentCastleTransform?.baseRectHeight,
+    };
+
+    this.renderDebugRect({
+      x: baseRect.left,
+      y: baseRect.top,
+      width: baseRect.width,
+      height: baseRect.height,
+      z: 0,
+      color: 0xf59e0b,
+      alpha: 0.9,
+      lineWidth: 2,
+    });
 
     layoutSlots.forEach((slot) => {
       const slotCenter = this.getAnchorWorldPosition(slot.slotCenter, layout);
@@ -701,6 +742,10 @@ export class CastleScene extends Phaser.Scene {
             : (building.slotScale ?? 1) * baseScale;
         sprite.setScale(resolvedScale);
 
+        const expectedRenderedTargetWidth = Number.isFinite(explicitTargetWidthPx) && explicitTargetWidthPx > 0
+          ? explicitTargetWidthPx * baseSpaceToRenderedScaleX
+          : null;
+
         const isSuspiciousFullCanvasOverlay = Number.isFinite(spriteSourceWidth)
           && Number.isFinite(spriteSourceHeight)
           && Number.isFinite(layoutBaseWidth)
@@ -709,13 +754,98 @@ export class CastleScene extends Phaser.Scene {
           && layoutBaseHeight > 0
           && (spriteSourceWidth / layoutBaseWidth) >= FULL_CANVAS_OVERLAY_WARNING_RATIO
           && (spriteSourceHeight / layoutBaseHeight) >= FULL_CANVAS_OVERLAY_WARNING_RATIO;
-        if (isSuspiciousFullCanvasOverlay && !this.invalidOverlayAssetWarnings.has(building.assetKey)) {
+        const isOversizedRelativeToBase = Number.isFinite(spriteSourceWidth)
+          && Number.isFinite(spriteSourceHeight)
+          && Number.isFinite(layoutBaseWidth)
+          && Number.isFinite(layoutBaseHeight)
+          && layoutBaseWidth > 0
+          && layoutBaseHeight > 0
+          && (spriteSourceWidth / layoutBaseWidth) >= OVERSIZED_OVERLAY_SIDE_RATIO
+          && (spriteSourceHeight / layoutBaseHeight) >= OVERSIZED_OVERLAY_SIDE_RATIO;
+        const isSuspiciousSlotContract = Number.isFinite(expectedRenderedTargetWidth)
+          && expectedRenderedTargetWidth > 0
+          && Number.isFinite(sprite.displayWidth)
+          && sprite.displayWidth > (expectedRenderedTargetWidth * 1.75);
+        const invalidAssetWarningKey = `${building.assetKey}:${building.slotId}`;
+        if ((isSuspiciousFullCanvasOverlay || isOversizedRelativeToBase || isSuspiciousSlotContract)
+          && !this.invalidOverlayAssetWarnings.has(invalidAssetWarningKey)) {
+          const warningReasons = [];
+          if (isSuspiciousFullCanvasOverlay) {
+            warningReasons.push('near-full-canvas dimensions');
+          }
+          if (isOversizedRelativeToBase) {
+            warningReasons.push('oversized base-relative dimensions');
+          }
+          if (isSuspiciousSlotContract) {
+            warningReasons.push('rendered width exceeds slot-local target envelope');
+          }
+          this.invalidOverlayAssetWarnings.add(invalidAssetWarningKey);
           this.invalidOverlayAssetWarnings.add(building.assetKey);
           console.warn(
             `[CastleOverlayValidation] Invalid overlay asset contract for "${building.assetKey}": `
             + `texture is ${spriteSourceWidth}x${spriteSourceHeight}, near base ${layoutBaseWidth}x${layoutBaseHeight}. `
+            + `Reasons: ${warningReasons.join(', ')}. `
             + 'Expected isolated slot-local transparent PNG overlay (not full-canvas).',
           );
+        }
+
+        if (this.isOverlayValidationEnabled()) {
+          const spriteBounds = sprite.getBounds();
+          const localBoundsWidth = Math.max(
+            Number.isFinite(expectedRenderedTargetWidth) ? expectedRenderedTargetWidth * OVERLAY_LOCAL_BOUNDS_WIDTH_MULTIPLIER : 0,
+            72 * baseScale,
+          );
+          const localBoundsHeight = Math.max(
+            Number.isFinite(expectedRenderedTargetWidth) ? expectedRenderedTargetWidth * OVERLAY_LOCAL_BOUNDS_HEIGHT_MULTIPLIER : 0,
+            96 * baseScale,
+          );
+          const expectedLocalRect = {
+            left: x - (localBoundsWidth / 2),
+            top: y - localBoundsHeight,
+            width: localBoundsWidth,
+            height: localBoundsHeight,
+          };
+          const exceedsLocalBounds = Number.isFinite(spriteBounds?.left)
+            && Number.isFinite(spriteBounds?.right)
+            && Number.isFinite(spriteBounds?.top)
+            && Number.isFinite(spriteBounds?.bottom)
+            && (
+              spriteBounds.left < expectedLocalRect.left
+              || spriteBounds.right > (expectedLocalRect.left + expectedLocalRect.width)
+              || spriteBounds.top < expectedLocalRect.top
+              || spriteBounds.bottom > (expectedLocalRect.top + expectedLocalRect.height)
+            );
+
+          this.renderDebugRect({
+            x: expectedLocalRect.left,
+            y: expectedLocalRect.top,
+            width: expectedLocalRect.width,
+            height: expectedLocalRect.height,
+            z: building.z ?? 0,
+            color: 0xa855f7,
+            alpha: 0.8,
+          });
+          this.renderDebugRect({
+            x: spriteBounds.left,
+            y: spriteBounds.top,
+            width: spriteBounds.width,
+            height: spriteBounds.height,
+            z: (building.z ?? 0) + 0.05,
+            color: exceedsLocalBounds ? 0xef4444 : 0x22c55e,
+            alpha: 0.92,
+          });
+
+          const boundsWarningKey = `${building.assetKey}:bounds:${building.slotId}`;
+          if (exceedsLocalBounds && !this.invalidOverlayAssetWarnings.has(boundsWarningKey)) {
+            this.invalidOverlayAssetWarnings.add(boundsWarningKey);
+            console.warn(
+              `[CastleOverlayValidation] Overlay bounds exceed expected local slot area for "${building.assetKey}" `
+              + `(slot ${building.slotId}): overlay=${Math.round(spriteBounds.width)}x${Math.round(spriteBounds.height)} `
+              + `at (${Math.round(spriteBounds.left)},${Math.round(spriteBounds.top)}), `
+              + `expectedLocalRect=${Math.round(expectedLocalRect.width)}x${Math.round(expectedLocalRect.height)} `
+              + `at (${Math.round(expectedLocalRect.left)},${Math.round(expectedLocalRect.top)}).`,
+            );
+          }
         }
 
         if (isDiagnosticTarget) {
@@ -726,6 +856,7 @@ export class CastleScene extends Phaser.Scene {
             explicitTargetWidthPx,
             baseSpaceToRenderedScaleX,
             baseSpaceToRenderedScaleY,
+            expectedRenderedTargetWidth,
             finalScaleX: sprite.scaleX,
             finalScaleY: sprite.scaleY,
             spriteOriginX: sprite.originX,
