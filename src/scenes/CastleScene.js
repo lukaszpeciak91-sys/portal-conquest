@@ -17,6 +17,7 @@ const DEFAULT_COURTYARD_BOUNDARY_Y = 0.72;
 const CASTLE_BASE_VERTICAL_FRAMING_BIAS = 0.06;
 const DEFAULT_BUILDING_FOOTPOINT_X = 0.5;
 const DEFAULT_BUILDING_FOOTPOINT_Y = 0.95;
+const FULL_CANVAS_OVERLAY_WARNING_RATIO = 0.85;
 const FINALIZED_MVP_BUILDING_IDS = [
   'barracks',
   'archery_range',
@@ -50,6 +51,7 @@ export class CastleScene extends Phaser.Scene {
 
     this.initializeLayerStack();
     this.missingBuildingAssetWarnings = new Set();
+    this.invalidOverlayAssetWarnings = new Set();
     this.pendingBuildGlowById = null;
     this.debugEnabled = Boolean(window.gameUi?.isDebugEnabled?.() ?? false);
     this.debugOptions = {
@@ -253,7 +255,7 @@ export class CastleScene extends Phaser.Scene {
       const source = this.textures.get(baseKey).getSourceImage();
       const imageWidth = source.width || viewportWidth;
       const imageHeight = source.height || viewportHeight;
-      const scale = Math.max(renderBounds.width / imageWidth, renderBounds.height / imageHeight);
+      const scale = Math.min(renderBounds.width / imageWidth, renderBounds.height / imageHeight);
       const centerX = renderBounds.centerX;
       const centerY = renderBounds.centerY + ((imageHeight * scale) * CASTLE_BASE_VERTICAL_FRAMING_BIAS);
 
@@ -532,6 +534,16 @@ export class CastleScene extends Phaser.Scene {
   renderBuildingLayer({ layout, buildingSet, runtimeBuildings, onClickBuilding }) {
     const layoutSlots = this.getLayoutSlots(layout, buildingSet);
     const slotByBuildingId = new Map(layoutSlots.map((slot) => [slot.buildingId, slot]));
+    const layoutBaseWidth = Number.isFinite(layout?.baseWidth)
+      ? layout.baseWidth
+      : Number.isFinite(layout?.baseSize?.width)
+        ? layout.baseSize.width
+        : this.currentCastleTransform?.sourceWidth;
+    const layoutBaseHeight = Number.isFinite(layout?.baseHeight)
+      ? layout.baseHeight
+      : Number.isFinite(layout?.baseSize?.height)
+        ? layout.baseSize.height
+        : this.currentCastleTransform?.sourceHeight;
     const defaultFootpointX = Number.isFinite(layout?.defaultFootpointX)
       ? layout.defaultFootpointX
       : DEFAULT_BUILDING_FOOTPOINT_X;
@@ -580,8 +592,20 @@ export class CastleScene extends Phaser.Scene {
           offsetX: Number.isFinite(anchor?.offsetX) ? anchor.offsetX : 0,
           offsetY: Number.isFinite(anchor?.offsetY) ? anchor.offsetY : 0,
           slotScale: Number.isFinite(anchor?.slotScale) ? anchor.slotScale : 1,
+          slotTargetWidthPx: Number.isFinite(anchor?.targetWidthPx) ? anchor.targetWidthPx : null,
+          defaultTargetWidthPx: Number.isFinite(layout?.defaultTargetWidthPx) ? layout.defaultTargetWidthPx : null,
           footpointOverride: anchor?.footpointOverride ?? null,
           assetKey: levelDefinition?.assetKey ?? null,
+          targetWidthPx: Number.isFinite(levelDefinition?.targetWidthPx)
+            ? levelDefinition.targetWidthPx
+            : Number.isFinite(definition?.targetWidthPx)
+              ? definition.targetWidthPx
+              : null,
+          scaleOverride: Number.isFinite(levelDefinition?.scale)
+            ? levelDefinition.scale
+            : Number.isFinite(definition?.scale)
+              ? definition.scale
+              : null,
           level,
         };
       })
@@ -593,7 +617,12 @@ export class CastleScene extends Phaser.Scene {
       const baseRectTop = this.currentCastleTransform?.baseRectTop;
       const baseRectWidth = this.currentCastleTransform?.baseRectWidth;
       const baseRectHeight = this.currentCastleTransform?.baseRectHeight;
-      const buildAnchorPosition = this.getAnchorWorldPosition(building.buildAnchor, layout);
+      const buildAnchorWithOffset = {
+        ...building.buildAnchor,
+        x: (building.buildAnchor?.x ?? 0) + building.offsetX,
+        y: (building.buildAnchor?.y ?? 0) + building.offsetY,
+      };
+      const buildAnchorPosition = this.getAnchorWorldPosition(buildAnchorWithOffset, layout);
       const x = buildAnchorPosition.x;
       const y = buildAnchorPosition.y;
 
@@ -638,6 +667,9 @@ export class CastleScene extends Phaser.Scene {
 
       if (building.assetKey && hasTexture) {
         const interactiveBuilding = this.isInCourtyardByAnchor(building, layout);
+        const textureSource = this.textures.get(building.assetKey).getSourceImage();
+        const spriteSourceWidth = Number.isFinite(textureSource?.width) ? textureSource.width : null;
+        const spriteSourceHeight = Number.isFinite(textureSource?.height) ? textureSource.height : null;
         const footpointX = Number.isFinite(building.footpointOverride?.x)
           ? building.footpointOverride.x
           : defaultFootpointX;
@@ -647,14 +679,53 @@ export class CastleScene extends Phaser.Scene {
         const sprite = this.add.image(x, y, building.assetKey)
           .setOrigin(footpointX, footpointY)
           .setDepth(building.z);
-        const resolvedScale = (building.slotScale ?? 1) * baseScale;
+        const renderedBaseWidth = this.currentCastleTransform?.renderedWidth;
+        const renderedBaseHeight = this.currentCastleTransform?.renderedHeight;
+        const baseSpaceToRenderedScaleX = Number.isFinite(renderedBaseWidth) && Number.isFinite(layoutBaseWidth) && layoutBaseWidth > 0
+          ? renderedBaseWidth / layoutBaseWidth
+          : baseScale;
+        const baseSpaceToRenderedScaleY = Number.isFinite(renderedBaseHeight) && Number.isFinite(layoutBaseHeight) && layoutBaseHeight > 0
+          ? renderedBaseHeight / layoutBaseHeight
+          : baseScale;
+        const explicitTargetWidthPx = Number.isFinite(building.targetWidthPx)
+          ? building.targetWidthPx
+          : Number.isFinite(building.slotTargetWidthPx)
+            ? building.slotTargetWidthPx
+            : Number.isFinite(building.defaultTargetWidthPx)
+              ? building.defaultTargetWidthPx
+              : null;
+        const resolvedScale = Number.isFinite(explicitTargetWidthPx) && explicitTargetWidthPx > 0 && Number.isFinite(spriteSourceWidth) && spriteSourceWidth > 0
+          ? (explicitTargetWidthPx * baseSpaceToRenderedScaleX) / spriteSourceWidth
+          : Number.isFinite(building.scaleOverride)
+            ? building.scaleOverride * baseScale
+            : (building.slotScale ?? 1) * baseScale;
         sprite.setScale(resolvedScale);
+
+        const isSuspiciousFullCanvasOverlay = Number.isFinite(spriteSourceWidth)
+          && Number.isFinite(spriteSourceHeight)
+          && Number.isFinite(layoutBaseWidth)
+          && Number.isFinite(layoutBaseHeight)
+          && layoutBaseWidth > 0
+          && layoutBaseHeight > 0
+          && (spriteSourceWidth / layoutBaseWidth) >= FULL_CANVAS_OVERLAY_WARNING_RATIO
+          && (spriteSourceHeight / layoutBaseHeight) >= FULL_CANVAS_OVERLAY_WARNING_RATIO;
+        if (isSuspiciousFullCanvasOverlay && !this.invalidOverlayAssetWarnings.has(building.assetKey)) {
+          this.invalidOverlayAssetWarnings.add(building.assetKey);
+          console.warn(
+            `[CastleOverlayValidation] Invalid overlay asset contract for "${building.assetKey}": `
+            + `texture is ${spriteSourceWidth}x${spriteSourceHeight}, near base ${layoutBaseWidth}x${layoutBaseHeight}. `
+            + 'Expected isolated slot-local transparent PNG overlay (not full-canvas).',
+          );
+        }
 
         if (isDiagnosticTarget) {
           this.emitDiagnosticLog('[CastleOverlayDiagnostic] Final computed render values', {
             sceneX: x,
             sceneY: y,
             resolvedScale,
+            explicitTargetWidthPx,
+            baseSpaceToRenderedScaleX,
+            baseSpaceToRenderedScaleY,
             finalScaleX: sprite.scaleX,
             finalScaleY: sprite.scaleY,
             spriteOriginX: sprite.originX,

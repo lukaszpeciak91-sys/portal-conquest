@@ -96,6 +96,7 @@ Asset contract for human faction castle overlays:
   - `command_hall.png`
 
 All overlays must align with the base castle perspective and remain isolated PNG layers for slot-based placement.
+Runtime enforcement rule: overlay assets that are near full base-canvas dimensions are treated as contract violations and must trigger explicit warnings (no silent magic auto-scaling).
 
 ## Castle Interaction Flow
 - Click castle keep/base to open **Build Panel**.
