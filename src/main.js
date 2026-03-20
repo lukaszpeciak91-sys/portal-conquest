@@ -167,6 +167,7 @@ function syncViewportWhenSettled(options = {}) {
     maxAttempts = 8,
     reason = 'settle',
     allowPortrait = true,
+    onSettled = null,
   } = options;
 
   cancelViewportSettle();
@@ -192,6 +193,9 @@ function syncViewportWhenSettled(options = {}) {
     if (stableCount >= stableFrames || settleAttempt >= maxAttempts) {
       settleRafId = null;
       const applied = syncViewport(current, { reason, allowPortrait });
+      if (typeof onSettled === 'function') {
+        onSettled({ applied, viewport: current });
+      }
       if (!applied) {
         window.setTimeout(() => {
           syncViewportWhenSettled({ stableFrames: 1, maxAttempts: 10, reason: `${reason}:retry`, allowPortrait });
@@ -210,9 +214,31 @@ function notifyFullscreenFallback() {
   window.gameUi?.showHint?.('Fullscreen unavailable on this device/browser.');
 }
 
+function relayoutActiveScene(viewport, options = {}) {
+  const { reason = 'viewport:relayout' } = options;
+  const game = window.__PORTAL_GAME;
+  const activeScene = game?.scene?.getScenes?.(true)?.[0];
+  const scene = activeScene?.scene ?? activeScene;
+  if (!scene || typeof scene.handleResize !== 'function') {
+    debugViewport('skip scene relayout', { reason, hasScene: Boolean(scene) });
+    return false;
+  }
+
+  const width = Math.floor(viewport?.width ?? game?.scale?.width ?? 0);
+  const height = Math.floor(viewport?.height ?? game?.scale?.height ?? 0);
+  if (!isValidViewportSize(width, height)) {
+    debugViewport('skip scene relayout invalid viewport', { reason, width, height });
+    return false;
+  }
+
+  scene.handleResize({ width, height });
+  debugViewport('scene relayout', { reason, scene: scene.scene?.key ?? 'unknown', width, height });
+  return true;
+}
+
 function refreshViewportAfterFullscreenChange() {
-  isFullscreenTransitioning = true;
   const fullscreenActive = Boolean(document.fullscreenElement);
+  isFullscreenTransitioning = fullscreenActive;
   debugViewport('fullscreen change', { fullscreenActive });
 
   syncViewport(getViewportSize({ forceInner: true }), {
@@ -229,8 +255,12 @@ function refreshViewportAfterFullscreenChange() {
       maxAttempts: 12,
       reason: 'fullscreen:settled',
       allowPortrait: true,
+      onSettled: ({ viewport }) => {
+        if (!fullscreenActive) {
+          relayoutActiveScene(viewport, { reason: 'fullscreen:post-settle-final' });
+        }
+      },
     });
-    isFullscreenTransitioning = false;
   }, 80);
 }
 

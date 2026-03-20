@@ -91,3 +91,8 @@ Normalize anchor field access in `CastleScene` placement logic.
 - Fixed scale-space mismatch: `targetWidthPx` now resolves in authored base-space and is converted with rendered-base/ authored-base ratio before applying sprite scale, so overlays no longer inherit full-scene sizing when assets are mis-authored.
 - Added one-time runtime validation warning for building overlays that are near base-canvas dimensions, making isolated slot-local PNG contract violations explicit without magic auto-normalization.
 - Added debug/dev overlay bounds validation against a slot-local envelope around each build anchor, with explicit warnings when rendered bounds exceed expected local area.
+
+## 2026-03-20 — Fullscreen exit viewport settle recovery (implementation)
+- Confirmed root cause lived in shared fullscreen settle flow: the settled sampling phase still read forced transition-time `innerWidth/innerHeight`, so scenes could accept transient bounds as stable after fullscreen exit.
+- Fixed the sequencing by ending transition-time forcing before the settled pass when fullscreen is no longer active, so settled sampling now reads true post-exit viewport state.
+- Added one guaranteed post-settle relayout call for the active scene through existing scene `handleResize` path, ensuring final visual rebuild even when no extra browser resize event fires.
