@@ -74,3 +74,5 @@
 - Runtime now emits one-time validation warnings when a castle building texture is suspiciously close to full base-canvas dimensions, enforcing isolated slot-local overlay authoring.
 - Overlay contract validation now flags additional suspicious oversized texture profiles and emits debug/dev warnings when rendered overlay bounds exceed a slot-local expected area around the build anchor.
 - Debug marker mode now includes the rendered castle base rect plus per-building expected-local and actual overlay bounds rectangles to quickly verify slot-local sizing behavior.
+- Human MVP building definitions now explicitly provide `targetWidthPx` values and mark shipped full-canvas overlays as `legacyFullCanvasCompat`, restoring deterministic in-slot sizing for current legacy assets without changing build-anchor/footpoint placement.
+- Legacy compatibility mode now disables slotScale/baseScale fallback as the size source and emits a specific warning when `targetWidthPx` is missing for a compat-marked overlay.

@@ -642,6 +642,9 @@ export class CastleScene extends Phaser.Scene {
             : Number.isFinite(definition?.targetWidthPx)
               ? definition.targetWidthPx
               : null,
+          legacyFullCanvasCompat: Boolean(
+            levelDefinition?.legacyFullCanvasCompat ?? definition?.legacyFullCanvasCompat ?? false,
+          ),
           scaleOverride: Number.isFinite(levelDefinition?.scale)
             ? levelDefinition.scale
             : Number.isFinite(definition?.scale)
@@ -735,16 +738,36 @@ export class CastleScene extends Phaser.Scene {
             : Number.isFinite(building.defaultTargetWidthPx)
               ? building.defaultTargetWidthPx
               : null;
-        const resolvedScale = Number.isFinite(explicitTargetWidthPx) && explicitTargetWidthPx > 0 && Number.isFinite(spriteSourceWidth) && spriteSourceWidth > 0
+        const hasExplicitTargetWidth = Number.isFinite(explicitTargetWidthPx)
+          && explicitTargetWidthPx > 0
+          && Number.isFinite(spriteSourceWidth)
+          && spriteSourceWidth > 0;
+        const isLegacyCompatMode = Boolean(building.legacyFullCanvasCompat);
+        const resolvedScale = hasExplicitTargetWidth
           ? (explicitTargetWidthPx * baseSpaceToRenderedScaleX) / spriteSourceWidth
-          : Number.isFinite(building.scaleOverride)
-            ? building.scaleOverride * baseScale
-            : (building.slotScale ?? 1) * baseScale;
+          : isLegacyCompatMode
+            ? Number.isFinite(building.scaleOverride)
+              ? building.scaleOverride * baseScale
+              : baseScale
+            : Number.isFinite(building.scaleOverride)
+              ? building.scaleOverride * baseScale
+              : (building.slotScale ?? 1) * baseScale;
         sprite.setScale(resolvedScale);
 
         const expectedRenderedTargetWidth = Number.isFinite(explicitTargetWidthPx) && explicitTargetWidthPx > 0
           ? explicitTargetWidthPx * baseSpaceToRenderedScaleX
           : null;
+
+        if (isLegacyCompatMode && !hasExplicitTargetWidth) {
+          const legacyCompatWarningKey = `${building.assetKey}:legacy-target-width-missing`;
+          if (!this.invalidOverlayAssetWarnings.has(legacyCompatWarningKey)) {
+            this.invalidOverlayAssetWarnings.add(legacyCompatWarningKey);
+            console.warn(
+              `[CastleOverlayValidation] Legacy full-canvas compatibility mode active for "${building.assetKey}" `
+              + `without explicit targetWidthPx; slotScale/baseScale fallback is disabled for this asset.`,
+            );
+          }
+        }
 
         const isSuspiciousFullCanvasOverlay = Number.isFinite(spriteSourceWidth)
           && Number.isFinite(spriteSourceHeight)
@@ -784,6 +807,7 @@ export class CastleScene extends Phaser.Scene {
           console.warn(
             `[CastleOverlayValidation] Invalid overlay asset contract for "${building.assetKey}": `
             + `texture is ${spriteSourceWidth}x${spriteSourceHeight}, near base ${layoutBaseWidth}x${layoutBaseHeight}. `
+            + `SizingPath=${isLegacyCompatMode ? 'legacy-full-canvas-compat(targetWidthPx)' : 'native-slot-local'}. `
             + `Reasons: ${warningReasons.join(', ')}. `
             + 'Expected isolated slot-local transparent PNG overlay (not full-canvas).',
           );
@@ -854,6 +878,7 @@ export class CastleScene extends Phaser.Scene {
             sceneY: y,
             resolvedScale,
             explicitTargetWidthPx,
+            legacyFullCanvasCompat: isLegacyCompatMode,
             baseSpaceToRenderedScaleX,
             baseSpaceToRenderedScaleY,
             expectedRenderedTargetWidth,
