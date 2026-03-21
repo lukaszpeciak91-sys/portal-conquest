@@ -14,9 +14,11 @@ const MIN_VALID_PLAYABLE_HEIGHT = 120;
 const BUILD_GLOW_DURATION_MS = 720;
 const BUILD_GLOW_TEXTURE_KEY = 'castle-build-glow';
 const DEFAULT_COURTYARD_BOUNDARY_Y = 0.72;
-const CASTLE_BASE_VERTICAL_FRAMING_BIAS = 0.06;
+const CASTLE_SAFE_BAND_TARGET_VIEWPORT_Y = 0.58;
+const CASTLE_SAFE_BAND_FALLBACK_ANCHOR_Y = 0.6;
 const DEFAULT_BUILDING_FOOTPOINT_X = 0.5;
 const DEFAULT_BUILDING_FOOTPOINT_Y = 0.95;
+const HUMAN_BUILDING_GLOBAL_SCALE_MULTIPLIER = 1.08;
 const FULL_CANVAS_OVERLAY_WARNING_RATIO = 0.85;
 const OVERSIZED_OVERLAY_SIDE_RATIO = 0.55;
 const OVERLAY_LOCAL_BOUNDS_WIDTH_MULTIPLIER = 1.75;
@@ -250,7 +252,44 @@ export class CastleScene extends Phaser.Scene {
     layerContainer?.removeAll(true);
   }
 
-  renderBaseLayer(viewportWidth, viewportHeight, baseKey, onClickCastle) {
+  getCastleSafeBandAnchorY(layout) {
+    const slots = Array.isArray(layout?.slots) ? layout.slots : [];
+    const buildAnchorYs = slots
+      .map((slot) => slot?.buildAnchorY)
+      .filter((value) => Number.isFinite(value));
+
+    if (buildAnchorYs.length > 0) {
+      const maxBaseHeight = Number.isFinite(layout?.baseHeight) && layout.baseHeight > 0
+        ? layout.baseHeight
+        : Number.isFinite(layout?.baseSize?.height) && layout.baseSize.height > 0
+          ? layout.baseSize.height
+          : null;
+      if (maxBaseHeight) {
+        const averageBuildAnchorY = buildAnchorYs.reduce((sum, value) => sum + value, 0) / buildAnchorYs.length;
+        return Phaser.Math.Clamp(averageBuildAnchorY / maxBaseHeight, 0, 1);
+      }
+    }
+
+    const normalizedAnchorYs = slots
+      .map((slot) => slot?.anchorY)
+      .filter((value) => Number.isFinite(value));
+    if (normalizedAnchorYs.length > 0) {
+      const averageNormalizedAnchorY = normalizedAnchorYs.reduce((sum, value) => sum + value, 0) / normalizedAnchorYs.length;
+      return Phaser.Math.Clamp(averageNormalizedAnchorY, 0, 1);
+    }
+
+    return CASTLE_SAFE_BAND_FALLBACK_ANCHOR_Y;
+  }
+
+  getBuildingGlobalScaleMultiplier(castle) {
+    if (castle?.layoutId === 'human_castle_layout') {
+      return HUMAN_BUILDING_GLOBAL_SCALE_MULTIPLIER;
+    }
+
+    return 1;
+  }
+
+  renderBaseLayer(viewportWidth, viewportHeight, baseKey, layout, onClickCastle) {
     const hasBaseTexture = textureExists(this, baseKey);
 
     if (hasBaseTexture) {
@@ -258,9 +297,23 @@ export class CastleScene extends Phaser.Scene {
       const source = this.textures.get(baseKey).getSourceImage();
       const imageWidth = source.width || viewportWidth;
       const imageHeight = source.height || viewportHeight;
-      const scale = Math.min(renderBounds.width / imageWidth, renderBounds.height / imageHeight);
-      const centerX = renderBounds.centerX;
-      const centerY = renderBounds.centerY + ((imageHeight * scale) * CASTLE_BASE_VERTICAL_FRAMING_BIAS);
+      const scale = Math.max(renderBounds.width / imageWidth, renderBounds.height / imageHeight);
+      const renderedWidth = imageWidth * scale;
+      const renderedHeight = imageHeight * scale;
+      const minLeft = renderBounds.x + renderBounds.width - renderedWidth;
+      const maxLeft = renderBounds.x;
+      const minTop = renderBounds.y + renderBounds.height - renderedHeight;
+      const maxTop = renderBounds.y;
+      const safeBandAnchorY = this.getCastleSafeBandAnchorY(layout);
+      const desiredSafeBandY = renderBounds.y + (renderBounds.height * CASTLE_SAFE_BAND_TARGET_VIEWPORT_Y);
+
+      const centeredLeft = renderBounds.centerX - (renderedWidth / 2);
+      const centeredTop = renderBounds.centerY - (renderedHeight / 2);
+      const focusAdjustedTop = centeredTop + (desiredSafeBandY - (centeredTop + (renderedHeight * safeBandAnchorY)));
+      const left = Phaser.Math.Clamp(centeredLeft, minLeft, maxLeft);
+      const top = Phaser.Math.Clamp(focusAdjustedTop, minTop, maxTop);
+      const centerX = left + (renderedWidth / 2);
+      const centerY = top + (renderedHeight / 2);
 
       const baseImage = this.add.image(centerX, centerY, baseKey)
         .setOrigin(0.5)
@@ -274,15 +327,17 @@ export class CastleScene extends Phaser.Scene {
       this.currentCastleTransform = {
         sourceWidth: imageWidth,
         sourceHeight: imageHeight,
-        renderedWidth: baseImage.displayWidth,
-        renderedHeight: baseImage.displayHeight,
+        renderedWidth,
+        renderedHeight,
         scale: baseImage.scaleX,
         centerX: baseImage.x,
         centerY: baseImage.y,
-        baseRectLeft: baseImage.x - (baseImage.displayWidth / 2),
-        baseRectTop: baseImage.y - (baseImage.displayHeight / 2),
-        baseRectWidth: baseImage.displayWidth,
-        baseRectHeight: baseImage.displayHeight,
+        baseRectLeft: left,
+        baseRectTop: top,
+        baseRectWidth: renderedWidth,
+        baseRectHeight: renderedHeight,
+        safeBandAnchorY,
+        safeBandViewportY: CASTLE_SAFE_BAND_TARGET_VIEWPORT_Y,
       };
 
       this.baseLayer.add(baseImage);
@@ -555,7 +610,7 @@ export class CastleScene extends Phaser.Scene {
     };
   }
 
-  renderBuildingLayer({ layout, buildingSet, runtimeBuildings, onClickBuilding }) {
+  renderBuildingLayer({ castle, layout, buildingSet, runtimeBuildings, onClickBuilding }) {
     const layoutSlots = this.getLayoutSlots(layout, buildingSet);
     const slotByBuildingId = new Map(layoutSlots.map((slot) => [slot.buildingId, slot]));
     const layoutBaseWidth = Number.isFinite(layout?.baseWidth)
@@ -613,6 +668,8 @@ export class CastleScene extends Phaser.Scene {
         labelColor: '#bfdbfe',
       });
     });
+
+    const buildingGlobalScaleMultiplier = this.getBuildingGlobalScaleMultiplier(castle);
 
     const placedBuildings = this.getBuildableBuildingDefinitions(buildingSet)
       .map((buildingDefinition) => ({
@@ -752,7 +809,8 @@ export class CastleScene extends Phaser.Scene {
             : Number.isFinite(building.scaleOverride)
               ? building.scaleOverride * baseScale
               : (building.slotScale ?? 1) * baseScale;
-        sprite.setScale(resolvedScale);
+        const finalResolvedScale = resolvedScale * buildingGlobalScaleMultiplier;
+        sprite.setScale(finalResolvedScale);
 
         const expectedRenderedTargetWidth = Number.isFinite(explicitTargetWidthPx) && explicitTargetWidthPx > 0
           ? explicitTargetWidthPx * baseSpaceToRenderedScaleX
@@ -877,6 +935,8 @@ export class CastleScene extends Phaser.Scene {
             sceneX: x,
             sceneY: y,
             resolvedScale,
+            buildingGlobalScaleMultiplier,
+            finalResolvedScale,
             explicitTargetWidthPx,
             legacyFullCanvasCompat: isLegacyCompatMode,
             baseSpaceToRenderedScaleX,
@@ -902,7 +962,7 @@ export class CastleScene extends Phaser.Scene {
             x,
             y,
             z: building.z,
-            scale: resolvedScale,
+            scale: finalResolvedScale,
           });
         }
 
@@ -958,7 +1018,7 @@ export class CastleScene extends Phaser.Scene {
     const { castle, layout, buildingSet, runtimeBuildings } = this.getCastleRenderContext();
     const baseKey = castle?.baseKey ?? 'castle_faction01_base';
 
-    this.renderBaseLayer(viewportWidth, viewportHeight, baseKey, (pointer) => {
+    this.renderBaseLayer(viewportWidth, viewportHeight, baseKey, layout, (pointer) => {
       const pointerCastleY = this.getPointerCastleNormalizedY(pointer);
       if (!Number.isFinite(pointerCastleY)) {
         return;
@@ -969,6 +1029,7 @@ export class CastleScene extends Phaser.Scene {
       }
     });
     this.renderBuildingLayer({
+      castle,
       layout,
       buildingSet,
       runtimeBuildings,

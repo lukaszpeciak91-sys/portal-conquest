@@ -99,3 +99,9 @@ Normalize anchor field access in `CastleScene` placement logic.
 - Confirmed root cause lived in shared fullscreen settle flow: the settled sampling phase still read forced transition-time `innerWidth/innerHeight`, so scenes could accept transient bounds as stable after fullscreen exit.
 - Fixed the sequencing by ending transition-time forcing before the settled pass when fullscreen is no longer active, so settled sampling now reads true post-exit viewport state.
 - Added one guaranteed post-settle relayout call for the active scene through existing scene `handleResize` path, ensuring final visual rebuild even when no extra browser resize event fires.
+
+## 2026-03-21 — Castle base transform contract re-verification (diagnostic conclusion)
+- Verified current repo/runtime truth before implementation: active `CastleScene` base transform path was centered contain/full-frame (`Math.min(...)`) plus a fixed vertical bias; side margins came from that contain-fit contract inside playable bounds, not from slot mapping.
+- Verified slot/build anchor mapping path was already stable: anchor/base-space coordinates resolve through `currentCastleTransform` rendered-base rect math, so overlays were geometrically tied to the same base rect as the castle image.
+- Implemented change: base rendering now uses cover-fit (`Math.max(...)`) with deterministic safe-band Y targeting derived from authored slot/build-anchor data; overlay mapping path is unchanged and remains tied to rendered base rect.
+- Added a single explicit human-overlay global multiplier in the existing composed scale path for a modest size increase without per-building magic spread.

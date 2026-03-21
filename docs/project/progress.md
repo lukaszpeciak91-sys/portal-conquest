@@ -4,13 +4,13 @@
 - **Structural foundation phase** (core architecture exists; gameplay depth is still limited).
 
 ## Implemented Systems
-- **Castle screen architecture finalized:** rendering contract now uses contain/full-frame scaling (no crop), interaction zones are split by `courtyardBoundaryY`, and click routing is boundary-driven (construction above, building interaction below).
+- **Castle screen architecture finalized:** rendering contract now uses fullscreen-style cover scaling with deterministic safe-band framing, interaction zones are split by `courtyardBoundaryY`, and click routing is boundary-driven (construction above, building interaction below).
 - **Map traversal loop:** movement between connected nodes is implemented.
 - **Node inspect flow:** inspect/confirm interaction loop exists for map nodes.
 - **Scene architecture:** `SceneRouter` is established and used for scene transitions.
 - **Runtime state layer:** `GameState` + runtime node state helpers are implemented as central run/session state.
 - **Data-driven baseline:** map/config/faction JSON loading is in place.
-- **Castle layered rendering + visual polish:** `CastleScene` now renders faction01 `castle_base.png` inside playable bounds using centered contain/full-frame scaling, preserving full castle framing while keeping compact top-right controls and bottom mode navigation behavior.
+- **Castle layered rendering + visual polish:** `CastleScene` now renders faction01 `castle_base.png` inside playable bounds using cover-fit + safe-band framing to remove side margins in normal presentation while preserving slot readability with compact top-right controls and bottom mode navigation behavior.
 - **Documentation governance hardening:** strict per-file documentation update policy is now defined in `docs/project/workflow.md` to keep project knowledge centralized and reduce cross-file drift.
 
 ### Castle Building Placement System
@@ -76,3 +76,9 @@
 - Debug marker mode now includes the rendered castle base rect plus per-building expected-local and actual overlay bounds rectangles to quickly verify slot-local sizing behavior.
 - Human MVP building definitions now explicitly provide `targetWidthPx` values and mark shipped full-canvas overlays as `legacyFullCanvasCompat`, restoring deterministic in-slot sizing for current legacy assets without changing build-anchor/footpoint placement.
 - Legacy compatibility mode now disables slotScale/baseScale fallback as the size source and emits a specific warning when `targetWidthPx` is missing for a compat-marked overlay.
+
+## 2026-03-21 Update
+- Verified current runtime transform truth directly in `CastleScene`: castle base had regressed to centered contain/full-frame scaling (`Math.min(...)`) with a fixed vertical framing bias.
+- Castle base rendering now uses deterministic cover-fit (`Math.max(...)`) inside playable bounds, with safe-band vertical targeting derived from authored slot/build-anchor metadata to keep gameplay-critical overlay readability stable under fullscreen/mobile UI.
+- Slot/build anchors remain mapped through the same rendered-base transform (`currentCastleTransform`) so overlay alignment stays tied to base geometry after cover cropping.
+- Human-faction overlays now receive a small explicit global size boost through one composed multiplier (`HUMAN_BUILDING_GLOBAL_SCALE_MULTIPLIER = 1.08`) applied on top of existing deterministic scale resolution.
