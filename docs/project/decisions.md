@@ -148,10 +148,10 @@ Debug/dev enforcement rule: when overlay bounds significantly exceed the slot-lo
 
 Rendering contract (permanent):
 
-- Castle base rendering uses **contain/full-frame scaling** (`Math.min(...)`) to preserve original aspect ratio.
-- Castle illustration is always centered within playable castle bounds.
-- Castle artwork is never cropped; letterboxing is explicitly acceptable when viewport ratio differs.
-- Contract goal: towers, walls, and courtyard always remain fully visible across screen sizes/factions.
+- Castle base rendering uses **fullscreen-style cover scaling** (`Math.max(...)`) inside playable bounds to remove visible side margins in intended presentation.
+- Controlled crop is explicitly accepted as part of the castle presentation contract.
+- Castle framing keeps a deterministic gameplay-safe readable band by targeting the authored slot/build-anchor region in visible space.
+- Slot/build anchors remain mapped against the same rendered base rect (`currentCastleTransform`) so overlays stay geometrically locked to castle art under resize/crop.
 
 Interaction zone split:
 
