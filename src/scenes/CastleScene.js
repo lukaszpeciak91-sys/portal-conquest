@@ -16,7 +16,6 @@ const BUILD_GLOW_TEXTURE_KEY = 'castle-build-glow';
 const DEFAULT_COURTYARD_BOUNDARY_Y = 0.72;
 const CASTLE_SAFE_BAND_TARGET_VIEWPORT_Y = 0.58;
 const CASTLE_SAFE_BAND_FALLBACK_ANCHOR_Y = 0.6;
-const DEFAULT_CASTLE_COVER_FOCUS_Y = 0.42;
 const CASTLE_SOURCE_CROP_TOP_TARGET_Y = 100;
 const CASTLE_SOURCE_CROP_BOTTOM_TARGET_Y = 660;
 const DEFAULT_BUILDING_FOOTPOINT_X = 0.5;
@@ -344,19 +343,6 @@ export class CastleScene extends Phaser.Scene {
     };
   }
 
-  getCastleCoverFocusY(layout) {
-    if (this.calibration?.enabled && Number.isFinite(this.calibration?.backgroundFocusY)) {
-      return Phaser.Math.Clamp(this.calibration.backgroundFocusY, 0, 1);
-    }
-
-    const layoutFocusY = layout?.coverFocusY;
-    if (Number.isFinite(layoutFocusY)) {
-      return Phaser.Math.Clamp(layoutFocusY, 0, 1);
-    }
-
-    return DEFAULT_CASTLE_COVER_FOCUS_Y;
-  }
-
   getCastleSourceCropTop(imageHeight, visibleHeight) {
     const maxCropTop = Math.max(0, imageHeight - visibleHeight);
     const targetCenterY = (CASTLE_SOURCE_CROP_TOP_TARGET_Y + CASTLE_SOURCE_CROP_BOTTOM_TARGET_Y) / 2;
@@ -380,12 +366,11 @@ export class CastleScene extends Phaser.Scene {
       const originX = 0.5;
       const originY = 0;
       const centerX = castleRenderRect.centerX;
-      const top = castleRenderRect.y;
-      const centerY = top;
+      const renderedImageY = castleRenderRect.y;
       const left = centerX - (originX * renderedWidth);
       const safeBandAnchorY = this.getCastleSafeBandAnchorY(layout);
 
-      const baseImage = this.add.image(centerX, centerY, baseKey)
+      const baseImage = this.add.image(centerX, renderedImageY, baseKey)
         .setOrigin(originX, originY)
         .setCrop(0, cropTop, imageWidth, visibleHeight)
         .setScale(scale)
@@ -406,7 +391,7 @@ export class CastleScene extends Phaser.Scene {
         centerX: baseImage.x,
         centerY: baseImage.y,
         baseRectLeft: left,
-        baseRectTop: top,
+        baseRectTop: renderedImageY,
         baseRectWidth: renderedWidth,
         baseRectHeight: renderedHeight,
         safeBandAnchorY,
