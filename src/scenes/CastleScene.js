@@ -17,6 +17,8 @@ const DEFAULT_COURTYARD_BOUNDARY_Y = 0.72;
 const CASTLE_SAFE_BAND_TARGET_VIEWPORT_Y = 0.58;
 const CASTLE_SAFE_BAND_FALLBACK_ANCHOR_Y = 0.6;
 const DEFAULT_CASTLE_COVER_FOCUS_Y = 0.42;
+const CASTLE_SOURCE_CROP_TOP_TARGET_Y = 100;
+const CASTLE_SOURCE_CROP_BOTTOM_TARGET_Y = 660;
 const DEFAULT_BUILDING_FOOTPOINT_X = 0.5;
 const DEFAULT_BUILDING_FOOTPOINT_Y = 0.95;
 const HUMAN_CASTLE_FINAL_COVER_FOCUS_Y = 0.36;
@@ -355,6 +357,13 @@ export class CastleScene extends Phaser.Scene {
     return DEFAULT_CASTLE_COVER_FOCUS_Y;
   }
 
+  getCastleSourceCropTop(imageHeight, visibleHeight) {
+    const maxCropTop = Math.max(0, imageHeight - visibleHeight);
+    const targetCenterY = (CASTLE_SOURCE_CROP_TOP_TARGET_Y + CASTLE_SOURCE_CROP_BOTTOM_TARGET_Y) / 2;
+    const unclampedCropTop = targetCenterY - (visibleHeight / 2);
+    return Phaser.Math.Clamp(unclampedCropTop, 0, maxCropTop);
+  }
+
   renderBaseLayer(viewportWidth, viewportHeight, baseKey, layout, onClickCastle) {
     const castleRenderRect = this.getCastleRenderBounds(viewportWidth, viewportHeight);
     const hasBaseTexture = textureExists(this, baseKey);
@@ -366,10 +375,7 @@ export class CastleScene extends Phaser.Scene {
       const scale = Math.max(castleRenderRect.width / imageWidth, castleRenderRect.height / imageHeight);
       const renderedWidth = imageWidth * scale;
       const visibleHeight = castleRenderRect.height / scale;
-      const focusY = this.getCastleCoverFocusY(layout);
-      const unclampedCropTop = (focusY * imageHeight) - (visibleHeight / 2);
-      const maxCropTop = Math.max(0, imageHeight - visibleHeight);
-      const cropTop = Phaser.Math.Clamp(unclampedCropTop, 0, maxCropTop);
+      const cropTop = this.getCastleSourceCropTop(imageHeight, visibleHeight);
       const renderedHeight = visibleHeight * scale;
       const originX = 0.5;
       const originY = 0;
