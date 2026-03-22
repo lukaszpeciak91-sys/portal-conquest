@@ -7,6 +7,7 @@ import humanCastleLayout from '../data/factions/human/castle_layout.json';
 import humanBuildingSet from '../data/buildings/human_buildings.json';
 import { GameState } from '../state/GameState';
 import { setBuildingLevel } from '../state/runtimeState';
+import { getPlayableBounds } from './playableBounds';
 
 const MIN_VALID_VIEWPORT_SIDE = 64;
 const MIN_VALID_PLAYABLE_HEIGHT = 120;
@@ -355,16 +356,16 @@ export class CastleScene extends Phaser.Scene {
   }
 
   renderBaseLayer(viewportWidth, viewportHeight, baseKey, layout, onClickCastle) {
-    const renderBounds = this.getCastleRenderBounds(viewportWidth, viewportHeight);
+    const castleRenderRect = this.getCastleRenderBounds(viewportWidth, viewportHeight);
     const hasBaseTexture = textureExists(this, baseKey);
 
     if (hasBaseTexture) {
       const source = this.textures.get(baseKey).getSourceImage();
       const imageWidth = source.width || viewportWidth;
       const imageHeight = source.height || viewportHeight;
-      const scale = Math.max(renderBounds.width / imageWidth, renderBounds.height / imageHeight);
+      const scale = Math.max(castleRenderRect.width / imageWidth, castleRenderRect.height / imageHeight);
       const renderedWidth = imageWidth * scale;
-      const visibleHeight = renderBounds.height / scale;
+      const visibleHeight = castleRenderRect.height / scale;
       const focusY = this.getCastleCoverFocusY(layout);
       const unclampedCropTop = (focusY * imageHeight) - (visibleHeight / 2);
       const maxCropTop = Math.max(0, imageHeight - visibleHeight);
@@ -372,8 +373,8 @@ export class CastleScene extends Phaser.Scene {
       const renderedHeight = visibleHeight * scale;
       const originX = 0.5;
       const originY = 0;
-      const centerX = renderBounds.centerX;
-      const top = renderBounds.y;
+      const centerX = castleRenderRect.centerX;
+      const top = castleRenderRect.y;
       const centerY = top;
       const left = centerX - (originX * renderedWidth);
       const safeBandAnchorY = this.getCastleSafeBandAnchorY(layout);
@@ -412,13 +413,13 @@ export class CastleScene extends Phaser.Scene {
       this.publishCastleMeasurement({
         viewportWidth,
         viewportHeight,
-        renderBounds,
+        castleRenderRect,
         baseImage,
         cropTop,
         visibleHeight,
       });
 
-      if (this.calibration?.enabled) {
+      if (this.shouldRenderCalibrationOverlay()) {
         this.renderCalibrationOverlay({
           layout,
           cropTop,
@@ -429,10 +430,10 @@ export class CastleScene extends Phaser.Scene {
     }
 
     const fallbackBackground = this.add.rectangle(
-      renderBounds.centerX,
-      renderBounds.centerY,
-      renderBounds.width,
-      renderBounds.height,
+      castleRenderRect.centerX,
+      castleRenderRect.centerY,
+      castleRenderRect.width,
+      castleRenderRect.height,
       0x101828,
     );
     const fallbackPlaceholder = addFallbackPlaceholder(this, {
@@ -449,7 +450,7 @@ export class CastleScene extends Phaser.Scene {
     this.publishCastleMeasurement({
       viewportWidth,
       viewportHeight,
-      renderBounds: this.getCastleRenderBounds(viewportWidth, viewportHeight),
+      castleRenderRect: this.getCastleRenderBounds(viewportWidth, viewportHeight),
       baseImage: null,
       cropTop: null,
       visibleHeight: null,
@@ -510,9 +511,7 @@ export class CastleScene extends Phaser.Scene {
           ? layout.baseSize.width
           : 1;
       return layout.slots.map((slot, index) => {
-        const slotOffset = this.calibration?.enabled
-          ? this.calibration.slotOffsets?.[slot.slotId] ?? {}
-          : {};
+        const slotOffset = {};
         const slotCenterOffsetX = Number.isFinite(slotOffset?.slotCenterOffsetX) ? slotOffset.slotCenterOffsetX : 0;
         const slotCenterOffsetY = Number.isFinite(slotOffset?.slotCenterOffsetY) ? slotOffset.slotCenterOffsetY : 0;
         const buildAnchorOffsetX = Number.isFinite(slotOffset?.buildAnchorOffsetX) ? slotOffset.buildAnchorOffsetX : 0;
@@ -664,6 +663,10 @@ export class CastleScene extends Phaser.Scene {
     });
   }
 
+  shouldRenderCalibrationOverlay() {
+    return this.debugEnabled && Boolean(window.__castleCalibrationOverlayDebug);
+  }
+
   renderDebugSlotMarker({ x, y, slotId, z, color, labelColor }) {
     if (!this.debugOptions?.showPlacementMarkers) {
       return;
@@ -736,17 +739,17 @@ export class CastleScene extends Phaser.Scene {
   publishCastleMeasurement({
     viewportWidth,
     viewportHeight,
-    renderBounds,
+    castleRenderRect,
     baseImage = null,
     cropTop = null,
     visibleHeight = null,
   }) {
-    if (!renderBounds) {
+    if (!castleRenderRect) {
       return;
     }
 
-    const topHudHeight = renderBounds.y;
-    const bottomNavHeight = Math.max(0, viewportHeight - (renderBounds.y + renderBounds.height));
+    const topHudHeight = castleRenderRect.y;
+    const bottomNavHeight = Math.max(0, viewportHeight - (castleRenderRect.y + castleRenderRect.height));
     const renderedCastleRect = this.currentCastleTransform
       ? {
         x: this.currentCastleTransform.baseRectLeft,
@@ -768,10 +771,10 @@ export class CastleScene extends Phaser.Scene {
     const hasImageCrop = Boolean(baseImage?.isCropped);
     const clippedByPlayableRect = Boolean(
       imageBounds
-      && (imageBounds.left < renderBounds.x
-        || imageBounds.right > (renderBounds.x + renderBounds.width)
-        || imageBounds.top < renderBounds.y
-        || imageBounds.bottom > (renderBounds.y + renderBounds.height)),
+      && (imageBounds.left < castleRenderRect.x
+        || imageBounds.right > (castleRenderRect.x + castleRenderRect.width)
+        || imageBounds.top < castleRenderRect.y
+        || imageBounds.bottom > (castleRenderRect.y + castleRenderRect.height)),
     );
 
     this.latestCastleMeasurement = {
@@ -781,11 +784,11 @@ export class CastleScene extends Phaser.Scene {
       },
       topHudHeight,
       bottomNavHeight,
-      castlePlayableRect: {
-        x: renderBounds.x,
-        y: renderBounds.y,
-        width: renderBounds.width,
-        height: renderBounds.height,
+      castleRenderRect: {
+        x: castleRenderRect.x,
+        y: castleRenderRect.y,
+        width: castleRenderRect.width,
+        height: castleRenderRect.height,
       },
       renderedCastleImageRect: renderedCastleRect,
       sourceCropRect,
@@ -828,7 +831,7 @@ export class CastleScene extends Phaser.Scene {
       width: measurement.viewport.width,
       height: measurement.viewport.height,
     };
-    const playableRect = measurement.castlePlayableRect;
+    const castleRenderRect = measurement.castleRenderRect;
     const renderedRect = measurement.renderedCastleImageRect;
 
     this.renderDebugRect({
@@ -839,7 +842,7 @@ export class CastleScene extends Phaser.Scene {
       lineWidth: 2,
     });
     this.renderDebugRect({
-      ...playableRect,
+      ...castleRenderRect,
       z: 1001,
       color: 0xf59e0b,
       alpha: 0.95,
@@ -877,7 +880,7 @@ export class CastleScene extends Phaser.Scene {
       `viewport: ${Math.round(measurement.viewport.width)} x ${Math.round(measurement.viewport.height)}`,
       `top HUD: ${Math.round(measurement.topHudHeight)} px`,
       `bottom nav: ${Math.round(measurement.bottomNavHeight)} px`,
-      `playable: x=${Math.round(playableRect.x)} y=${Math.round(playableRect.y)} w=${Math.round(playableRect.width)} h=${Math.round(playableRect.height)}`,
+      `castleRenderRect: x=${Math.round(castleRenderRect.x)} y=${Math.round(castleRenderRect.y)} w=${Math.round(castleRenderRect.width)} h=${Math.round(castleRenderRect.height)}`,
       renderedRect
         ? `rendered image: x=${Math.round(renderedRect.x)} y=${Math.round(renderedRect.y)} w=${Math.round(renderedRect.width)} h=${Math.round(renderedRect.height)}`
         : 'rendered image: n/a',
@@ -934,8 +937,8 @@ export class CastleScene extends Phaser.Scene {
       const slotCenter = this.getAnchorWorldPosition(slot.slotCenter, layout);
       const buildAnchor = this.getAnchorWorldPosition(slot.buildAnchor, layout);
       const buildingFootpoint = {
-        x: buildAnchor.x + (this.calibration?.buildingFootpointOffsetX ?? 0),
-        y: buildAnchor.y + (this.calibration?.buildingFootpointOffsetY ?? 0),
+        x: buildAnchor.x,
+        y: buildAnchor.y,
       };
 
       this.renderDebugSlotMarker({
@@ -1083,8 +1086,8 @@ export class CastleScene extends Phaser.Scene {
       const baseRectHeight = this.currentCastleTransform?.baseRectHeight;
       const buildAnchorWithOffset = {
         ...building.buildAnchor,
-        x: (building.buildAnchor?.x ?? 0) + building.offsetX + globalFootpointOffsetX + (this.calibration?.buildingFootpointOffsetX ?? 0),
-        y: (building.buildAnchor?.y ?? 0) + building.offsetY + globalFootpointOffsetY + (this.calibration?.buildingFootpointOffsetY ?? 0),
+        x: (building.buildAnchor?.x ?? 0) + building.offsetX + globalFootpointOffsetX,
+        y: (building.buildAnchor?.y ?? 0) + building.offsetY + globalFootpointOffsetY,
       };
       const buildAnchorPosition = this.getAnchorWorldPosition(buildAnchorWithOffset, layout);
       const x = buildAnchorPosition.x;
@@ -1334,14 +1337,16 @@ export class CastleScene extends Phaser.Scene {
         }
 
         this.buildingLayer.add(sprite);
-        this.renderDebugSlotMarker({
-          x: sprite.x,
-          y: sprite.y,
-          slotId: `${building.slotId} F`,
-          z: building.z ?? 0,
-          color: 0x22c55e,
-          labelColor: '#bbf7d0',
-        });
+        if (!this.shouldRenderCalibrationOverlay()) {
+          this.renderDebugSlotMarker({
+            x: sprite.x,
+            y: sprite.y,
+            slotId: `${building.slotId} F`,
+            z: building.z ?? 0,
+            color: 0x22c55e,
+            labelColor: '#bbf7d0',
+          });
+        }
         return;
       }
 
@@ -1364,36 +1369,18 @@ export class CastleScene extends Phaser.Scene {
   }
 
   getCastleRenderBounds(viewportWidth, viewportHeight) {
-    const width = Math.max(MIN_VALID_VIEWPORT_SIDE, viewportWidth);
-    const height = Math.max(MIN_VALID_PLAYABLE_HEIGHT, viewportHeight);
-
-    return {
-      x: 0,
-      y: 0,
-      width,
-      height,
-      centerX: width / 2,
-      centerY: height / 2,
-      hasMeasuredBars: false,
-    const playableBounds = getPlayableBounds({
+    const castleRenderRect = getPlayableBounds({
       viewportWidth,
       viewportHeight,
       minViewportSide: MIN_VALID_VIEWPORT_SIDE,
       minPlayableHeight: MIN_VALID_PLAYABLE_HEIGHT,
     });
 
-    const bottom = Phaser.Math.Clamp(
-      playableBounds.y + playableBounds.height,
-      MIN_VALID_PLAYABLE_HEIGHT,
-      viewportHeight,
-    );
-    const height = Math.max(MIN_VALID_PLAYABLE_HEIGHT, bottom);
-
     return {
-      ...playableBounds,
-      y: 0,
-      height,
-      centerY: height / 2,
+      ...castleRenderRect,
+      centerX: castleRenderRect.x + (castleRenderRect.width / 2),
+      centerY: castleRenderRect.y + (castleRenderRect.height / 2),
+      hasMeasuredBars: castleRenderRect.y > 0,
     };
   }
 
