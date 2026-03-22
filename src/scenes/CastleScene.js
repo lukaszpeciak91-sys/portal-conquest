@@ -1365,12 +1365,26 @@ export class CastleScene extends Phaser.Scene {
   }
 
   getCastleRenderBounds(viewportWidth, viewportHeight) {
-    return getPlayableBounds({
+    const playableBounds = getPlayableBounds({
       viewportWidth,
       viewportHeight,
       minViewportSide: MIN_VALID_VIEWPORT_SIDE,
       minPlayableHeight: MIN_VALID_PLAYABLE_HEIGHT,
     });
+
+    const bottom = Phaser.Math.Clamp(
+      playableBounds.y + playableBounds.height,
+      MIN_VALID_PLAYABLE_HEIGHT,
+      viewportHeight,
+    );
+    const height = Math.max(MIN_VALID_PLAYABLE_HEIGHT, bottom);
+
+    return {
+      ...playableBounds,
+      y: 0,
+      height,
+      centerY: height / 2,
+    };
   }
 
   renderCastleLayers(viewportWidth, viewportHeight) {
