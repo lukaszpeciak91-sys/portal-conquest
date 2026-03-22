@@ -16,6 +16,7 @@ const BUILD_GLOW_TEXTURE_KEY = 'castle-build-glow';
 const DEFAULT_COURTYARD_BOUNDARY_Y = 0.72;
 const CASTLE_SAFE_BAND_TARGET_VIEWPORT_Y = 0.58;
 const CASTLE_SAFE_BAND_FALLBACK_ANCHOR_Y = 0.6;
+const CASTLE_COVER_VERTICAL_BIAS_RATIO = 0.015;
 const DEFAULT_BUILDING_FOOTPOINT_X = 0.5;
 const DEFAULT_BUILDING_FOOTPOINT_Y = 0.95;
 const HUMAN_BUILDING_GLOBAL_SCALE_MULTIPLIER = 1.08;
@@ -310,8 +311,9 @@ export class CastleScene extends Phaser.Scene {
       const centeredLeft = renderBounds.centerX - (renderedWidth / 2);
       const centeredTop = renderBounds.centerY - (renderedHeight / 2);
       const focusAdjustedTop = centeredTop + (desiredSafeBandY - (centeredTop + (renderedHeight * safeBandAnchorY)));
+      const downwardBiasPx = renderedHeight * CASTLE_COVER_VERTICAL_BIAS_RATIO;
       const left = Phaser.Math.Clamp(centeredLeft, minLeft, maxLeft);
-      const top = Phaser.Math.Clamp(focusAdjustedTop, minTop, maxTop);
+      const top = Phaser.Math.Clamp(focusAdjustedTop + downwardBiasPx, minTop, maxTop);
       const centerX = left + (renderedWidth / 2);
       const centerY = top + (renderedHeight / 2);
 
