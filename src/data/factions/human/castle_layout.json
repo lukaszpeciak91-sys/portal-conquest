@@ -5,7 +5,7 @@
   "baseWidth": 2048,
   "baseHeight": 1152,
   "coverPivotY": 0.6,
-  "coverFocusY": 0.36,
+  "coverFocusY": 0.325,
   "anchorOrigin": "footpoint",
   "defaultFootpointX": 0.5,
   "defaultFootpointY": 0.95,
