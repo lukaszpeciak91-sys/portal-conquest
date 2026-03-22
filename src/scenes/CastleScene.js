@@ -7,7 +7,6 @@ import humanCastleLayout from '../data/factions/human/castle_layout.json';
 import humanBuildingSet from '../data/buildings/human_buildings.json';
 import { GameState } from '../state/GameState';
 import { setBuildingLevel } from '../state/runtimeState';
-import { getPlayableBounds } from './playableBounds';
 
 const MIN_VALID_VIEWPORT_SIDE = 64;
 const MIN_VALID_PLAYABLE_HEIGHT = 120;
@@ -1365,6 +1364,17 @@ export class CastleScene extends Phaser.Scene {
   }
 
   getCastleRenderBounds(viewportWidth, viewportHeight) {
+    const width = Math.max(MIN_VALID_VIEWPORT_SIDE, viewportWidth);
+    const height = Math.max(MIN_VALID_PLAYABLE_HEIGHT, viewportHeight);
+
+    return {
+      x: 0,
+      y: 0,
+      width,
+      height,
+      centerX: width / 2,
+      centerY: height / 2,
+      hasMeasuredBars: false,
     const playableBounds = getPlayableBounds({
       viewportWidth,
       viewportHeight,
