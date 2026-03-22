@@ -16,7 +16,7 @@ const BUILD_GLOW_TEXTURE_KEY = 'castle-build-glow';
 const DEFAULT_COURTYARD_BOUNDARY_Y = 0.72;
 const CASTLE_SAFE_BAND_TARGET_VIEWPORT_Y = 0.58;
 const CASTLE_SAFE_BAND_FALLBACK_ANCHOR_Y = 0.6;
-const DEFAULT_CASTLE_COVER_PIVOT_Y = 0.6;
+const DEFAULT_CASTLE_COVER_FOCUS_Y = 0.42;
 const DEFAULT_BUILDING_FOOTPOINT_X = 0.5;
 const DEFAULT_BUILDING_FOOTPOINT_Y = 0.95;
 const HUMAN_BUILDING_GLOBAL_SCALE_MULTIPLIER = 1.08;
@@ -290,13 +290,13 @@ export class CastleScene extends Phaser.Scene {
     return 1;
   }
 
-  getCastleCoverPivotY(layout) {
-    const layoutPivotY = layout?.coverPivotY;
-    if (Number.isFinite(layoutPivotY)) {
-      return Phaser.Math.Clamp(layoutPivotY, 0, 1);
+  getCastleCoverFocusY(layout) {
+    const layoutFocusY = layout?.coverFocusY;
+    if (Number.isFinite(layoutFocusY)) {
+      return Phaser.Math.Clamp(layoutFocusY, 0, 1);
     }
 
-    return DEFAULT_CASTLE_COVER_PIVOT_Y;
+    return DEFAULT_CASTLE_COVER_FOCUS_Y;
   }
 
   renderBaseLayer(viewportWidth, viewportHeight, baseKey, layout, onClickCastle) {
@@ -309,21 +309,23 @@ export class CastleScene extends Phaser.Scene {
       const imageHeight = source.height || viewportHeight;
       const scale = Math.max(renderBounds.width / imageWidth, renderBounds.height / imageHeight);
       const renderedWidth = imageWidth * scale;
-      const renderedHeight = imageHeight * scale;
+      const visibleHeight = renderBounds.height / scale;
+      const focusY = this.getCastleCoverFocusY(layout);
+      const unclampedCropTop = (focusY * imageHeight) - (visibleHeight / 2);
+      const maxCropTop = Math.max(0, imageHeight - visibleHeight);
+      const cropTop = Phaser.Math.Clamp(unclampedCropTop, 0, maxCropTop);
+      const renderedHeight = visibleHeight * scale;
       const originX = 0.5;
-      const originY = this.getCastleCoverPivotY(layout);
-      const minX = renderBounds.x + renderBounds.width - ((1 - originX) * renderedWidth);
-      const maxX = renderBounds.x + (originX * renderedWidth);
-      const minY = renderBounds.y + renderBounds.height - ((1 - originY) * renderedHeight);
-      const maxY = renderBounds.y + (originY * renderedHeight);
-      const centerX = Phaser.Math.Clamp(renderBounds.centerX, minX, maxX);
-      const centerY = Phaser.Math.Clamp(renderBounds.centerY, minY, maxY);
+      const originY = 0;
+      const centerX = renderBounds.centerX;
+      const top = renderBounds.y;
+      const centerY = top;
       const left = centerX - (originX * renderedWidth);
-      const top = centerY - (originY * renderedHeight);
       const safeBandAnchorY = this.getCastleSafeBandAnchorY(layout);
 
       const baseImage = this.add.image(centerX, centerY, baseKey)
         .setOrigin(originX, originY)
+        .setCrop(0, cropTop, imageWidth, visibleHeight)
         .setScale(scale)
         .setInteractive({ useHandCursor: true });
 
@@ -334,6 +336,8 @@ export class CastleScene extends Phaser.Scene {
       this.currentCastleTransform = {
         sourceWidth: imageWidth,
         sourceHeight: imageHeight,
+        sourceCropTop: cropTop,
+        sourceCropHeight: visibleHeight,
         renderedWidth,
         renderedHeight,
         scale: baseImage.scaleX,
@@ -392,6 +396,19 @@ export class CastleScene extends Phaser.Scene {
     const localY = pointer.worldY - topY;
     const normalizedY = localY / this.currentCastleTransform.renderedHeight;
     return Phaser.Math.Clamp(normalizedY, 0, 1);
+  }
+
+  getSourceToRenderNormalizedY(sourceY) {
+    const transform = this.currentCastleTransform;
+    if (!transform || !Number.isFinite(sourceY)) {
+      return 0;
+    }
+
+    const cropTop = Number.isFinite(transform.sourceCropTop) ? transform.sourceCropTop : 0;
+    const cropHeight = Number.isFinite(transform.sourceCropHeight) && transform.sourceCropHeight > 0
+      ? transform.sourceCropHeight
+      : transform.sourceHeight;
+    return Phaser.Math.Clamp((sourceY - cropTop) / cropHeight, 0, 1);
   }
 
   getLayoutSlots(layout, buildingSet) {
@@ -595,7 +612,8 @@ export class CastleScene extends Phaser.Scene {
           ? layout.baseSize.height
           : transform.sourceHeight;
       const normalizedX = baseWidth > 0 ? anchorLike.x / baseWidth : 0;
-      const normalizedY = baseHeight > 0 ? anchorLike.y / baseHeight : 0;
+      const sourceY = baseHeight > 0 ? anchorLike.y : 0;
+      const normalizedY = this.getSourceToRenderNormalizedY(sourceY);
 
       return {
         x: transform.baseRectLeft + (normalizedX * transform.renderedWidth),
@@ -607,9 +625,11 @@ export class CastleScene extends Phaser.Scene {
       && Number.isFinite(anchorLike?.anchorY);
 
     if (transform && hasNormalizedAnchor) {
+      const sourceY = anchorLike.anchorY * transform.sourceHeight;
+      const normalizedY = this.getSourceToRenderNormalizedY(sourceY);
       return {
         x: transform.baseRectLeft + (anchorLike.anchorX * transform.renderedWidth),
-        y: transform.baseRectTop + (anchorLike.anchorY * transform.renderedHeight),
+        y: transform.baseRectTop + (normalizedY * transform.renderedHeight),
       };
     }
 
