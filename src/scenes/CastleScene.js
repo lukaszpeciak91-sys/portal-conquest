@@ -370,7 +370,9 @@ export class CastleScene extends Phaser.Scene {
       const originY = 0;
       const centerX = renderBounds.centerX;
       const top = renderBounds.y;
-      const centerY = top;
+      const gapTopPx = Math.max(0, top);
+      const translatedTop = top - gapTopPx;
+      const centerY = translatedTop;
       const left = centerX - (originX * renderedWidth);
       const safeBandAnchorY = this.getCastleSafeBandAnchorY(layout);
 
@@ -395,9 +397,10 @@ export class CastleScene extends Phaser.Scene {
         centerX: baseImage.x,
         centerY: baseImage.y,
         baseRectLeft: left,
-        baseRectTop: top,
+        baseRectTop: translatedTop,
         baseRectWidth: renderedWidth,
         baseRectHeight: renderedHeight,
+        topGapTranslationPx: gapTopPx,
         safeBandAnchorY,
         safeBandViewportY: CASTLE_SAFE_BAND_TARGET_VIEWPORT_Y,
         originX,
