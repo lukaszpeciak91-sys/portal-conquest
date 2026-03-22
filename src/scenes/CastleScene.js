@@ -17,6 +17,7 @@ const DEFAULT_COURTYARD_BOUNDARY_Y = 0.72;
 const CASTLE_SAFE_BAND_TARGET_VIEWPORT_Y = 0.58;
 const CASTLE_SAFE_BAND_FALLBACK_ANCHOR_Y = 0.6;
 const DEFAULT_CASTLE_COVER_PIVOT_Y = 0.55;
+const CASTLE_POST_COVER_VERTICAL_OFFSET_PX = 110;
 const DEFAULT_BUILDING_FOOTPOINT_X = 0.5;
 const DEFAULT_BUILDING_FOOTPOINT_Y = 0.95;
 const HUMAN_BUILDING_GLOBAL_SCALE_MULTIPLIER = 1.08;
@@ -317,7 +318,8 @@ export class CastleScene extends Phaser.Scene {
       const minY = renderBounds.y + renderBounds.height - ((1 - originY) * renderedHeight);
       const maxY = renderBounds.y + (originY * renderedHeight);
       const centerX = Phaser.Math.Clamp(renderBounds.centerX, minX, maxX);
-      const centerY = Phaser.Math.Clamp(renderBounds.centerY, minY, maxY);
+      const coverResolvedCenterY = Phaser.Math.Clamp(renderBounds.centerY, minY, maxY);
+      const centerY = coverResolvedCenterY + CASTLE_POST_COVER_VERTICAL_OFFSET_PX;
       const left = centerX - (originX * renderedWidth);
       const top = centerY - (originY * renderedHeight);
       const safeBandAnchorY = this.getCastleSafeBandAnchorY(layout);
