@@ -736,6 +736,56 @@ export class CastleScene extends Phaser.Scene {
     return false;
   }
 
+  logCastleRenderContract(measurement) {
+    if (!measurement) {
+      return;
+    }
+
+    const viewportHeight = measurement.viewport?.height ?? null;
+    const topHUD = measurement.topHudHeight ?? null;
+    const bottomNav = measurement.bottomNavHeight ?? null;
+    const castleRenderRect = measurement.castleRenderRect ?? null;
+    const renderedImageRect = measurement.renderedCastleImageRect ?? null;
+
+    const checks = {
+      startsAtHudBottom: Boolean(
+        castleRenderRect
+        && Number.isFinite(topHUD)
+        && castleRenderRect.y === topHUD,
+      ),
+      fillsPlayableHeight: Boolean(
+        castleRenderRect
+        && Number.isFinite(viewportHeight)
+        && Number.isFinite(topHUD)
+        && Number.isFinite(bottomNav)
+        && castleRenderRect.height === (viewportHeight - topHUD - bottomNav),
+      ),
+      renderedStartsAtCastleRectY: Boolean(
+        renderedImageRect
+        && castleRenderRect
+        && renderedImageRect.y === castleRenderRect.y,
+      ),
+      noRenderUnderHud: Boolean(
+        renderedImageRect
+        && castleRenderRect
+        && renderedImageRect.y >= castleRenderRect.y,
+      ),
+      noExtraClipContainer: measurement.clipping?.secondContainerClipDetected === false,
+    };
+
+    const renderContractCorrect = Object.values(checks).every(Boolean);
+
+    console.info('[CastleRenderContract]', {
+      viewportHeight,
+      topHUD,
+      bottomNav,
+      castleRenderRect,
+      renderedImageRect,
+      checks,
+      verdict: renderContractCorrect ? 'render contract correct' : 'render contract incorrect',
+    });
+  }
+
   publishCastleMeasurement({
     viewportWidth,
     viewportHeight,
@@ -813,6 +863,7 @@ export class CastleScene extends Phaser.Scene {
     }
 
     console.info(CASTLE_MEASUREMENT_LOG_PREFIX, this.latestCastleMeasurement);
+    this.logCastleRenderContract(this.latestCastleMeasurement);
   }
 
   renderMeasurementOverlay(layout) {
