@@ -19,6 +19,9 @@ const CASTLE_SAFE_BAND_FALLBACK_ANCHOR_Y = 0.6;
 const DEFAULT_CASTLE_COVER_FOCUS_Y = 0.42;
 const DEFAULT_BUILDING_FOOTPOINT_X = 0.5;
 const DEFAULT_BUILDING_FOOTPOINT_Y = 0.95;
+const HUMAN_CASTLE_FINAL_COVER_FOCUS_Y = 0.36;
+const HUMAN_CASTLE_GLOBAL_FOOTPOINT_OFFSET_X = 0;
+const HUMAN_CASTLE_GLOBAL_FOOTPOINT_OFFSET_Y = -8;
 const HUMAN_BUILDING_GLOBAL_SCALE_MULTIPLIER = 1.08;
 const FULL_CANVAS_OVERLAY_WARNING_RATIO = 0.85;
 const OVERSIZED_OVERLAY_SIDE_RATIO = 0.55;
@@ -37,6 +40,15 @@ const BUILDING_LAYOUTS = {
 };
 const BUILDING_SETS = {
   human_buildings: humanBuildingSet,
+};
+const CASTLE_CALIBRATION_PRESET = {
+  enabled: false,
+  showSlotLabels: true,
+  showVisibleSourceCropBounds: true,
+  backgroundFocusY: HUMAN_CASTLE_FINAL_COVER_FOCUS_Y,
+  slotOffsets: {},
+  buildingFootpointOffsetX: HUMAN_CASTLE_GLOBAL_FOOTPOINT_OFFSET_X,
+  buildingFootpointOffsetY: HUMAN_CASTLE_GLOBAL_FOOTPOINT_OFFSET_Y,
 };
 
 export class CastleScene extends Phaser.Scene {
@@ -60,6 +72,7 @@ export class CastleScene extends Phaser.Scene {
     this.invalidOverlayAssetWarnings = new Set();
     this.pendingBuildGlowById = null;
     this.debugEnabled = Boolean(window.gameUi?.isDebugEnabled?.() ?? false);
+    this.calibration = this.getCalibrationSettings();
     this.debugOptions = {
       showPlacementMarkers: this.debugEnabled,
     };
@@ -113,6 +126,7 @@ export class CastleScene extends Phaser.Scene {
 
   setDebugEnabled(enabled) {
     this.debugEnabled = Boolean(enabled);
+    this.calibration = this.getCalibrationSettings();
     this.debugOptions.showPlacementMarkers = this.debugEnabled;
     const currentViewport = this.getSafeViewportSize({ width: this.scale.width, height: this.scale.height })
       ?? { width: this.scale.width, height: this.scale.height };
@@ -290,7 +304,44 @@ export class CastleScene extends Phaser.Scene {
     return 1;
   }
 
+  getCalibrationSettings() {
+    const runtimeOverride = (typeof window !== 'undefined' && window.__castleCalibration)
+      ? window.__castleCalibration
+      : {};
+
+    const merged = {
+      ...CASTLE_CALIBRATION_PRESET,
+      ...runtimeOverride,
+      slotOffsets: {
+        ...CASTLE_CALIBRATION_PRESET.slotOffsets,
+        ...(runtimeOverride?.slotOffsets ?? {}),
+      },
+    };
+    const canEnable = this.debugEnabled || Boolean(import.meta.env?.DEV);
+    const enabled = canEnable && Boolean(merged.enabled);
+
+    return {
+      enabled,
+      showSlotLabels: merged.showSlotLabels !== false,
+      showVisibleSourceCropBounds: merged.showVisibleSourceCropBounds !== false,
+      backgroundFocusY: Number.isFinite(merged.backgroundFocusY)
+        ? merged.backgroundFocusY
+        : CASTLE_CALIBRATION_PRESET.backgroundFocusY,
+      slotOffsets: merged.slotOffsets,
+      buildingFootpointOffsetX: Number.isFinite(merged.buildingFootpointOffsetX)
+        ? merged.buildingFootpointOffsetX
+        : CASTLE_CALIBRATION_PRESET.buildingFootpointOffsetX,
+      buildingFootpointOffsetY: Number.isFinite(merged.buildingFootpointOffsetY)
+        ? merged.buildingFootpointOffsetY
+        : CASTLE_CALIBRATION_PRESET.buildingFootpointOffsetY,
+    };
+  }
+
   getCastleCoverFocusY(layout) {
+    if (this.calibration?.enabled && Number.isFinite(this.calibration?.backgroundFocusY)) {
+      return Phaser.Math.Clamp(this.calibration.backgroundFocusY, 0, 1);
+    }
+
     const layoutFocusY = layout?.coverFocusY;
     if (Number.isFinite(layoutFocusY)) {
       return Phaser.Math.Clamp(layoutFocusY, 0, 1);
@@ -354,6 +405,14 @@ export class CastleScene extends Phaser.Scene {
       };
 
       this.baseLayer.add(baseImage);
+
+      if (this.calibration?.enabled) {
+        this.renderCalibrationOverlay({
+          layout,
+          cropTop,
+          visibleHeight,
+        });
+      }
       return;
     }
 
@@ -414,25 +473,49 @@ export class CastleScene extends Phaser.Scene {
   getLayoutSlots(layout, buildingSet) {
     const hasFinalizedSlots = Array.isArray(layout?.slots) && layout.slots.length > 0;
     if (hasFinalizedSlots) {
-      return layout.slots.map((slot, index) => ({
+      const baseHeight = Number.isFinite(layout?.baseHeight)
+        ? layout.baseHeight
+        : Number.isFinite(layout?.baseSize?.height)
+          ? layout.baseSize.height
+          : 1;
+      const baseWidth = Number.isFinite(layout?.baseWidth)
+        ? layout.baseWidth
+        : Number.isFinite(layout?.baseSize?.width)
+          ? layout.baseSize.width
+          : 1;
+      return layout.slots.map((slot, index) => {
+        const slotOffset = this.calibration?.enabled
+          ? this.calibration.slotOffsets?.[slot.slotId] ?? {}
+          : {};
+        const slotCenterOffsetX = Number.isFinite(slotOffset?.slotCenterOffsetX) ? slotOffset.slotCenterOffsetX : 0;
+        const slotCenterOffsetY = Number.isFinite(slotOffset?.slotCenterOffsetY) ? slotOffset.slotCenterOffsetY : 0;
+        const buildAnchorOffsetX = Number.isFinite(slotOffset?.buildAnchorOffsetX) ? slotOffset.buildAnchorOffsetX : 0;
+        const buildAnchorOffsetY = Number.isFinite(slotOffset?.buildAnchorOffsetY) ? slotOffset.buildAnchorOffsetY : 0;
+        const slotCenterX = slot.slotCenterX + slotCenterOffsetX;
+        const slotCenterY = slot.slotCenterY + slotCenterOffsetY;
+        const buildAnchorX = slot.buildAnchorX + buildAnchorOffsetX;
+        const buildAnchorY = slot.buildAnchorY + buildAnchorOffsetY;
+
+        return ({
         slotId: slot.slotId,
         buildingId: slot.buildingId,
         slotCenter: {
-          x: slot.slotCenterX,
-          y: slot.slotCenterY,
+          x: slotCenterX,
+          y: slotCenterY,
         },
         buildAnchor: {
-          x: slot.buildAnchorX,
-          y: slot.buildAnchorY,
+          x: buildAnchorX,
+          y: buildAnchorY,
         },
-        anchorX: slot.anchorX,
-        anchorY: slot.anchorY,
+        anchorX: Number.isFinite(slot.anchorX) ? slot.anchorX : Phaser.Math.Clamp(buildAnchorX / baseWidth, 0, 1),
+        anchorY: Number.isFinite(slot.anchorY) ? slot.anchorY : Phaser.Math.Clamp(buildAnchorY / baseHeight, 0, 1),
         slotScale: Number.isFinite(slot.slotScale) ? slot.slotScale : 1,
         footpointOverride: slot.footpointOverride ?? null,
         offsetX: slot.offsetX,
         offsetY: slot.offsetY,
         z: Number.isFinite(slot?.z) ? slot.z : Math.round((slot?.anchorY ?? 0) * 100) + index,
-      }));
+      });
+      });
     }
 
     const slotToBuilding = new Map((buildingSet?.buildings ?? []).map((building) => [building.slotId, building.buildingId]));
@@ -570,7 +653,7 @@ export class CastleScene extends Phaser.Scene {
       color: labelColor ?? '#fecaca',
       fontFamily: 'Arial',
       fontSize: '11px',
-    }).setOrigin(0.5, 1);
+    }).setOrigin(0.5, 1).setVisible(this.calibration?.showSlotLabels ?? true);
 
     marker.add([horizontal, vertical, ring, label]);
     this.debugSlotLayer.add(marker);
@@ -595,6 +678,76 @@ export class CastleScene extends Phaser.Scene {
     graphics.strokeRect(x, y, width, height);
     graphics.setDepth((Number.isFinite(z) ? z : 0) + 0.2);
     this.debugSlotLayer.add(graphics);
+  }
+
+  renderCalibrationOverlay({ layout, cropTop, visibleHeight }) {
+    const transform = this.currentCastleTransform;
+    if (!transform) {
+      return;
+    }
+
+    this.renderDebugRect({
+      x: transform.baseRectLeft,
+      y: transform.baseRectTop,
+      width: transform.baseRectWidth,
+      height: transform.baseRectHeight,
+      z: 2,
+      color: 0xf59e0b,
+      alpha: 0.95,
+      lineWidth: 2,
+    });
+
+    if (this.calibration?.showVisibleSourceCropBounds) {
+      const sourceCropBottom = cropTop + visibleHeight;
+      const label = this.add.text(
+        transform.baseRectLeft + 10,
+        transform.baseRectTop + 10,
+        `cropY ${Math.round(cropTop)}-${Math.round(sourceCropBottom)} / ${Math.round(transform.sourceHeight)}`,
+        {
+          color: '#fde68a',
+          fontFamily: 'Arial',
+          fontSize: '12px',
+          backgroundColor: '#111827cc',
+          padding: { x: 6, y: 4 },
+        },
+      ).setDepth(2000);
+      this.debugSlotLayer.add(label);
+    }
+
+    const layoutSlots = this.getLayoutSlots(layout, null);
+    layoutSlots.forEach((slot) => {
+      const slotCenter = this.getAnchorWorldPosition(slot.slotCenter, layout);
+      const buildAnchor = this.getAnchorWorldPosition(slot.buildAnchor, layout);
+      const buildingFootpoint = {
+        x: buildAnchor.x + (this.calibration?.buildingFootpointOffsetX ?? 0),
+        y: buildAnchor.y + (this.calibration?.buildingFootpointOffsetY ?? 0),
+      };
+
+      this.renderDebugSlotMarker({
+        x: slotCenter.x,
+        y: slotCenter.y,
+        slotId: `${slot.slotId} center`,
+        z: slot.z ?? 0,
+        color: 0xef4444,
+        labelColor: '#fecaca',
+      });
+      this.renderDebugSlotMarker({
+        x: buildAnchor.x,
+        y: buildAnchor.y,
+        slotId: `${slot.slotId} anchor`,
+        z: (slot.z ?? 0) + 0.1,
+        color: 0x60a5fa,
+        labelColor: '#bfdbfe',
+      });
+      this.renderDebugSlotMarker({
+        x: buildingFootpoint.x,
+        y: buildingFootpoint.y,
+        slotId: `${slot.slotId} foot`,
+        z: (slot.z ?? 0) + 0.2,
+        color: 0x22c55e,
+        labelColor: '#bbf7d0',
+      });
+    });
   }
 
   getAnchorWorldPosition(anchorLike, layout, options = {}) {
@@ -658,46 +811,12 @@ export class CastleScene extends Phaser.Scene {
     const defaultFootpointY = Number.isFinite(layout?.defaultFootpointY)
       ? layout.defaultFootpointY
       : DEFAULT_BUILDING_FOOTPOINT_Y;
-    const baseRect = {
-      left: this.currentCastleTransform?.baseRectLeft,
-      top: this.currentCastleTransform?.baseRectTop,
-      width: this.currentCastleTransform?.baseRectWidth,
-      height: this.currentCastleTransform?.baseRectHeight,
-    };
-
-    this.renderDebugRect({
-      x: baseRect.left,
-      y: baseRect.top,
-      width: baseRect.width,
-      height: baseRect.height,
-      z: 0,
-      color: 0xf59e0b,
-      alpha: 0.9,
-      lineWidth: 2,
-    });
-
-    layoutSlots.forEach((slot) => {
-      const slotCenter = this.getAnchorWorldPosition(slot.slotCenter, layout);
-      const buildAnchor = this.getAnchorWorldPosition(slot.buildAnchor, layout);
-
-      this.renderDebugSlotMarker({
-        x: slotCenter.x,
-        y: slotCenter.y,
-        slotId: `${slot.slotId} C`,
-        z: slot.z ?? 0,
-        color: 0xff0000,
-        labelColor: '#fecaca',
-      });
-      this.renderDebugSlotMarker({
-        x: buildAnchor.x,
-        y: buildAnchor.y,
-        slotId: `${slot.slotId} A`,
-        z: slot.z ?? 0,
-        color: 0x3b82f6,
-        labelColor: '#bfdbfe',
-      });
-    });
-
+    const globalFootpointOffsetX = Number.isFinite(layout?.buildingFootpointOffsetX)
+      ? layout.buildingFootpointOffsetX
+      : 0;
+    const globalFootpointOffsetY = Number.isFinite(layout?.buildingFootpointOffsetY)
+      ? layout.buildingFootpointOffsetY
+      : 0;
     const buildingGlobalScaleMultiplier = this.getBuildingGlobalScaleMultiplier(castle);
 
     const placedBuildings = this.getBuildableBuildingDefinitions(buildingSet)
@@ -749,8 +868,8 @@ export class CastleScene extends Phaser.Scene {
       const baseRectHeight = this.currentCastleTransform?.baseRectHeight;
       const buildAnchorWithOffset = {
         ...building.buildAnchor,
-        x: (building.buildAnchor?.x ?? 0) + building.offsetX,
-        y: (building.buildAnchor?.y ?? 0) + building.offsetY,
+        x: (building.buildAnchor?.x ?? 0) + building.offsetX + globalFootpointOffsetX + (this.calibration?.buildingFootpointOffsetX ?? 0),
+        y: (building.buildAnchor?.y ?? 0) + building.offsetY + globalFootpointOffsetY + (this.calibration?.buildingFootpointOffsetY ?? 0),
       };
       const buildAnchorPosition = this.getAnchorWorldPosition(buildAnchorWithOffset, layout);
       const x = buildAnchorPosition.x;
