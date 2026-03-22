@@ -17,7 +17,6 @@ const DEFAULT_COURTYARD_BOUNDARY_Y = 0.72;
 const CASTLE_SAFE_BAND_TARGET_VIEWPORT_Y = 0.58;
 const CASTLE_SAFE_BAND_FALLBACK_ANCHOR_Y = 0.6;
 const CASTLE_COVER_VERTICAL_BIAS_RATIO = 0.015;
-const CASTLE_COVER_SOURCE_PIVOT_SHIFT_RATIO = 0.05;
 const DEFAULT_BUILDING_FOOTPOINT_X = 0.5;
 const DEFAULT_BUILDING_FOOTPOINT_Y = 0.95;
 const HUMAN_BUILDING_GLOBAL_SCALE_MULTIPLIER = 1.08;
@@ -299,40 +298,28 @@ export class CastleScene extends Phaser.Scene {
       const source = this.textures.get(baseKey).getSourceImage();
       const imageWidth = source.width || viewportWidth;
       const imageHeight = source.height || viewportHeight;
-      const renderAspect = renderBounds.width / renderBounds.height;
-      const sourceAspect = imageWidth / imageHeight;
-      const coverSourceWidth = sourceAspect > renderAspect
-        ? imageHeight * renderAspect
-        : imageWidth;
-      const coverSourceHeight = sourceAspect > renderAspect
-        ? imageHeight
-        : imageWidth / renderAspect;
-      const baseSourceX = (imageWidth - coverSourceWidth) / 2;
-      const baseSourceY = (imageHeight - coverSourceHeight) / 2;
-      const sourcePivotShiftUpPx = imageHeight * CASTLE_COVER_SOURCE_PIVOT_SHIFT_RATIO;
-      const sourceYMax = imageHeight - coverSourceHeight;
-      const coverSourceX = Phaser.Math.Clamp(baseSourceX, 0, imageWidth - coverSourceWidth);
-      const coverSourceY = Phaser.Math.Clamp(baseSourceY - sourcePivotShiftUpPx, 0, sourceYMax);
+      const scale = Math.max(renderBounds.width / imageWidth, renderBounds.height / imageHeight);
+      const renderedWidth = imageWidth * scale;
+      const renderedHeight = imageHeight * scale;
+      const minLeft = renderBounds.x + renderBounds.width - renderedWidth;
+      const maxLeft = renderBounds.x;
+      const minTop = renderBounds.y + renderBounds.height - renderedHeight;
+      const maxTop = renderBounds.y;
       const safeBandAnchorY = this.getCastleSafeBandAnchorY(layout);
-      const safeBandTargetInSourceY = coverSourceY + (coverSourceHeight * safeBandAnchorY);
-      const sourceShiftForSafeBand = safeBandTargetInSourceY - (coverSourceHeight * CASTLE_SAFE_BAND_TARGET_VIEWPORT_Y);
-      const sourceShiftForDownwardBias = coverSourceHeight * CASTLE_COVER_VERTICAL_BIAS_RATIO;
-      const sourceY = Phaser.Math.Clamp(
-        sourceShiftForSafeBand + sourceShiftForDownwardBias,
-        0,
-        sourceYMax,
-      );
-      const centerX = renderBounds.centerX;
-      const centerY = renderBounds.centerY;
-      const renderedWidth = renderBounds.width;
-      const renderedHeight = renderBounds.height;
-      const left = renderBounds.x;
-      const top = renderBounds.y;
+      const desiredSafeBandY = renderBounds.y + (renderBounds.height * CASTLE_SAFE_BAND_TARGET_VIEWPORT_Y);
+
+      const centeredLeft = renderBounds.centerX - (renderedWidth / 2);
+      const centeredTop = renderBounds.centerY - (renderedHeight / 2);
+      const focusAdjustedTop = centeredTop + (desiredSafeBandY - (centeredTop + (renderedHeight * safeBandAnchorY)));
+      const downwardBiasPx = renderedHeight * CASTLE_COVER_VERTICAL_BIAS_RATIO;
+      const left = Phaser.Math.Clamp(centeredLeft, minLeft, maxLeft);
+      const top = Phaser.Math.Clamp(focusAdjustedTop + downwardBiasPx, minTop, maxTop);
+      const centerX = left + (renderedWidth / 2);
+      const centerY = top + (renderedHeight / 2);
 
       const baseImage = this.add.image(centerX, centerY, baseKey)
         .setOrigin(0.5)
-        .setDisplaySize(renderedWidth, renderedHeight)
-        .setCrop(coverSourceX, sourceY, coverSourceWidth, coverSourceHeight)
+        .setScale(scale)
         .setInteractive({ useHandCursor: true });
 
       if (onClickCastle) {
@@ -342,10 +329,6 @@ export class CastleScene extends Phaser.Scene {
       this.currentCastleTransform = {
         sourceWidth: imageWidth,
         sourceHeight: imageHeight,
-        sourceRectX: coverSourceX,
-        sourceRectY: sourceY,
-        sourceRectWidth: coverSourceWidth,
-        sourceRectHeight: coverSourceHeight,
         renderedWidth,
         renderedHeight,
         scale: baseImage.scaleX,
@@ -607,18 +590,9 @@ export class CastleScene extends Phaser.Scene {
       const normalizedX = baseWidth > 0 ? anchorLike.x / baseWidth : 0;
       const normalizedY = baseHeight > 0 ? anchorLike.y / baseHeight : 0;
 
-      const sourceRectX = Number.isFinite(transform.sourceRectX) ? transform.sourceRectX : 0;
-      const sourceRectY = Number.isFinite(transform.sourceRectY) ? transform.sourceRectY : 0;
-      const sourceRectWidth = Number.isFinite(transform.sourceRectWidth) ? transform.sourceRectWidth : transform.sourceWidth;
-      const sourceRectHeight = Number.isFinite(transform.sourceRectHeight) ? transform.sourceRectHeight : transform.sourceHeight;
-      const sourcePixelX = normalizedX * transform.sourceWidth;
-      const sourcePixelY = normalizedY * transform.sourceHeight;
-      const normalizedCropX = sourceRectWidth > 0 ? (sourcePixelX - sourceRectX) / sourceRectWidth : 0;
-      const normalizedCropY = sourceRectHeight > 0 ? (sourcePixelY - sourceRectY) / sourceRectHeight : 0;
-
       return {
-        x: transform.baseRectLeft + (normalizedCropX * transform.baseRectWidth),
-        y: transform.baseRectTop + (normalizedCropY * transform.baseRectHeight),
+        x: transform.centerX + ((normalizedX - 0.5) * transform.renderedWidth),
+        y: transform.centerY + ((normalizedY - 0.5) * transform.renderedHeight),
       };
     }
 
@@ -626,18 +600,9 @@ export class CastleScene extends Phaser.Scene {
       && Number.isFinite(anchorLike?.anchorY);
 
     if (transform && hasNormalizedAnchor) {
-      const sourceRectX = Number.isFinite(transform.sourceRectX) ? transform.sourceRectX : 0;
-      const sourceRectY = Number.isFinite(transform.sourceRectY) ? transform.sourceRectY : 0;
-      const sourceRectWidth = Number.isFinite(transform.sourceRectWidth) ? transform.sourceRectWidth : transform.sourceWidth;
-      const sourceRectHeight = Number.isFinite(transform.sourceRectHeight) ? transform.sourceRectHeight : transform.sourceHeight;
-      const sourcePixelX = anchorLike.anchorX * transform.sourceWidth;
-      const sourcePixelY = anchorLike.anchorY * transform.sourceHeight;
-      const normalizedCropX = sourceRectWidth > 0 ? (sourcePixelX - sourceRectX) / sourceRectWidth : 0;
-      const normalizedCropY = sourceRectHeight > 0 ? (sourcePixelY - sourceRectY) / sourceRectHeight : 0;
-
       return {
-        x: transform.baseRectLeft + (normalizedCropX * transform.baseRectWidth),
-        y: transform.baseRectTop + (normalizedCropY * transform.baseRectHeight),
+        x: transform.centerX + ((anchorLike.anchorX - 0.5) * transform.renderedWidth),
+        y: transform.centerY + ((anchorLike.anchorY - 0.5) * transform.renderedHeight),
       };
     }
 
