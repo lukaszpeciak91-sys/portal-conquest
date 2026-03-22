@@ -4,6 +4,7 @@
   "baseImage": "castle_base.png",
   "baseWidth": 2048,
   "baseHeight": 1152,
+  "coverPivotY": 0.55,
   "anchorOrigin": "footpoint",
   "defaultFootpointX": 0.5,
   "defaultFootpointY": 0.95,

@@ -149,6 +149,7 @@ Debug/dev enforcement rule: when overlay bounds significantly exceed the slot-lo
 Rendering contract (permanent):
 
 - Castle base rendering uses **fullscreen-style cover scaling** (`Math.max(...)`) inside playable bounds to remove visible side margins in intended presentation.
+- Castle cover framing uses a standardized vertical pivot target of **55%** (`coverPivotY = 0.55`) unless an explicit layout override is intentionally authored.
 - Controlled crop is explicitly accepted as part of the castle presentation contract.
 - Castle framing keeps a deterministic gameplay-safe readable band by targeting the authored slot/build-anchor region in visible space.
 - Slot/build anchors remain mapped against the same rendered base rect (`currentCastleTransform`) so overlays stay geometrically locked to castle art under resize/crop.

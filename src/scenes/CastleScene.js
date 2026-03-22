@@ -16,7 +16,7 @@ const BUILD_GLOW_TEXTURE_KEY = 'castle-build-glow';
 const DEFAULT_COURTYARD_BOUNDARY_Y = 0.72;
 const CASTLE_SAFE_BAND_TARGET_VIEWPORT_Y = 0.58;
 const CASTLE_SAFE_BAND_FALLBACK_ANCHOR_Y = 0.6;
-const CASTLE_COVER_PIVOT_SHIFT_Y = 0.05;
+const DEFAULT_CASTLE_COVER_PIVOT_Y = 0.55;
 const DEFAULT_BUILDING_FOOTPOINT_X = 0.5;
 const DEFAULT_BUILDING_FOOTPOINT_Y = 0.95;
 const HUMAN_BUILDING_GLOBAL_SCALE_MULTIPLIER = 1.08;
@@ -290,6 +290,15 @@ export class CastleScene extends Phaser.Scene {
     return 1;
   }
 
+  getCastleCoverPivotY(layout) {
+    const layoutPivotY = layout?.coverPivotY;
+    if (Number.isFinite(layoutPivotY)) {
+      return Phaser.Math.Clamp(layoutPivotY, 0, 1);
+    }
+
+    return DEFAULT_CASTLE_COVER_PIVOT_Y;
+  }
+
   renderBaseLayer(viewportWidth, viewportHeight, baseKey, layout, onClickCastle) {
     const hasBaseTexture = textureExists(this, baseKey);
 
@@ -302,7 +311,7 @@ export class CastleScene extends Phaser.Scene {
       const renderedWidth = imageWidth * scale;
       const renderedHeight = imageHeight * scale;
       const originX = 0.5;
-      const originY = Phaser.Math.Clamp(0.5 + CASTLE_COVER_PIVOT_SHIFT_Y, 0, 1);
+      const originY = this.getCastleCoverPivotY(layout);
       const minX = renderBounds.x + renderBounds.width - ((1 - originX) * renderedWidth);
       const maxX = renderBounds.x + (originX * renderedWidth);
       const minY = renderBounds.y + renderBounds.height - ((1 - originY) * renderedHeight);
