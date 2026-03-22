@@ -105,3 +105,9 @@ Normalize anchor field access in `CastleScene` placement logic.
 - Verified slot/build anchor mapping path was already stable: anchor/base-space coordinates resolve through `currentCastleTransform` rendered-base rect math, so overlays were geometrically tied to the same base rect as the castle image.
 - Implemented change: base rendering now uses cover-fit (`Math.max(...)`) with deterministic safe-band Y targeting derived from authored slot/build-anchor data; overlay mapping path is unchanged and remains tied to rendered base rect.
 - Added a single explicit human-overlay global multiplier in the existing composed scale path for a modest size increase without per-building magic spread.
+
+## 2026-03-22 — Castle render-contract stabilization pass (implementation conclusion)
+- Fixed `getCastleRenderBounds()` into one valid implementation path backed by `getPlayableBounds(...)`, and standardized runtime naming to `castleRenderRect` as the single render-space source-of-truth.
+- Aligned base rendering, transform snapshot (`currentCastleTransform`), measurement payload, and overlay/debug labeling to the same `castleRenderRect` contract (removed ambiguous `castlePlayableRect` labeling).
+- Removed stacked calibration offsets from active placement math (slot/calibration footpoint corrections no longer silently layer into runtime building placement).
+- Gated calibration anchor-map overlay behind explicit debug opt-in (`window.__castleCalibrationOverlayDebug`) so slot/anchor overlays do not stack by default.
