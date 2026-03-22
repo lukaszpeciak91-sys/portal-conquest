@@ -27,6 +27,7 @@ const FULL_CANVAS_OVERLAY_WARNING_RATIO = 0.85;
 const OVERSIZED_OVERLAY_SIDE_RATIO = 0.55;
 const OVERLAY_LOCAL_BOUNDS_WIDTH_MULTIPLIER = 1.75;
 const OVERLAY_LOCAL_BOUNDS_HEIGHT_MULTIPLIER = 1.85;
+const CASTLE_MEASUREMENT_LOG_PREFIX = '[CastleMeasurement]';
 const FINALIZED_MVP_BUILDING_IDS = [
   'barracks',
   'archery_range',
@@ -73,8 +74,10 @@ export class CastleScene extends Phaser.Scene {
     this.pendingBuildGlowById = null;
     this.debugEnabled = Boolean(window.gameUi?.isDebugEnabled?.() ?? false);
     this.calibration = this.getCalibrationSettings();
+    const measurementOverlayEnabled = this.debugEnabled || Boolean(window.__castleMeasureDebug);
     this.debugOptions = {
-      showPlacementMarkers: this.debugEnabled,
+      showPlacementMarkers: measurementOverlayEnabled,
+      showMeasurementOverlay: measurementOverlayEnabled,
     };
     this.renderCastleLayers(viewport.width, viewport.height);
 
@@ -127,7 +130,9 @@ export class CastleScene extends Phaser.Scene {
   setDebugEnabled(enabled) {
     this.debugEnabled = Boolean(enabled);
     this.calibration = this.getCalibrationSettings();
-    this.debugOptions.showPlacementMarkers = this.debugEnabled;
+    const measurementOverlayEnabled = this.debugEnabled || Boolean(window.__castleMeasureDebug);
+    this.debugOptions.showPlacementMarkers = measurementOverlayEnabled;
+    this.debugOptions.showMeasurementOverlay = measurementOverlayEnabled;
     const currentViewport = this.getSafeViewportSize({ width: this.scale.width, height: this.scale.height })
       ?? { width: this.scale.width, height: this.scale.height };
     this.renderCastleLayers(currentViewport.width, currentViewport.height);
@@ -408,6 +413,14 @@ export class CastleScene extends Phaser.Scene {
       };
 
       this.baseLayer.add(baseImage);
+      this.publishCastleMeasurement({
+        viewportWidth,
+        viewportHeight,
+        renderBounds,
+        baseImage,
+        cropTop,
+        visibleHeight,
+      });
 
       if (this.calibration?.enabled) {
         this.renderCalibrationOverlay({
@@ -431,6 +444,14 @@ export class CastleScene extends Phaser.Scene {
 
     this.baseLayer.add([fallbackBackground, fallbackPlaceholder]);
     this.currentCastleTransform = null;
+    this.publishCastleMeasurement({
+      viewportWidth,
+      viewportHeight,
+      renderBounds: this.getCastleRenderBounds(viewportWidth, viewportHeight),
+      baseImage: null,
+      cropTop: null,
+      visibleHeight: null,
+    });
   }
 
   getCourtyardBoundaryY(layout) {
@@ -681,6 +702,195 @@ export class CastleScene extends Phaser.Scene {
     graphics.strokeRect(x, y, width, height);
     graphics.setDepth((Number.isFinite(z) ? z : 0) + 0.2);
     this.debugSlotLayer.add(graphics);
+  }
+
+  renderDebugLine({ x1, y1, x2, y2, z, color = 0xffffff, alpha = 0.9, lineWidth = 1 }) {
+    if (!this.debugOptions?.showPlacementMarkers) {
+      return;
+    }
+
+    if (!(Number.isFinite(x1) && Number.isFinite(y1) && Number.isFinite(x2) && Number.isFinite(y2))) {
+      return;
+    }
+
+    const graphics = this.add.graphics();
+    graphics.lineStyle(lineWidth, color, alpha);
+    graphics.lineBetween(x1, y1, x2, y2);
+    graphics.setDepth((Number.isFinite(z) ? z : 0) + 0.2);
+    this.debugSlotLayer.add(graphics);
+  }
+
+  hasAncestorClipOrMask(displayObject) {
+    let current = displayObject?.parentContainer ?? null;
+    while (current) {
+      if (current.mask || current.scrollRect) {
+        return true;
+      }
+      current = current.parentContainer ?? null;
+    }
+    return false;
+  }
+
+  publishCastleMeasurement({
+    viewportWidth,
+    viewportHeight,
+    renderBounds,
+    baseImage = null,
+    cropTop = null,
+    visibleHeight = null,
+  }) {
+    if (!renderBounds) {
+      return;
+    }
+
+    const topHudHeight = renderBounds.y;
+    const bottomNavHeight = Math.max(0, viewportHeight - (renderBounds.y + renderBounds.height));
+    const renderedCastleRect = this.currentCastleTransform
+      ? {
+        x: this.currentCastleTransform.baseRectLeft,
+        y: this.currentCastleTransform.baseRectTop,
+        width: this.currentCastleTransform.baseRectWidth,
+        height: this.currentCastleTransform.baseRectHeight,
+      }
+      : null;
+    const sourceCropRect = this.currentCastleTransform
+      ? {
+        x: 0,
+        y: this.currentCastleTransform.sourceCropTop,
+        width: this.currentCastleTransform.sourceWidth,
+        height: this.currentCastleTransform.sourceCropHeight,
+      }
+      : null;
+    const imageBounds = baseImage?.getBounds?.() ?? null;
+    const hasAncestorClip = this.hasAncestorClipOrMask(baseImage);
+    const hasImageCrop = Boolean(baseImage?.isCropped);
+    const clippedByPlayableRect = Boolean(
+      imageBounds
+      && (imageBounds.left < renderBounds.x
+        || imageBounds.right > (renderBounds.x + renderBounds.width)
+        || imageBounds.top < renderBounds.y
+        || imageBounds.bottom > (renderBounds.y + renderBounds.height)),
+    );
+
+    this.latestCastleMeasurement = {
+      viewport: {
+        width: viewportWidth,
+        height: viewportHeight,
+      },
+      topHudHeight,
+      bottomNavHeight,
+      castlePlayableRect: {
+        x: renderBounds.x,
+        y: renderBounds.y,
+        width: renderBounds.width,
+        height: renderBounds.height,
+      },
+      renderedCastleImageRect: renderedCastleRect,
+      sourceCropRect,
+      clipping: {
+        hasImageCrop,
+        hasAncestorClipOrMask: hasAncestorClip,
+        clippedByPlayableRect,
+        secondContainerClipDetected: hasAncestorClip,
+      },
+      slotCoordinateSpaces: {
+        slotCenters: 'source image space (layout base pixels), projected into rendered image rect',
+        buildAnchors: 'source image space (layout base pixels), projected into rendered image rect',
+      },
+      diagnostics: {
+        cropTop,
+        visibleHeight,
+      },
+    };
+
+    if (typeof window !== 'undefined') {
+      window.__castleMeasurement = this.latestCastleMeasurement;
+    }
+
+    console.info(CASTLE_MEASUREMENT_LOG_PREFIX, this.latestCastleMeasurement);
+  }
+
+  renderMeasurementOverlay(layout) {
+    if (!this.debugOptions?.showMeasurementOverlay) {
+      return;
+    }
+
+    const measurement = this.latestCastleMeasurement;
+    if (!measurement) {
+      return;
+    }
+
+    const viewportRect = {
+      x: 0,
+      y: 0,
+      width: measurement.viewport.width,
+      height: measurement.viewport.height,
+    };
+    const playableRect = measurement.castlePlayableRect;
+    const renderedRect = measurement.renderedCastleImageRect;
+
+    this.renderDebugRect({
+      ...viewportRect,
+      z: 1000,
+      color: 0x38bdf8,
+      alpha: 0.95,
+      lineWidth: 2,
+    });
+    this.renderDebugRect({
+      ...playableRect,
+      z: 1001,
+      color: 0xf59e0b,
+      alpha: 0.95,
+      lineWidth: 2,
+    });
+
+    if (renderedRect) {
+      this.renderDebugRect({
+        ...renderedRect,
+        z: 1002,
+        color: 0x22c55e,
+        alpha: 0.95,
+        lineWidth: 2,
+      });
+    }
+
+    if (renderedRect) {
+      const slotBandY = this.getCourtyardBoundaryY(layout);
+      if (Number.isFinite(slotBandY)) {
+        const bandWorldY = renderedRect.y + (renderedRect.height * slotBandY);
+        this.renderDebugLine({
+          x1: renderedRect.x,
+          y1: bandWorldY,
+          x2: renderedRect.x + renderedRect.width,
+          y2: bandWorldY,
+          z: 1003,
+          color: 0xe879f9,
+          alpha: 0.95,
+          lineWidth: 2,
+        });
+      }
+    }
+
+    const label = this.add.text(10, 10, [
+      `viewport: ${Math.round(measurement.viewport.width)} x ${Math.round(measurement.viewport.height)}`,
+      `top HUD: ${Math.round(measurement.topHudHeight)} px`,
+      `bottom nav: ${Math.round(measurement.bottomNavHeight)} px`,
+      `playable: x=${Math.round(playableRect.x)} y=${Math.round(playableRect.y)} w=${Math.round(playableRect.width)} h=${Math.round(playableRect.height)}`,
+      renderedRect
+        ? `rendered image: x=${Math.round(renderedRect.x)} y=${Math.round(renderedRect.y)} w=${Math.round(renderedRect.width)} h=${Math.round(renderedRect.height)}`
+        : 'rendered image: n/a',
+      measurement.sourceCropRect
+        ? `source crop: x=${Math.round(measurement.sourceCropRect.x)} y=${Math.round(measurement.sourceCropRect.y)} w=${Math.round(measurement.sourceCropRect.width)} h=${Math.round(measurement.sourceCropRect.height)}`
+        : 'source crop: n/a',
+      `second clip: ${measurement.clipping.secondContainerClipDetected ? 'yes' : 'no'}`,
+    ], {
+      color: '#e2e8f0',
+      fontFamily: 'monospace',
+      fontSize: '12px',
+      backgroundColor: '#020617cc',
+      padding: { x: 8, y: 6 },
+    }).setDepth(2100);
+    this.debugSlotLayer.add(label);
   }
 
   renderCalibrationOverlay({ layout, cropTop, visibleHeight }) {
@@ -1192,6 +1402,7 @@ export class CastleScene extends Phaser.Scene {
       buildingSet,
       onClickConstruct: () => this.openBuildPanel(),
     });
+    this.renderMeasurementOverlay(layout);
   }
 
   handleResize(gameSize) {
