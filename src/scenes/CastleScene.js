@@ -351,10 +351,10 @@ export class CastleScene extends Phaser.Scene {
   }
 
   renderBaseLayer(viewportWidth, viewportHeight, baseKey, layout, onClickCastle) {
+    const renderBounds = this.getCastleRenderBounds(viewportWidth, viewportHeight);
     const hasBaseTexture = textureExists(this, baseKey);
 
     if (hasBaseTexture) {
-      const renderBounds = this.getCastleRenderBounds(viewportWidth, viewportHeight);
       const source = this.textures.get(baseKey).getSourceImage();
       const imageWidth = source.width || viewportWidth;
       const imageHeight = source.height || viewportHeight;
@@ -370,9 +370,7 @@ export class CastleScene extends Phaser.Scene {
       const originY = 0;
       const centerX = renderBounds.centerX;
       const top = renderBounds.y;
-      const gapTopPx = Math.max(0, top);
-      const translatedTop = top - gapTopPx;
-      const centerY = translatedTop;
+      const centerY = top;
       const left = centerX - (originX * renderedWidth);
       const safeBandAnchorY = this.getCastleSafeBandAnchorY(layout);
 
@@ -397,10 +395,9 @@ export class CastleScene extends Phaser.Scene {
         centerX: baseImage.x,
         centerY: baseImage.y,
         baseRectLeft: left,
-        baseRectTop: translatedTop,
+        baseRectTop: top,
         baseRectWidth: renderedWidth,
         baseRectHeight: renderedHeight,
-        topGapTranslationPx: gapTopPx,
         safeBandAnchorY,
         safeBandViewportY: CASTLE_SAFE_BAND_TARGET_VIEWPORT_Y,
         originX,
@@ -419,7 +416,13 @@ export class CastleScene extends Phaser.Scene {
       return;
     }
 
-    const fallbackBackground = this.add.rectangle(viewportWidth / 2, viewportHeight / 2, viewportWidth, viewportHeight, 0x101828);
+    const fallbackBackground = this.add.rectangle(
+      renderBounds.centerX,
+      renderBounds.centerY,
+      renderBounds.width,
+      renderBounds.height,
+      0x101828,
+    );
     const fallbackPlaceholder = addFallbackPlaceholder(this, {
       x: viewportWidth / 2,
       y: viewportHeight / 2,
