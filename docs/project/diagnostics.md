@@ -111,3 +111,9 @@ Normalize anchor field access in `CastleScene` placement logic.
 - Aligned base rendering, transform snapshot (`currentCastleTransform`), measurement payload, and overlay/debug labeling to the same `castleRenderRect` contract (removed ambiguous `castlePlayableRect` labeling).
 - Removed stacked calibration offsets from active placement math (slot/calibration footpoint corrections no longer silently layer into runtime building placement).
 - Gated calibration anchor-map overlay behind explicit debug opt-in (`window.__castleCalibrationOverlayDebug`) so slot/anchor overlays do not stack by default.
+
+## 2026-03-23 — CastleScene lifecycle rebuild failure (diagnostic)
+- Single intended rebuild path is `CastleScene.handleResize(...) -> renderCastleLayers(...)`, but fullscreen/orientation flows also call `game.scale.resize(...)` from `main.js`, and `syncViewport(...)` short-circuits when dimensions are unchanged; this can skip relayout while UI/orientation state still changes.
+- Fullscreen enter/exit and orientation listeners are owned in `main.js`; `CastleScene` itself only listens to Phaser scale resize and does not bind wake/resume/orientation/fullscreen lifecycle hooks, so recovery depends on resize dispatch ordering.
+- `renderCastleLayers(...)` clears all layer containers each rebuild and relies on `renderBaseLayer(...)` to repopulate `currentCastleTransform`/measurement before building projection; when viewport updates are skipped or invalid (`<64` side), stale transform + stale measurement can coexist with freshly cleared/rebuilt layers.
+- Black-screen reports are consistent with invalid/short-circuited viewport application paths (`syncViewport` invalid/reuse branches) combined with missing guaranteed final relayout for non-fullscreen orientation changes.
