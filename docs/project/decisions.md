@@ -153,6 +153,8 @@ Rendering contract (permanent):
 - Controlled crop is explicitly accepted as part of the castle presentation contract.
 - Castle framing keeps a deterministic gameplay-safe readable band by targeting the authored slot/build-anchor region in visible space.
 - Slot/build anchors remain mapped against the same rendered base rect (`currentCastleTransform`) so overlays stay geometrically locked to castle art under resize/crop.
+- **Mobile landscape CastleScene uses an explicit source-space visible band** (`visibleBandTopY = 100`, `visibleBandBottomY = 660` on `public/assets/castles/faction01/castle_base.png` at `1536x1024`) as the framing source of truth.
+- On mobile CastleScene, compact top-right controls intentionally **overlay the castle image** (no reserved black top gap); bottom mode bar remains below the lower gameplay-safe boundary.
 
 Interaction zone split:
 

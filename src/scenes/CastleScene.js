@@ -18,6 +18,9 @@ const CASTLE_SAFE_BAND_TARGET_VIEWPORT_Y = 0.58;
 const CASTLE_SAFE_BAND_FALLBACK_ANCHOR_Y = 0.6;
 const CASTLE_SOURCE_CROP_TOP_TARGET_Y = 100;
 const CASTLE_SOURCE_CROP_BOTTOM_TARGET_Y = 660;
+const MOBILE_CASTLE_VISIBLE_BAND_TOP_Y = 100;
+const MOBILE_CASTLE_VISIBLE_BAND_BOTTOM_Y = 660;
+const MOBILE_VIEWPORT_MAX_WIDTH = 1024;
 const DEFAULT_BUILDING_FOOTPOINT_X = 0.5;
 const DEFAULT_BUILDING_FOOTPOINT_Y = 0.95;
 const HUMAN_CASTLE_FINAL_COVER_FOCUS_Y = 0.36;
@@ -350,6 +353,60 @@ export class CastleScene extends Phaser.Scene {
     return Phaser.Math.Clamp(unclampedCropTop, 0, maxCropTop);
   }
 
+  isMobileLandscapeCastleFraming(viewportWidth, viewportHeight) {
+    const isLandscape = viewportWidth > viewportHeight;
+    const isCoarsePointer = typeof window !== 'undefined'
+      ? Boolean(window.matchMedia?.('(pointer: coarse)')?.matches)
+      : false;
+    const isMobileWidth = viewportWidth <= MOBILE_VIEWPORT_MAX_WIDTH;
+    return isLandscape && (isCoarsePointer || isMobileWidth);
+  }
+
+  getMobileVisibleSourceBand(imageHeight) {
+    const top = Phaser.Math.Clamp(MOBILE_CASTLE_VISIBLE_BAND_TOP_Y, 0, Math.max(0, imageHeight - 1));
+    const bottom = Phaser.Math.Clamp(MOBILE_CASTLE_VISIBLE_BAND_BOTTOM_Y, top + 1, imageHeight);
+    return {
+      top,
+      bottom,
+      height: bottom - top,
+    };
+  }
+
+  getMobileBandFramedBaseLayout({
+    castleRenderRect,
+    imageWidth,
+    imageHeight,
+  }) {
+    const visibleBand = this.getMobileVisibleSourceBand(imageHeight);
+    const minScaleForViewportWidth = castleRenderRect.width / imageWidth;
+    const maxScaleToKeepBandVisible = castleRenderRect.height / visibleBand.height;
+    const scale = maxScaleToKeepBandVisible > 0
+      ? Math.min(minScaleForViewportWidth, maxScaleToKeepBandVisible)
+      : minScaleForViewportWidth;
+    const safeScale = Number.isFinite(scale) && scale > 0
+      ? scale
+      : Math.max(minScaleForViewportWidth, 0.0001);
+    const renderedWidth = imageWidth * safeScale;
+    const visibleHeight = Phaser.Math.Clamp(castleRenderRect.height / safeScale, 1, imageHeight);
+    const cropTopLowerBound = Math.max(0, visibleBand.bottom - visibleHeight);
+    const cropTopUpperBound = Math.min(imageHeight - visibleHeight, visibleBand.top);
+    const preferredCropTop = visibleBand.bottom - visibleHeight;
+    const cropTop = cropTopLowerBound <= cropTopUpperBound
+      ? Phaser.Math.Clamp(preferredCropTop, cropTopLowerBound, cropTopUpperBound)
+      : Phaser.Math.Clamp(preferredCropTop, 0, Math.max(0, imageHeight - visibleHeight));
+
+    return {
+      cropTop,
+      visibleHeight,
+      scale: safeScale,
+      renderedWidth,
+      renderedHeight: visibleHeight * safeScale,
+      visibleBandTop: visibleBand.top,
+      visibleBandBottom: visibleBand.bottom,
+      visibleBandHeight: visibleBand.height,
+    };
+  }
+
   renderBaseLayer(viewportWidth, viewportHeight, baseKey, layout, onClickCastle) {
     const castleRenderRect = this.getCastleRenderBounds(viewportWidth, viewportHeight);
     const hasBaseTexture = textureExists(this, baseKey);
@@ -358,22 +415,40 @@ export class CastleScene extends Phaser.Scene {
       const source = this.textures.get(baseKey).getSourceImage();
       const imageWidth = source.width || viewportWidth;
       const imageHeight = source.height || viewportHeight;
-      const scale = Math.max(castleRenderRect.width / imageWidth, castleRenderRect.height / imageHeight);
-      const renderedWidth = imageWidth * scale;
-      const visibleHeight = castleRenderRect.height / scale;
-      const cropTop = this.getCastleSourceCropTop(imageHeight, visibleHeight);
-      const renderedHeight = visibleHeight * scale;
+      const useMobileBandFraming = Boolean(castleRenderRect.useMobileBandFraming);
+      const framing = useMobileBandFraming
+        ? this.getMobileBandFramedBaseLayout({
+          castleRenderRect,
+          imageWidth,
+          imageHeight,
+        })
+        : (() => {
+          const scale = Math.max(castleRenderRect.width / imageWidth, castleRenderRect.height / imageHeight);
+          const renderedWidth = imageWidth * scale;
+          const visibleHeight = castleRenderRect.height / scale;
+          const cropTop = this.getCastleSourceCropTop(imageHeight, visibleHeight);
+          return {
+            cropTop,
+            visibleHeight,
+            scale,
+            renderedWidth,
+            renderedHeight: visibleHeight * scale,
+            visibleBandTop: null,
+            visibleBandBottom: null,
+            visibleBandHeight: null,
+          };
+        })();
       const originX = 0.5;
       const originY = 0;
       const centerX = castleRenderRect.centerX;
       const renderedImageY = castleRenderRect.y;
-      const left = centerX - (originX * renderedWidth);
+      const left = centerX - (originX * framing.renderedWidth);
       const safeBandAnchorY = this.getCastleSafeBandAnchorY(layout);
 
       const baseImage = this.add.image(centerX, renderedImageY, baseKey)
         .setOrigin(originX, originY)
-        .setCrop(0, cropTop, imageWidth, visibleHeight)
-        .setScale(scale)
+        .setCrop(0, framing.cropTop, imageWidth, framing.visibleHeight)
+        .setScale(framing.scale)
         .setInteractive({ useHandCursor: true });
 
       if (onClickCastle) {
@@ -383,21 +458,25 @@ export class CastleScene extends Phaser.Scene {
       this.currentCastleTransform = {
         sourceWidth: imageWidth,
         sourceHeight: imageHeight,
-        sourceCropTop: cropTop,
-        sourceCropHeight: visibleHeight,
-        renderedWidth,
-        renderedHeight,
+        sourceCropTop: framing.cropTop,
+        sourceCropHeight: framing.visibleHeight,
+        renderedWidth: framing.renderedWidth,
+        renderedHeight: framing.renderedHeight,
         scale: baseImage.scaleX,
         centerX: baseImage.x,
         centerY: baseImage.y,
         baseRectLeft: left,
         baseRectTop: renderedImageY,
-        baseRectWidth: renderedWidth,
-        baseRectHeight: renderedHeight,
+        baseRectWidth: framing.renderedWidth,
+        baseRectHeight: framing.renderedHeight,
         safeBandAnchorY,
         safeBandViewportY: CASTLE_SAFE_BAND_TARGET_VIEWPORT_Y,
         originX,
         originY,
+        useMobileBandFraming,
+        visibleBandTop: framing.visibleBandTop,
+        visibleBandBottom: framing.visibleBandBottom,
+        visibleBandHeight: framing.visibleBandHeight,
       };
 
       this.baseLayer.add(baseImage);
@@ -406,15 +485,15 @@ export class CastleScene extends Phaser.Scene {
         viewportHeight,
         castleRenderRect,
         baseImage,
-        cropTop,
-        visibleHeight,
+        cropTop: framing.cropTop,
+        visibleHeight: framing.visibleHeight,
       });
 
       if (this.shouldRenderCalibrationOverlay()) {
         this.renderCalibrationOverlay({
           layout,
-          cropTop,
-          visibleHeight,
+          cropTop: framing.cropTop,
+          visibleHeight: framing.visibleHeight,
         });
       }
       return;
@@ -735,14 +814,26 @@ export class CastleScene extends Phaser.Scene {
     const viewportHeight = measurement.viewport?.height ?? null;
     const topHUD = measurement.topHudHeight ?? null;
     const bottomNav = measurement.bottomNavHeight ?? null;
+    const topHudOverlay = measurement.topHudOverlayHeight ?? 0;
     const castleRenderRect = measurement.castleRenderRect ?? null;
     const renderedImageRect = measurement.renderedCastleImageRect ?? null;
+    const usingMobileBandFraming = Boolean(measurement.mobileFraming?.enabled);
 
     const checks = {
-      startsAtHudBottom: Boolean(
+      startsAtHudBottomWhenReserved: Boolean(
         castleRenderRect
         && Number.isFinite(topHUD)
+        && (!usingMobileBandFraming || topHUD === 0)
         && castleRenderRect.y === topHUD,
+      ),
+      overlaysHudOnMobile: Boolean(
+        !usingMobileBandFraming
+        || (
+          castleRenderRect
+          && castleRenderRect.y === 0
+          && Number.isFinite(topHudOverlay)
+          && topHudOverlay >= 0
+        ),
       ),
       fillsPlayableHeight: Boolean(
         castleRenderRect
@@ -769,9 +860,11 @@ export class CastleScene extends Phaser.Scene {
     console.info('[CastleRenderContract]', {
       viewportHeight,
       topHUD,
+      topHudOverlay,
       bottomNav,
       castleRenderRect,
       renderedImageRect,
+      usingMobileBandFraming,
       checks,
       verdict: renderContractCorrect ? 'render contract correct' : 'render contract incorrect',
     });
@@ -790,6 +883,9 @@ export class CastleScene extends Phaser.Scene {
     }
 
     const topHudHeight = castleRenderRect.y;
+    const topHudOverlayHeight = Number.isFinite(castleRenderRect.mobileTopOverlayHeight)
+      ? castleRenderRect.mobileTopOverlayHeight
+      : 0;
     const bottomNavHeight = Math.max(0, viewportHeight - (castleRenderRect.y + castleRenderRect.height));
     const renderedCastleRect = this.currentCastleTransform
       ? {
@@ -824,6 +920,7 @@ export class CastleScene extends Phaser.Scene {
         height: viewportHeight,
       },
       topHudHeight,
+      topHudOverlayHeight,
       bottomNavHeight,
       castleRenderRect: {
         x: castleRenderRect.x,
@@ -846,6 +943,12 @@ export class CastleScene extends Phaser.Scene {
       diagnostics: {
         cropTop,
         visibleHeight,
+      },
+      mobileFraming: {
+        enabled: Boolean(castleRenderRect.useMobileBandFraming),
+        visibleBandTop: this.currentCastleTransform?.visibleBandTop ?? null,
+        visibleBandBottom: this.currentCastleTransform?.visibleBandBottom ?? null,
+        visibleBandHeight: this.currentCastleTransform?.visibleBandHeight ?? null,
       },
     };
 
@@ -921,6 +1024,7 @@ export class CastleScene extends Phaser.Scene {
     const label = this.add.text(10, 10, [
       `viewport: ${Math.round(measurement.viewport.width)} x ${Math.round(measurement.viewport.height)}`,
       `top HUD: ${Math.round(measurement.topHudHeight)} px`,
+      `top HUD overlay: ${Math.round(measurement.topHudOverlayHeight ?? 0)} px`,
       `bottom nav: ${Math.round(measurement.bottomNavHeight)} px`,
       `castleRenderRect: x=${Math.round(castleRenderRect.x)} y=${Math.round(castleRenderRect.y)} w=${Math.round(castleRenderRect.width)} h=${Math.round(castleRenderRect.height)}`,
       renderedRect
@@ -1411,18 +1515,34 @@ export class CastleScene extends Phaser.Scene {
   }
 
   getCastleRenderBounds(viewportWidth, viewportHeight) {
-    const castleRenderRect = getPlayableBounds({
+    const playableBounds = getPlayableBounds({
       viewportWidth,
       viewportHeight,
       minViewportSide: MIN_VALID_VIEWPORT_SIDE,
       minPlayableHeight: MIN_VALID_PLAYABLE_HEIGHT,
     });
+    const useMobileBandFraming = this.isMobileLandscapeCastleFraming(viewportWidth, viewportHeight);
+    const mobileTopOverlayHeight = useMobileBandFraming
+      ? Phaser.Math.Clamp(playableBounds.y, 0, viewportHeight)
+      : 0;
+    const mobileCastleHeight = useMobileBandFraming
+      ? Math.max(MIN_VALID_PLAYABLE_HEIGHT, playableBounds.y + playableBounds.height)
+      : playableBounds.height;
+    const castleRenderRect = useMobileBandFraming
+      ? {
+        ...playableBounds,
+        y: 0,
+        height: mobileCastleHeight,
+      }
+      : playableBounds;
 
     return {
       ...castleRenderRect,
       centerX: castleRenderRect.x + (castleRenderRect.width / 2),
       centerY: castleRenderRect.y + (castleRenderRect.height / 2),
-      hasMeasuredBars: castleRenderRect.y > 0,
+      hasMeasuredBars: playableBounds.y > 0,
+      useMobileBandFraming,
+      mobileTopOverlayHeight,
     };
   }
 

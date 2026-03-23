@@ -10,7 +10,7 @@
 - **Scene architecture:** `SceneRouter` is established and used for scene transitions.
 - **Runtime state layer:** `GameState` + runtime node state helpers are implemented as central run/session state.
 - **Data-driven baseline:** map/config/faction JSON loading is in place.
-- **Castle layered rendering + visual polish:** `CastleScene` now renders faction01 `castle_base.png` inside playable bounds using cover-fit + safe-band framing to remove side margins in normal presentation while preserving slot readability with compact top-right controls and bottom mode navigation behavior.
+- **Castle layered rendering + visual polish:** `CastleScene` now keeps a mobile-landscape explicit gameplay-safe source band (`100..660` in base-space) always visible, allows compact top-right controls to overlay the image (no reserved top gap), and keeps bottom navigation below the lower gameplay-safe boundary while preserving slot/building alignment through the shared `currentCastleTransform`.
 - **Documentation governance hardening:** strict per-file documentation update policy is now defined in `docs/project/workflow.md` to keep project knowledge centralized and reduce cross-file drift.
 
 ### Castle Building Placement System
