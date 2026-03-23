@@ -86,12 +86,8 @@ export class CastleScene extends Phaser.Scene {
     this.renderCastleLayers(viewport.width, viewport.height);
 
     this.scale.on('resize', this.handleResize, this);
-    this.scale.on(Phaser.Scale.Events.ENTER_FULLSCREEN, this.handleFullscreenTransition, this);
-    this.scale.on(Phaser.Scale.Events.LEAVE_FULLSCREEN, this.handleFullscreenTransition, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.scale.off('resize', this.handleResize, this);
-      this.scale.off(Phaser.Scale.Events.ENTER_FULLSCREEN, this.handleFullscreenTransition, this);
-      this.scale.off(Phaser.Scale.Events.LEAVE_FULLSCREEN, this.handleFullscreenTransition, this);
       window.removeEventListener('portal:castle-build', this.handleBuildSelection);
     });
 
@@ -280,13 +276,6 @@ export class CastleScene extends Phaser.Scene {
     layerContainer?.removeAll(true);
   }
 
-  resetCastleRuntimeSnapshot() {
-    this.currentCastleTransform = null;
-    this.currentRenderSnapshot = null;
-    this.latestProjectedSlots = [];
-    this.latestProjectedBuildings = [];
-  }
-
   getCastleSafeBandAnchorY(layout) {
     const slots = Array.isArray(layout?.slots) ? layout.slots : [];
     const buildAnchorYs = slots
@@ -418,64 +407,64 @@ export class CastleScene extends Phaser.Scene {
     };
   }
 
-  buildCastleTransform({ viewportWidth, viewportHeight, baseKey, layout }) {
+  renderBaseLayer(viewportWidth, viewportHeight, baseKey, layout, onClickCastle) {
     const castleRenderRect = this.getCastleRenderBounds(viewportWidth, viewportHeight);
     const hasBaseTexture = textureExists(this, baseKey);
 
-    if (!hasBaseTexture) {
-      return {
-        castleRenderRect,
-        hasBaseTexture: false,
-        transform: null,
-      };
-    }
+    if (hasBaseTexture) {
+      const source = this.textures.get(baseKey).getSourceImage();
+      const imageWidth = source.width || viewportWidth;
+      const imageHeight = source.height || viewportHeight;
+      const useMobileBandFraming = Boolean(castleRenderRect.useMobileBandFraming);
+      const framing = useMobileBandFraming
+        ? this.getMobileBandFramedBaseLayout({
+          castleRenderRect,
+          imageWidth,
+          imageHeight,
+        })
+        : (() => {
+          const scale = Math.max(castleRenderRect.width / imageWidth, castleRenderRect.height / imageHeight);
+          const renderedWidth = imageWidth * scale;
+          const visibleHeight = castleRenderRect.height / scale;
+          const cropTop = this.getCastleSourceCropTop(imageHeight, visibleHeight);
+          return {
+            cropTop,
+            visibleHeight,
+            scale,
+            renderedWidth,
+            renderedHeight: visibleHeight * scale,
+            visibleBandTop: null,
+            visibleBandBottom: null,
+            visibleBandHeight: null,
+          };
+        })();
+      const originX = 0.5;
+      const originY = 0;
+      const centerX = castleRenderRect.centerX;
+      const renderedImageY = castleRenderRect.y;
+      const left = centerX - (originX * framing.renderedWidth);
+      const safeBandAnchorY = this.getCastleSafeBandAnchorY(layout);
 
-    const source = this.textures.get(baseKey).getSourceImage();
-    const imageWidth = source.width || viewportWidth;
-    const imageHeight = source.height || viewportHeight;
-    const useMobileBandFraming = Boolean(castleRenderRect.useMobileBandFraming);
-    const framing = useMobileBandFraming
-      ? this.getMobileBandFramedBaseLayout({
-        castleRenderRect,
-        imageWidth,
-        imageHeight,
-      })
-      : (() => {
-        const scale = Math.max(castleRenderRect.width / imageWidth, castleRenderRect.height / imageHeight);
-        const renderedWidth = imageWidth * scale;
-        const visibleHeight = castleRenderRect.height / scale;
-        const cropTop = this.getCastleSourceCropTop(imageHeight, visibleHeight);
-        return {
-          cropTop,
-          visibleHeight,
-          scale,
-          renderedWidth,
-          renderedHeight: visibleHeight * scale,
-          visibleBandTop: null,
-          visibleBandBottom: null,
-          visibleBandHeight: null,
-        };
-      })();
-    const originX = 0.5;
-    const originY = 0;
-    const centerX = castleRenderRect.centerX;
-    const renderedImageY = castleRenderRect.y;
-    const left = centerX - (originX * framing.renderedWidth);
-    const safeBandAnchorY = this.getCastleSafeBandAnchorY(layout);
+      const baseImage = this.add.image(centerX, renderedImageY, baseKey)
+        .setOrigin(originX, originY)
+        .setCrop(0, framing.cropTop, imageWidth, framing.visibleHeight)
+        .setScale(framing.scale)
+        .setInteractive({ useHandCursor: true });
 
-    return {
-      castleRenderRect,
-      hasBaseTexture: true,
-      transform: {
+      if (onClickCastle) {
+        baseImage.on('pointerdown', onClickCastle);
+      }
+
+      this.currentCastleTransform = {
         sourceWidth: imageWidth,
         sourceHeight: imageHeight,
         sourceCropTop: framing.cropTop,
         sourceCropHeight: framing.visibleHeight,
         renderedWidth: framing.renderedWidth,
         renderedHeight: framing.renderedHeight,
-        scale: framing.scale,
-        centerX,
-        centerY: renderedImageY,
+        scale: baseImage.scaleX,
+        centerX: baseImage.x,
+        centerY: baseImage.y,
         baseRectLeft: left,
         baseRectTop: renderedImageY,
         baseRectWidth: framing.renderedWidth,
@@ -488,25 +477,7 @@ export class CastleScene extends Phaser.Scene {
         visibleBandTop: framing.visibleBandTop,
         visibleBandBottom: framing.visibleBandBottom,
         visibleBandHeight: framing.visibleBandHeight,
-      },
-    };
-  }
-
-  renderBaseLayer({ viewportWidth, viewportHeight, baseKey, layout, onClickCastle, renderSnapshot }) {
-    const castleRenderRect = renderSnapshot.castleRenderRect;
-
-    if (renderSnapshot.hasBaseTexture && renderSnapshot.transform) {
-      const transform = renderSnapshot.transform;
-      const baseImage = this.add.image(transform.centerX, transform.baseRectTop, baseKey)
-        .setOrigin(transform.originX, transform.originY)
-        .setCrop(0, transform.sourceCropTop, transform.sourceWidth, transform.sourceCropHeight)
-        .setScale(transform.scale)
-        .setInteractive({ useHandCursor: true });
-      if (onClickCastle) {
-        baseImage.on('pointerdown', onClickCastle);
-      }
-
-      this.currentCastleTransform = transform;
+      };
 
       this.baseLayer.add(baseImage);
       this.publishCastleMeasurement({
@@ -514,15 +485,15 @@ export class CastleScene extends Phaser.Scene {
         viewportHeight,
         castleRenderRect,
         baseImage,
-        cropTop: transform.sourceCropTop,
-        visibleHeight: transform.sourceCropHeight,
+        cropTop: framing.cropTop,
+        visibleHeight: framing.visibleHeight,
       });
 
       if (this.shouldRenderCalibrationOverlay()) {
         this.renderCalibrationOverlay({
           layout,
-          cropTop: transform.sourceCropTop,
-          visibleHeight: transform.sourceCropHeight,
+          cropTop: framing.cropTop,
+          visibleHeight: framing.visibleHeight,
         });
       }
       return;
@@ -549,7 +520,7 @@ export class CastleScene extends Phaser.Scene {
     this.publishCastleMeasurement({
       viewportWidth,
       viewportHeight,
-      castleRenderRect,
+      castleRenderRect: this.getCastleRenderBounds(viewportWidth, viewportHeight),
       baseImage: null,
       cropTop: null,
       visibleHeight: null,
@@ -1144,7 +1115,7 @@ export class CastleScene extends Phaser.Scene {
   }
 
   getAnchorWorldPosition(anchorLike, layout, options = {}) {
-    const transform = options.transform ?? this.currentCastleTransform;
+    const transform = this.currentCastleTransform;
 
     if (transform && Number.isFinite(anchorLike?.x) && Number.isFinite(anchorLike?.y)) {
       const baseWidth = Number.isFinite(layout?.baseWidth)
@@ -1185,16 +1156,7 @@ export class CastleScene extends Phaser.Scene {
     };
   }
 
-  projectLayoutSlot(slot, layout, transform) {
-    return {
-      slotId: slot.slotId,
-      buildingId: slot.buildingId,
-      slotCenter: this.getAnchorWorldPosition(slot.slotCenter, layout, { transform }),
-      buildAnchor: this.getAnchorWorldPosition(slot.buildAnchor, layout, { transform }),
-    };
-  }
-
-  renderBuildingLayer({ castle, layout, buildingSet, runtimeBuildings, onClickBuilding, transform }) {
+  renderBuildingLayer({ castle, layout, buildingSet, runtimeBuildings, onClickBuilding }) {
     const layoutSlots = this.getLayoutSlots(layout, buildingSet);
     const slotByBuildingId = new Map(layoutSlots.map((slot) => [slot.buildingId, slot]));
     const layoutBaseWidth = Number.isFinite(layout?.baseWidth)
@@ -1262,20 +1224,18 @@ export class CastleScene extends Phaser.Scene {
       })
       .sort((a, b) => a.z - b.z);
 
-    const projectedBuildings = [];
-
     placedBuildings.forEach((building) => {
-      const baseScale = transform?.scale ?? 1;
-      const baseRectLeft = transform?.baseRectLeft;
-      const baseRectTop = transform?.baseRectTop;
-      const baseRectWidth = transform?.baseRectWidth;
-      const baseRectHeight = transform?.baseRectHeight;
+      const baseScale = this.currentCastleTransform?.scale ?? 1;
+      const baseRectLeft = this.currentCastleTransform?.baseRectLeft;
+      const baseRectTop = this.currentCastleTransform?.baseRectTop;
+      const baseRectWidth = this.currentCastleTransform?.baseRectWidth;
+      const baseRectHeight = this.currentCastleTransform?.baseRectHeight;
       const buildAnchorWithOffset = {
         ...building.buildAnchor,
         x: (building.buildAnchor?.x ?? 0) + building.offsetX + globalFootpointOffsetX,
         y: (building.buildAnchor?.y ?? 0) + building.offsetY + globalFootpointOffsetY,
       };
-      const buildAnchorPosition = this.getAnchorWorldPosition(buildAnchorWithOffset, layout, { transform });
+      const buildAnchorPosition = this.getAnchorWorldPosition(buildAnchorWithOffset, layout);
       const x = buildAnchorPosition.x;
       const y = buildAnchorPosition.y;
 
@@ -1332,8 +1292,8 @@ export class CastleScene extends Phaser.Scene {
         const sprite = this.add.image(x, y, building.assetKey)
           .setOrigin(footpointX, footpointY)
           .setDepth(building.z);
-        const renderedBaseWidth = transform?.renderedWidth;
-        const renderedBaseHeight = transform?.renderedHeight;
+        const renderedBaseWidth = this.currentCastleTransform?.renderedWidth;
+        const renderedBaseHeight = this.currentCastleTransform?.renderedHeight;
         const baseSpaceToRenderedScaleX = Number.isFinite(renderedBaseWidth) && Number.isFinite(layoutBaseWidth) && layoutBaseWidth > 0
           ? renderedBaseWidth / layoutBaseWidth
           : baseScale;
@@ -1523,12 +1483,6 @@ export class CastleScene extends Phaser.Scene {
         }
 
         this.buildingLayer.add(sprite);
-        projectedBuildings.push({
-          buildingId: building.buildingId,
-          slotId: building.slotId,
-          anchorX: x,
-          anchorY: y,
-        });
         if (!this.shouldRenderCalibrationOverlay()) {
           this.renderDebugSlotMarker({
             x: sprite.x,
@@ -1555,15 +1509,8 @@ export class CastleScene extends Phaser.Scene {
         level: building.level,
         baseScale,
       });
-      projectedBuildings.push({
-        buildingId: building.buildingId,
-        slotId: building.slotId,
-        anchorX: x,
-        anchorY: y,
-      });
     });
 
-    this.latestProjectedBuildings = projectedBuildings;
     this.pendingBuildGlowById = null;
   }
 
@@ -1600,7 +1547,6 @@ export class CastleScene extends Phaser.Scene {
   }
 
   renderCastleLayers(viewportWidth, viewportHeight) {
-    this.resetCastleRuntimeSnapshot();
     this.clearLayer(this.baseLayer);
     this.clearLayer(this.debugSlotLayer);
     this.clearLayer(this.buildingLayer);
@@ -1608,22 +1554,8 @@ export class CastleScene extends Phaser.Scene {
 
     const { castle, layout, buildingSet, runtimeBuildings } = this.getCastleRenderContext();
     const baseKey = castle?.baseKey ?? 'castle_faction01_base';
-    const renderSnapshot = this.buildCastleTransform({
-      viewportWidth,
-      viewportHeight,
-      baseKey,
-      layout,
-    });
-    const transformId = `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
-    this.currentRenderSnapshot = { transformId, renderSnapshot };
 
-    this.renderBaseLayer({
-      viewportWidth,
-      viewportHeight,
-      baseKey,
-      layout,
-      renderSnapshot,
-      onClickCastle: (pointer) => {
+    this.renderBaseLayer(viewportWidth, viewportHeight, baseKey, layout, (pointer) => {
       const pointerCastleY = this.getPointerCastleNormalizedY(pointer);
       if (!Number.isFinite(pointerCastleY)) {
         return;
@@ -1632,43 +1564,21 @@ export class CastleScene extends Phaser.Scene {
       if (pointerCastleY < this.getCourtyardBoundaryY(layout)) {
         this.openBuildPanel();
       }
-    },
     });
-    const transform = this.currentCastleTransform;
-    if (transform) {
-      const layoutSlots = this.getLayoutSlots(layout, buildingSet);
-      this.latestProjectedSlots = layoutSlots.map((slot) => this.projectLayoutSlot(slot, layout, transform));
-      this.renderBuildingLayer({
-        castle,
-        layout,
-        buildingSet,
-        runtimeBuildings,
-        transform,
-        onClickBuilding: (building) => this.openBuildingPanel(building.buildingId, building.level),
-      });
-      this.createConstructionSlotHotspots({
-        layout,
-        runtimeBuildings,
-        buildingSet,
-        onClickConstruct: () => this.openBuildPanel(),
-      });
-    }
+    this.renderBuildingLayer({
+      castle,
+      layout,
+      buildingSet,
+      runtimeBuildings,
+      onClickBuilding: (building) => this.openBuildingPanel(building.buildingId, building.level),
+    });
+    this.createConstructionSlotHotspots({
+      layout,
+      runtimeBuildings,
+      buildingSet,
+      onClickConstruct: () => this.openBuildPanel(),
+    });
     this.renderMeasurementOverlay(layout);
-
-    if (this.latestCastleMeasurement) {
-      this.latestCastleMeasurement.transformId = transformId;
-      this.latestCastleMeasurement.projectionValidation = {
-        slotCenters: this.latestProjectedSlots.map((slot) => ({
-          slotId: slot.slotId,
-          x: slot.slotCenter.x,
-          y: slot.slotCenter.y,
-        })),
-        buildingAnchors: this.latestProjectedBuildings,
-      };
-      if (typeof window !== 'undefined') {
-        window.__castleMeasurement = this.latestCastleMeasurement;
-      }
-    }
   }
 
   handleResize(gameSize) {
@@ -1688,15 +1598,5 @@ export class CastleScene extends Phaser.Scene {
 
     this.renderCastleLayers(viewport.width, viewport.height);
     console.log(`[CastleScene] resize ${viewport.width}x${viewport.height}`);
-  }
-
-  handleFullscreenTransition() {
-    const viewport = this.getSafeViewportSize({ width: this.scale.width, height: this.scale.height });
-    if (!viewport) {
-      return;
-    }
-
-    this.renderCastleLayers(viewport.width, viewport.height);
-    console.log(`[CastleScene] fullscreen rebuild ${viewport.width}x${viewport.height}`);
   }
 }
