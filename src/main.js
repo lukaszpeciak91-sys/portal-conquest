@@ -125,7 +125,7 @@ function updateOrientationState(width, height, options = {}) {
 }
 
 function syncViewport(viewport = getViewportSize(), options = {}) {
-  const { reason = 'unspecified', allowPortrait = true } = options;
+  const { reason = 'unspecified', allowPortrait = true, forceResize = false } = options;
   const width = Math.floor(viewport.width);
   const height = Math.floor(viewport.height);
 
@@ -134,7 +134,7 @@ function syncViewport(viewport = getViewportSize(), options = {}) {
     return false;
   }
 
-  if (width === lastAppliedViewport.width && height === lastAppliedViewport.height) {
+  if (!forceResize && width === lastAppliedViewport.width && height === lastAppliedViewport.height) {
     updateOrientationState(width, height, { allowPortrait });
     debugViewport('reuse viewport', { reason, width, height, source: viewport.source ?? 'unknown' });
     return true;
@@ -168,6 +168,8 @@ function syncViewportWhenSettled(options = {}) {
     reason = 'settle',
     allowPortrait = true,
     onSettled = null,
+    relayoutScene = true,
+    forceResize = false,
   } = options;
 
   cancelViewportSettle();
@@ -192,7 +194,10 @@ function syncViewportWhenSettled(options = {}) {
 
     if (stableCount >= stableFrames || settleAttempt >= maxAttempts) {
       settleRafId = null;
-      const applied = syncViewport(current, { reason, allowPortrait });
+      const applied = syncViewport(current, { reason, allowPortrait, forceResize });
+      if (relayoutScene) {
+        relayoutActiveScene(current, { reason: `${reason}:scene-rebuild` });
+      }
       if (typeof onSettled === 'function') {
         onSettled({ applied, viewport: current });
       }
@@ -241,11 +246,6 @@ function refreshViewportAfterFullscreenChange() {
   isFullscreenTransitioning = fullscreenActive;
   debugViewport('fullscreen change', { fullscreenActive });
 
-  syncViewport(getViewportSize({ forceInner: true }), {
-    reason: 'fullscreen:immediate',
-    allowPortrait: fullscreenActive,
-  });
-
   if (viewportRefreshTimer) {
     window.clearTimeout(viewportRefreshTimer);
   }
@@ -255,11 +255,8 @@ function refreshViewportAfterFullscreenChange() {
       maxAttempts: 12,
       reason: 'fullscreen:settled',
       allowPortrait: true,
-      onSettled: ({ viewport }) => {
-        if (!fullscreenActive) {
-          relayoutActiveScene(viewport, { reason: 'fullscreen:post-settle-final' });
-        }
-      },
+      relayoutScene: true,
+      forceResize: true,
     });
   }, 80);
 }
@@ -292,7 +289,7 @@ function queueViewportSync() {
   }
 
   resizeTimer = window.setTimeout(() => {
-    syncViewportWhenSettled({ reason: 'window:resize' });
+    syncViewportWhenSettled({ reason: 'window:resize', relayoutScene: true, forceResize: true });
   }, RESIZE_DEBOUNCE_MS);
 }
 
