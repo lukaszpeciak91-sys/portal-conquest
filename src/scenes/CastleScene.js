@@ -83,7 +83,7 @@ export class CastleScene extends Phaser.Scene {
       showPlacementMarkers: measurementOverlayEnabled,
       showMeasurementOverlay: measurementOverlayEnabled,
     };
-    this.renderCastleLayers(viewport.width, viewport.height);
+    this.rebuildCastleScene(viewport, { reason: 'create:initial' });
 
     this.scale.on('resize', this.handleResize, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
@@ -111,7 +111,7 @@ export class CastleScene extends Phaser.Scene {
 
       const currentViewport = this.getSafeViewportSize({ width: this.scale.width, height: this.scale.height })
         ?? { width: this.scale.width, height: this.scale.height };
-      this.renderCastleLayers(currentViewport.width, currentViewport.height);
+      this.rebuildCastleScene(currentViewport, { reason: 'build:event' });
       this.openBuildPanel();
     };
 
@@ -139,7 +139,56 @@ export class CastleScene extends Phaser.Scene {
     this.debugOptions.showMeasurementOverlay = measurementOverlayEnabled;
     const currentViewport = this.getSafeViewportSize({ width: this.scale.width, height: this.scale.height })
       ?? { width: this.scale.width, height: this.scale.height };
-    this.renderCastleLayers(currentViewport.width, currentViewport.height);
+    this.rebuildCastleScene(currentViewport, { reason: 'debug:toggle' });
+  }
+
+  resetCastleRebuildState() {
+    this.currentCastleTransform = null;
+    this.latestCastleMeasurement = null;
+
+    if (typeof window !== 'undefined') {
+      window.__castleMeasurement = null;
+    }
+  }
+
+  normalizeSceneCamera(viewportWidth, viewportHeight) {
+    const camera = this.cameras?.main;
+    if (!camera) {
+      return;
+    }
+
+    camera.setVisible(true);
+    camera.setViewport(0, 0, viewportWidth, viewportHeight);
+    camera.setSize(viewportWidth, viewportHeight);
+    camera.setBounds(0, 0, viewportWidth, viewportHeight);
+    camera.setZoom(1);
+    camera.centerOn(viewportWidth / 2, viewportHeight / 2);
+    camera.preRender();
+  }
+
+  rebuildCastleScene(gameSize, options = {}) {
+    const { reason = 'castle:rebuild', failLoudly = Boolean(import.meta.env?.DEV) } = options;
+    const viewport = this.getSafeViewportSize(gameSize);
+
+    if (!viewport) {
+      const details = { reason, width: gameSize?.width ?? null, height: gameSize?.height ?? null };
+      const error = new Error(`[CastleScene] invalid viewport during rebuild (${details.width}x${details.height}) from ${reason}`);
+      console.error(error.message, details);
+      if (failLoudly) {
+        throw error;
+      }
+      return false;
+    }
+
+    const { width: viewportWidth, height: viewportHeight } = viewport;
+    this.castleLayerRoot?.setVisible(true);
+    this.castleLayerRoot?.setActive(true);
+    this.castleLayerRoot?.setPosition(0, 0);
+    this.normalizeSceneCamera(viewportWidth, viewportHeight);
+    this.resetCastleRebuildState();
+    this.renderCastleLayers(viewportWidth, viewportHeight);
+    console.log(`[CastleScene] rebuild ${viewportWidth}x${viewportHeight} reason=${reason}`);
+    return true;
   }
 
   getCastleRenderContext() {
@@ -1582,21 +1631,6 @@ export class CastleScene extends Phaser.Scene {
   }
 
   handleResize(gameSize) {
-    const viewport = this.getSafeViewportSize(gameSize);
-    if (!viewport) {
-      return;
-    }
-
-    const camera = this.cameras?.main;
-    if (camera) {
-      camera.setViewport(0, 0, viewport.width, viewport.height);
-      camera.setSize(viewport.width, viewport.height);
-      camera.setBounds(0, 0, viewport.width, viewport.height);
-      camera.centerOn(viewport.width / 2, viewport.height / 2);
-      camera.preRender();
-    }
-
-    this.renderCastleLayers(viewport.width, viewport.height);
-    console.log(`[CastleScene] resize ${viewport.width}x${viewport.height}`);
+    this.rebuildCastleScene(gameSize, { reason: 'scale:resize' });
   }
 }
