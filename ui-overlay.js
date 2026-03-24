@@ -49,7 +49,8 @@ import { SceneRouter } from './src/SceneRouter';
   function renderDebugPanel() {
     if (!mapDebugPanel) return;
 
-    const isVisible = state.debugEnabled && state.activeMode === 'map';
+    const isDebugMode = state.activeMode === 'map' || state.activeMode === 'castle';
+    const isVisible = state.debugEnabled && isDebugMode;
     mapDebugPanel.hidden = !isVisible;
     mapDebugPanel.setAttribute('aria-hidden', String(!isVisible));
 

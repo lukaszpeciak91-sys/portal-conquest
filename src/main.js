@@ -236,7 +236,7 @@ function relayoutActiveScene(viewport, options = {}) {
     return false;
   }
 
-  scene.handleResize({ width, height });
+  scene.handleResize({ width, height, reason });
   debugViewport('scene relayout', { reason, scene: scene.scene?.key ?? 'unknown', width, height });
   return true;
 }
