@@ -4,13 +4,13 @@
 - **Structural foundation phase** (core architecture exists; gameplay depth is still limited).
 
 ## Implemented Systems
-- **Castle screen architecture finalized:** rendering contract now uses fullscreen-style cover scaling with deterministic safe-band framing, interaction zones are split by `courtyardBoundaryY`, and click routing is boundary-driven (construction above, building interaction below).
+- **Castle screen architecture finalized:** rendering contract now uses a single fullscreen-style cover model with a fixed focusY framing rule across desktop/mobile, interaction zones are split by `courtyardBoundaryY`, and click routing is boundary-driven (construction above, building interaction below).
 - **Map traversal loop:** movement between connected nodes is implemented.
 - **Node inspect flow:** inspect/confirm interaction loop exists for map nodes.
 - **Scene architecture:** `SceneRouter` is established and used for scene transitions.
 - **Runtime state layer:** `GameState` + runtime node state helpers are implemented as central run/session state.
 - **Data-driven baseline:** map/config/faction JSON loading is in place.
-- **Castle layered rendering + visual polish:** `CastleScene` now keeps a mobile-landscape explicit gameplay-safe source band (`100..660` in base-space) always visible, allows compact top-right controls to overlay the image (no reserved top gap), and keeps bottom navigation below the lower gameplay-safe boundary while preserving slot/building alignment through the shared `currentCastleTransform`.
+- **Castle layered rendering + visual polish:** `CastleScene` now preserves slot/building alignment through one shared `currentCastleTransform`, uses a non-black fallback layer during transient resize/fullscreen/orientation instability, and auto-recovers on the next stable layout pass.
 - **Documentation governance hardening:** strict per-file documentation update policy is now defined in `docs/project/workflow.md` to keep project knowledge centralized and reduce cross-file drift.
 
 ### Castle Building Placement System
@@ -82,3 +82,9 @@
 - Castle base rendering now uses deterministic cover-fit (`Math.max(...)`) inside playable bounds, with safe-band vertical targeting derived from authored slot/build-anchor metadata to keep gameplay-critical overlay readability stable under fullscreen/mobile UI.
 - Slot/build anchors remain mapped through the same rendered-base transform (`currentCastleTransform`) so overlay alignment stays tied to base geometry after cover cropping.
 - Human-faction overlays now receive a small explicit global size boost through one composed multiplier (`HUMAN_BUILDING_GLOBAL_SCALE_MULTIPLIER = 1.08`) applied on top of existing deterministic scale resolution.
+
+## 2026-03-24 Update
+- **Castle framing contract unified (current source of truth):** runtime now uses one cover + fixed focusY pipeline on every device/viewport path; device-dependent alternate/mobile framing is superseded.
+- **Castle rebuild resilience added:** resize/fullscreen/orientation rebuilds now preserve last known good transform/measurement, render a non-black fallback state when viewport/texture dimensions are transiently invalid, and schedule automatic retry for recovery.
+- **Castle debug parity with Map improved:** debug reporting now includes rebuild reason/source, viewport, playable bounds, render rect, crop values, scale, and focusY; overlay debug panel visibility now works in both Map and Castle modes.
+- **Historical note (superseded behavior):** earlier docs referencing a mobile-only explicit visible source band (`100..660`) are now historical context and no longer describe current runtime behavior.
