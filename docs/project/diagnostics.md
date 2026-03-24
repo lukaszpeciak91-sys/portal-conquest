@@ -117,3 +117,10 @@ Normalize anchor field access in `CastleScene` placement logic.
 - Fullscreen enter/exit and orientation listeners are owned in `main.js`; `CastleScene` itself only listens to Phaser scale resize and does not bind wake/resume/orientation/fullscreen lifecycle hooks, so recovery depends on resize dispatch ordering.
 - `renderCastleLayers(...)` clears all layer containers each rebuild and relies on `renderBaseLayer(...)` to repopulate `currentCastleTransform`/measurement before building projection; when viewport updates are skipped or invalid (`<64` side), stale transform + stale measurement can coexist with freshly cleared/rebuilt layers.
 - Black-screen reports are consistent with invalid/short-circuited viewport application paths (`syncViewport` invalid/reuse branches) combined with missing guaranteed final relayout for non-fullscreen orientation changes.
+
+## 2026-03-24 — Castle unified render + rebuild recovery pass (implementation conclusion)
+- Implemented one Castle framing pipeline (`cover + fixed focusY`) and removed runtime dual-framing/device-branch behavior.
+- Added defensive rebuild flow for transient invalid viewport/texture states: preserve last known good transform/measurement, render non-black fallback layer, then retry layout automatically.
+- Added Castle lifecycle listeners for orientation/fullscreen events and propagated rebuild reason/source through relayout path for diagnosability.
+- Expanded Castle diagnostics payload and on-screen debug metrics with rebuild reason/source + viewport/playable/render/crop/scale/focusY values.
+- Historical/superseded note: prior mobile-only explicit visible source band framing is no longer active runtime behavior.

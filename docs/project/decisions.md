@@ -149,12 +149,16 @@ Debug/dev enforcement rule: when overlay bounds significantly exceed the slot-lo
 Rendering contract (permanent):
 
 - Castle base rendering uses **fullscreen-style cover scaling** (`Math.max(...)`) inside playable bounds to remove visible side margins in intended presentation.
-- Castle cover framing uses a standardized vertical pivot target of **55%** (`coverPivotY = 0.55`) unless an explicit layout override is intentionally authored.
+- Castle cover framing uses a standardized fixed focusY target from castle calibration/runtime defaults (`backgroundFocusY`, currently human default `0.36`) as the single framing source across desktop/mobile.
 - Controlled crop is explicitly accepted as part of the castle presentation contract.
 - Castle framing keeps a deterministic gameplay-safe readable band by targeting the authored slot/build-anchor region in visible space.
 - Slot/build anchors remain mapped against the same rendered base rect (`currentCastleTransform`) so overlays stay geometrically locked to castle art under resize/crop.
-- **Mobile landscape CastleScene uses an explicit source-space visible band** (`visibleBandTopY = 100`, `visibleBandBottomY = 660` on `public/assets/castles/faction01/castle_base.png` at `1536x1024`) as the framing source of truth.
-- On mobile CastleScene, compact top-right controls intentionally **overlay the castle image** (no reserved black top gap); bottom mode bar remains below the lower gameplay-safe boundary.
+- Runtime must preserve visual continuity during transient layout instability (resize/orientation/fullscreen): when viewport/texture values are invalid, a non-black fallback state is rendered and auto-recovered on subsequent stable rebuild.
+- On CastleScene, compact top-right controls may overlay the castle image (no forced reserved black top gap); bottom mode bar remains below playable interaction boundaries.
+
+Historical context (superseded):
+
+- Prior mobile-specific explicit source band framing guidance (`visibleBandTopY = 100`, `visibleBandBottomY = 660`) is preserved as historical context only and is no longer the active runtime framing contract.
 
 Interaction zone split:
 

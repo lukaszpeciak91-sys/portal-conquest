@@ -49,9 +49,10 @@ This is the authoritative castle-base contract for establishing and extending fa
 Target file in pipeline: `castle_base.png`
 
 Human canonical calibration reference:
-- Canonical authored base space for the current human template is `1536x1024`.
+- Canonical authored base space for the current human template is `2048x1152`.
 - Preserve a centered castle mass, readable courtyard, and six clear build pads so slot calibration stays stable.
 - If a wider composition variant is explored, extend safely at the sides while preserving central gameplay readability and pad separability.
+- Historical note (superseded): earlier calibration passes referenced `1536x1024`; keep only for historical migration context, not as current target output.
 
 ```text
 Create a fantasy strategy game castle background.

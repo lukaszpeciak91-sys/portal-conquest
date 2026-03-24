@@ -135,6 +135,12 @@ When a task finishes, Codex must decide documentation updates like this:
 
 If none of the above applies, do not update docs unnecessarily.
 
+### 7. Chronology integrity rule (mandatory)
+- Preserve historical timelines when updating project docs.
+- Append new dated entries instead of rewriting prior dated entries.
+- If a previous behavior/contract is replaced, mark it explicitly as **historical/superseded** rather than silently deleting all references.
+- Keep "current behavior" statements explicit so active source-of-truth is unambiguous.
+
 ### 6. Anti-chaos rule
 Do NOT create new standalone documentation files unless explicitly requested.
 
