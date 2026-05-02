@@ -88,8 +88,3 @@
 - **Castle rebuild resilience added:** resize/fullscreen/orientation rebuilds now preserve last known good transform/measurement, render a non-black fallback state when viewport/texture dimensions are transiently invalid, and schedule automatic retry for recovery.
 - **Castle debug parity with Map improved:** debug reporting now includes rebuild reason/source, viewport, playable bounds, render rect, crop values, scale, and focusY; overlay debug panel visibility now works in both Map and Castle modes.
 - **Historical note (superseded behavior):** earlier docs referencing a mobile-only explicit visible source band (`100..660`) are now historical context and no longer describe current runtime behavior.
-
-## 2026-05-02 Update
-- Battle UI was aligned to the final MVP reference image with Phaser-only layout updates for hierarchy, spacing, and board/hand proportions.
-- Enemy and player hero HP panels were introduced visually and now display `HP 12 / 12`.
-- Existing hand card selection and player-row unit placement interaction was preserved while reflowing the battle screen structure.
